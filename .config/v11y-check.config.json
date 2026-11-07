@@ -4,10 +4,10 @@
     "severityThreshold": "moderate",
     "allowlist": [
       {
-        "addedAt": "2026-11-05T07:16:01.516Z",
+        "addedAt": "2026-11-07T20:57:23.350Z",
         "id": "1244623",
-        "path": "apps__nextjs>@williamthorsen/eslint-config-typescript>eslint>@eslint/config-array>minimatch",
-        "reason": "Added by v11y sync at 2026-11-05 07:16:01 UTC",
+        "path": ".>@williamthorsen/strict-lint>eslint>minimatch",
+        "reason": "Added by v11y sync at 2026-11-07 20:57:23 UTC",
         "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249"
       }
     ]
