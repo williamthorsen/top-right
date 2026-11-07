@@ -2,6 +2,6 @@
 project:
   slug: top-right
   ticket_ref_prefix: '#'
-  maturity: early
+  maturity: hobby
   sensitivity: low
-  audience: team
+  audience: owner
