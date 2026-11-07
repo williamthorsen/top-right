@@ -2,7 +2,7 @@
 
 ## Overview
 
-Work items as sized bubbles on urgency and importance axes, with adapters for GitHub and Jira. A pnpm monorepo: `apps/` holds runnable apps and `packages/` holds libraries, starting with the `_workspace` scaffold. The repo uses `@williamthorsen/nmr` as its unified workspace script runner, `@williamthorsen/release-kit` for releases, and `readyup` for pre-release checks.
+Work items as sized bubbles on urgency and importance axes, with adapters for GitHub and Jira. A pnpm monorepo: `apps/` holds runnable apps and `packages/` holds libraries, starting with the `_workspace` scaffold. The repo uses `@williamthorsen/nmr` as its unified workspace script runner, `@williamthorsen/release-kit` for releases, and `readyup` for pre-release checks. [`docs/design.md`](docs/design.md) records the product's purpose, its decisions with their reasons, and its rough package structure.
 
 ## Project structure
 
@@ -11,6 +11,7 @@ Work items as sized bubbles on urgency and importance axes, with adapters for Gi
 - `.config/readyup.config.ts` — readyup configuration
 - `.config/wt.toml` — worktrunk hooks, whose `[pre-start]` pipeline copies gitignored local files into a new worktree before installing dependencies
 - `.worktreeinclude` — the allowlist bounding that copy; without it every gitignored file is copied
+- `docs/design.md` — the product's design doc
 - `docs/new-package.md` — checklist for starting an app or a library from the `_workspace` scaffold and giving the copy its own identity
 
 ## Commands
