@@ -1,0 +1,62 @@
+[
+  {
+    "version": "1.3.1",
+    "date": "2026-11-07",
+    "sections": [
+      {
+        "title": "♻️ Refactoring",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Moves the api, cdk, chrome, nextjs, and react starters from `packages/` to `apps/`, which `pnpm-workspace.yaml` now declares alongside `packages/*`, and keeps `packages/` for the `_workspace` library scaffold. (#180)",
+            "hash": "79fd64b25ed81671444217a9de7fda4c570a9695",
+            "entry": 1
+          }
+        ]
+      },
+      {
+        "title": "⚙️ Tooling",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Fixes the SC2181 finding in `apps/cdk/scripts/build-sam.sh` and the SC2015 finding in `scripts/node-runtime-doctor.sh`. (#186)",
+            "hash": "b6d8dabbcb0be612f53fb346bb7a2def3fd71391",
+            "entry": 3
+          },
+          {
+            "description": "Moves `build:sam` from the cdk `build` script to the `dev` script, so that `nmr build`, `nmr ci`, and `nmr prepush` no longer require the AWS SAM CLI. (#195)",
+            "hash": "34f1b8bd67bb0dcea018bde4a622e03ff394b47f",
+            "entry": 1
+          }
+        ]
+      },
+      {
+        "title": "📦 Dependencies",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Upgrades the dependencies to their latest releases, including pnpm 12.14.0, `@williamthorsen/nmr` 0.50.0, and `@williamthorsen/tsconfig` 0.12.0, and holds `lefthook` at 2.2.1 because 2.2.2 was published from a maintainer's account without provenance. (#183)",
+            "hash": "1f48beb881f083fb965c5ffba64ef9946425f884",
+            "entry": 1
+          },
+          {
+            "description": "Upgrades all dependencies to their latest versions. (#200)",
+            "hash": "c5676581106ba8a8acb2983be40d4a5f725b281c",
+            "entry": 2
+          }
+        ]
+      },
+      {
+        "title": "📚 Documentation",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Corrects `apps/cdk/scripts/notes.md`, which named a nonexistent `build:cdk:sam` script and the input directory `cdk.out/`, to name `build:sam` and `.cdk.out/`. (#195)",
+            "hash": "34f1b8bd67bb0dcea018bde4a622e03ff394b47f",
+            "entry": 3
+          }
+        ]
+      }
+    ]
+  }
+]
