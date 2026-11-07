@@ -8,7 +8,7 @@ Top Right plots work items as circles on a chart. Urgency runs along the x-axis 
 
 A session's job is to choose the next item to work on and to re-score the items that have changed since the last session. A feature belongs in the MVP when the product cannot do that job without it.
 
-Each circle links to the item's source of truth. Hovering a circle previews its detail; selecting it, by click or by keyboard, keeps the detail open and shows the item's blocker edges. Circles are layered by status category (to do, in progress, done), and done items are hidden by default.
+Each circle links to the item's source of truth. Hovering a circle previews its detail; selecting it, by click or by keyboard, keeps the detail open and keeps the item's arrows shown. Circles are layered by status category (to do, in progress, done), and done items are hidden by default.
 
 The primary user is the author, who runs Top Right locally as a personal tool. Agents and an editing UI both write scores. Later hosts serve developers at work, Jira customers, and small-scale users through skypilot.dev.
 
@@ -54,7 +54,7 @@ Revised after the Jira site admin and developer evaluations: The decision offere
 
 ### Unscored items and agent-written scores
 
-A score is absent until an agent or the author writes it, never defaulted, and the chart renders an unscored item apart from the scored ones rather than at a default position. The first session's scores come from an agent that reads the backlog and scores it, and the author corrects them on the chart. An agent writes through the same store interface as the editing UI.
+A score is absent until an agent or the author writes it, never defaulted. Urgency and importance place an item, and the chart renders an item that lacks either apart from the placed ones rather than at a default position. A missing effort renders at the marked floor, and a missing progress leaves remaining scope equal to original scope. The first session's scores come from an agent that reads the backlog and scores it, and the author corrects them on the chart. An agent writes through the same store interface as the editing UI.
 
 Added after the product manager, interaction designer, and developer evaluations: A real backlog arrives without scores, so the first session is empty or a pile at the origin unless something scores it, and a defaulted score misstates the item's position. Agent-written scores are also what sets the product apart from a priority field or a project board, and they had no decision of their own.
 
@@ -62,7 +62,7 @@ Added after the product manager, interaction designer, and developer evaluations
 
 The GitHub adapter comes first, because using the tool on real data on the development machine is what keeps it from staying an idea. The local host reads its GitHub token from `GITHUB_TOKEN` or from `gh auth token`, so that the first run needs nothing beyond `gh auth login`. The Jira adapter comes second. It is built against a personal Atlassian site seeded by a script, and it depends on `@williamthorsen/atlassian-tools` for auth and transport.
 
-Revised after the developer evaluation: The decision said only that the local host holds a token, and whether that token is a pasted personal access token or the one that `gh` already holds decides the first hour.
+Revised after the developer evaluation: The decision did not say where the local host gets its GitHub token, and whether it is a pasted personal access token or the one that `gh` already holds decides the first hour.
 
 ### Status is a derived category with an override
 
