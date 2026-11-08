@@ -10,7 +10,7 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { type ReactElement, useMemo, useState } from 'react';
+import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
 import { DetailPane } from './DetailPane.tsx';
 import { GutterCell } from './GutterCell.tsx';
@@ -102,6 +102,15 @@ export function Chart({
     onKeep,
     onScoresChange,
   });
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Bring each item that a review moves to into view, since the chart scrolls on a narrow screen.
+  useEffect(() => {
+    if (review.kind === undefined || selectedKey === undefined) return;
+    const element = scrollRef.current?.querySelector(`[data-item-key="${CSS.escape(selectedKey)}"]`);
+    element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [review.kind, selectedKey]);
+
   const trails = listTrails(
     cells,
     scores,
@@ -119,7 +128,7 @@ export function Chart({
             onStart={review.start}
             running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
           />
-          <div className="tr-chart-scroll">
+          <div className="tr-chart-scroll" ref={scrollRef}>
             <svg
               aria-label="Items by urgency and impact"
               className="tr-chart"

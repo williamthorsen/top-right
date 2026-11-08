@@ -58,6 +58,7 @@ export function ScoredCircle({
       aria-label={name}
       aria-pressed={isSelected}
       className="tr-node"
+      data-item-key={id}
       data-faded={isFaded && !isSelected}
       data-status={status}
       data-work-type={workType}

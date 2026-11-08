@@ -51,6 +51,7 @@ export function GutterCell({
               <button
                 aria-label={`${label}: ${item.title}`}
                 aria-pressed={key === selectedKey}
+                data-item-key={key}
                 className="tr-item"
                 onBlur={() => onPreview(undefined)}
                 onClick={() => onSelect(key)}
