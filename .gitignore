@@ -33,7 +33,7 @@ next-env.d.ts
 .vercel
 
 # Local-only
-local/
+/local/
 tmp/
 *.local
 *.local.*

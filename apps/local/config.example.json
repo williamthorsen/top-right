@@ -1,0 +1,7 @@
+{
+  "repos": [
+    { "repo": "williamthorsen/top-right" },
+    { "repo": "williamthorsen/codeassembly", "abbreviation": "ca" },
+    { "repo": "williamthorsen/codeassembly-guidance", "abbreviation": "cg" }
+  ]
+}

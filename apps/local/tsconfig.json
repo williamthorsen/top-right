@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // The local host's server runs workspace source through Node's type stripping.
+    "erasableSyntaxOnly": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2025", "ESNext.Disposable", "ESNext.Array", "DOM", "DOM.Iterable"],
+    // The template test imports `node:` builtins.
+    "types": ["node", "vite/client"],
+  },
+  "include": ["src/", "*.ts"],
+}

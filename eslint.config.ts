@@ -1,9 +1,13 @@
-import baseConfig, { commonIgnores, toolIgnores } from '@williamthorsen/eslint-config-typescript';
+import baseConfig, { commonIgnores, createConfig, toolIgnores } from '@williamthorsen/eslint-config-typescript';
 import { defineConfig, globalIgnores } from 'eslint/config';
+
+// The shared ignores skip every `local/` directory, which would skip `apps/local`; only the root scratch directory is
+// local-only here.
+const ignores = [...commonIgnores.filter((pattern) => pattern !== '**/local/**'), 'local/**', ...toolIgnores];
 
 const config = defineConfig(
   ...baseConfig,
-  globalIgnores([...commonIgnores, ...toolIgnores]),
+  globalIgnores(ignores),
   {
     files: ['**/*.ts', '**/*.mts', '**/*.tsx'],
     languageOptions: {
@@ -22,6 +26,15 @@ const config = defineConfig(
         },
       ],
     },
+  },
+  {
+    files: ['**/*.tsx'],
+    extends: [await createConfig.react(), await createConfig.jsxA11y()],
+    settings: { react: { version: '19.3' } },
+  },
+  {
+    files: ['**/__tests__/**/*.test.tsx'],
+    extends: [await createConfig.reactTestingLibrary()],
   },
   {
     files: ['**/*.test.ts', '**/*.test.tsx'],

@@ -85,6 +85,18 @@
 - name: scope:_workspace
   color: 00ff96
   description: ''
+- name: scope:adapter-github
+  color: 00ff96
+  description: adapter-github package
+- name: scope:chart
+  color: 00ff96
+  description: chart package
+- name: scope:local
+  color: 00ff96
+  description: local package
+- name: scope:model
+  color: 00ff96
+  description: model package
 - name: scope:root
   color: 00ff96
   description: ''

@@ -19,6 +19,10 @@
   },
   "scopes": {
     "_workspace": "scope:_workspace",
+    "adapter-github": "scope:adapter-github",
+    "chart": "scope:chart",
+    "local": "scope:local",
+    "model": "scope:model",
     "root": "scope:root"
   }
 }

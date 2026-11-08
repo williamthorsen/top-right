@@ -1,0 +1,46 @@
+{
+  "name": "@top-right/chart",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Top Right chart: work items by urgency and impact, with a detail pane",
+  "keywords": [
+    "top-right",
+    "chart",
+    "react"
+  ],
+  "license": "UNLICENSED",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": ":"
+  },
+  "dependencies": {
+    "@top-right/model": "workspace:*"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "catalog:",
+    "@testing-library/jest-dom": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "14.6.8",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@williamthorsen/nmr": "catalog:",
+    "jsdom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

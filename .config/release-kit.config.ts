@@ -13,6 +13,10 @@ const config = defineConfig({
     labels: {
       'scope:root': { color: '00ff96' },
       'scope:_workspace': { color: '00ff96' },
+      'scope:adapter-github': { color: '00ff96', description: 'adapter-github package' },
+      'scope:chart': { color: '00ff96', description: 'chart package' },
+      'scope:local': { color: '00ff96', description: 'local package' },
+      'scope:model': { color: '00ff96', description: 'model package' },
     },
   },
 

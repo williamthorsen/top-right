@@ -1,0 +1,25 @@
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: Canvas;
+  color: CanvasText;
+  font:
+    14px/1.45 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+.host-status {
+  margin: 0;
+  padding: 16px;
+}

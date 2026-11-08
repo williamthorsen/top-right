@@ -74,11 +74,11 @@ Decided at the prototype round: All four prototypes converged on the integer sca
 
 ### Unscored items in a gutter row and column
 
-An item that lacks a score for one axis sits in an unscored column or row inside the matrix, at the coordinate that it does have; one that lacks both sits in the corner cell. The gutters share the matrix's background, so that they do not read as an inset or a legend, and each gutter cell lists its circles with their ids. Scoring an item moves it one cell in. A score is absent until an agent or the author writes it, never defaulted. A missing effort renders at the marked floor, and a missing progress leaves remaining scope equal to original scope.
+An item that lacks a score for one axis sits in an unscored column or row inside the matrix, at the coordinate that it does have; one that lacks both sits in the corner cell. The gutters share the matrix's background, so that they do not read as an inset or a legend, and each gutter cell lists its circles with their ids. A gutter cell whose list is taller than the cell scrolls within the cell, with scroll shadows at each edge past which the list continues; circles never shrink below the floor to fit. Scoring an item moves it one cell in. A score is absent until an agent or the author writes it, never defaulted. A missing effort renders at the marked floor, and a missing progress leaves remaining scope equal to original scope.
 
 The first session's scores come from an agent that reads the backlog and scores it, and the author corrects them on the chart. An agent writes through the same store interface as the editing UI.
 
-Added after the product manager, interaction designer, and developer evaluations: A real backlog arrives without scores, and a defaulted score misstates the item's position. Revised at the prototype round: The gutters come from 2.1 Dense backlog, adapted so that they are part of the matrix (row 9); 3.1's tray of chips above the chart and 4.1's dock below it were dropped, because they ate space and did not read (row 18).
+Added after the product manager, interaction designer, and developer evaluations: A real backlog arrives without scores, and a defaulted score misstates the item's position. Revised at the prototype round: The gutters come from 2.1 Dense backlog, adapted so that they are part of the matrix (row 9); 3.1's tray of chips above the chart and 4.1's dock below it were dropped, because they ate space and did not read (row 18). Revised after the first MVP iteration (#11): A real backlog put every open issue, close to a hundred, in the corner cell, and the doc did not say what a cell does when its list does not fit. Shrinking the circles would break the marked floor and the touch targets, and the platform's overlay scrollbars stay hidden until a scroll, so the shadows are the cue.
 
 ### The next pick and the review
 
@@ -136,15 +136,15 @@ Added after the data-visualization evaluation: The doc assigned no channel to st
 
 ### Circle labels and repo abbreviations
 
-A circle shows its id as the repo's abbreviation and the number, `n.382`, because a bare number is not helpful across repos. With one repo filtered, the number alone. A Jira key stacks over its number in a smaller font. Abbreviations default to the repo's first letter and are mapped per repo in Settings, because two repos can share a letter. Larger circles add the title at higher zoom.
+A circle shows its id as the repo's abbreviation and the number, `n.382`, because a bare number is not helpful across repos. With one repo filtered, the number alone. A Jira key stacks over its number in a smaller font. Abbreviations default to the repo's first letter and are mapped per repo in Settings, because two repos can share a letter. Until Settings exists, the local host's config file sets them, and the host refuses to start while two repos share an abbreviation, compared case-insensitively. Larger circles add the title at higher zoom.
 
-Decided at the prototype round (row 26).
+Decided at the prototype round (row 26). Revised after the first MVP iteration (#11): The author's own repos share first letters (`codeassembly`, `codeassembly-guidance`, `configs.macos`), so ambiguous ids appeared from the first run, before Settings.
 
 ### Detail in a side pane
 
-Detail lives in a side pane on desktop and a bottom sheet on a phone, never in a tooltip, because a tooltip jumps and cannot carry the pane's structure. The pane shows the id with an external-link icon to the source, the title, the status control, the four scores as compact segmented controls with one provenance line each (who set it and when), the points under Progress, and the relations as lists of rows with the id in monospace and the title, each row tagged closed or blocked where that holds. Hovering a relation row rings its circle on the chart. A segmented control is one tab stop, and arrow keys move within it. The pane takes the room that a wide window offers and is resizable.
+Detail lives in a side pane on desktop and a bottom sheet on a phone, never in a tooltip, because a tooltip jumps and cannot carry the pane's structure. The pane shows the id with an external-link icon to the source, the title, the status control, the four scores as compact segmented controls with one provenance line each (who set it and when), the points under Progress, and the relations as lists of rows with the id in monospace and the title, each row tagged closed or blocked where that holds. Hovering a relation row rings its circle on the chart. A segmented control is one tab stop, and arrow keys move within it. The pane takes the room that a wide window offers and is resizable. While an item is selected, the pane shows a Close button that clears the selection, because touch has no Escape key; on a phone, the page leaves room to scroll the chart above the sheet.
 
-Decided at the prototype round: The relations list comes from 1.1 (row 30), and 4.1's pane won on feel (row 29); the "Open" state chip (row 34), the "Open on GitHub" button (row 36), and 3.1's tall rating buttons (row 24) were dropped.
+Decided at the prototype round: The relations list comes from 1.1 (row 30), and 4.1's pane won on feel (row 29); the "Open" state chip (row 34), the "Open on GitHub" button (row 36), and 3.1's tall rating buttons (row 24) were dropped. Revised after the first MVP iteration (#11): On a phone, the sheet covered the corner cell and offered no way to dismiss it.
 
 ### Filter and fade
 
@@ -154,11 +154,11 @@ Decided at the prototype round (rows 22, 27): The developer asked for the distin
 
 ### Zoom and navigation
 
-At 1× the whole matrix fits the chart area, and zoom is continuous above that, with a fit step. A Top right control, with a quadrant icon, jumps to the top-right quadrant. When zoomed, a drag on the background pans, with a grab cursor. Hovering an empty spot in a cell shows a one-line callout for every circle in the cell, over faded neighbours, so that a crowded cell can be read without zooming.
+At 1× the whole matrix fits the chart area wherever the area keeps the chart's text at its 12 px floor, and zoom is continuous above that, with a fit step. A narrower area, such as a phone's, shows the matrix at its floor scale and scrolls. A Top right control, with a quadrant icon, jumps to the top-right quadrant. When zoomed, a drag on the background pans, with a grab cursor. Hovering an empty spot in a cell shows a one-line callout for every circle in the cell, over faded neighbours, so that a crowded cell can be read without zooming.
 
 Each click selection is a history entry, so Back returns to the previous circle, and a selected item's URL can be shared. Hover and keyboard moves push nothing.
 
-Decided at the prototype round: The callouts (row 31), drag to pan (row 35), and deep links (row 33) are the developer's ideas; the Top right control comes from 3.1 and 4.1 (row 23). 2.1's chart that scrolls at 1× so that the densest cell fits was adapted into fit-at-1× with zoom (row 7), because a chart that scrolls at 1× loses the whole-board view.
+Decided at the prototype round: The callouts (row 31), drag to pan (row 35), and deep links (row 33) are the developer's ideas; the Top right control comes from 3.1 and 4.1 (row 23). 2.1's chart that scrolls at 1× so that the densest cell fits was adapted into fit-at-1× with zoom (row 7), because a chart that scrolls at 1× loses the whole-board view. Revised after the first MVP iteration (#11): At 390 px, a matrix fitted to the width scales its 12 px labels to about 6 px, so the phone keeps the floor and scrolls.
 
 ### Pointer model
 
@@ -250,7 +250,7 @@ Questions for the round, answered: A recently closed item is reached through the
 
 ## Structure
 
-The package split is settled for the MVP, whose epic is #10. It follows the baseline, and the chart is built as a component from the start rather than trimmed from the baseline page, because the page is a reference and a trimmed copy would be rewritten in the second iteration.
+The package split is settled for the MVP, whose epic is #10. It follows the baseline, and the chart is built as a React component from the start rather than trimmed from the baseline page, because the page is a reference and a trimmed copy would be rewritten in the second iteration. React, not a framework-free web component, because the next two hosts, a Forge Custom UI app and `skypilot-site`, are React. The packages are named under the `@top-right` npm scope, which the product owns, and stay private, read as source by the workspaces, until a consumer outside this repository needs a published version.
 
 - `packages/model`: work items, scores keyed by user, status categories and the override, relationships, the work-type classifier and its mapping, the next pick, and the review queues
 - `packages/chart`: the browser chart and its detail pane, which take props only, with the cell packing and the gutters inside it
