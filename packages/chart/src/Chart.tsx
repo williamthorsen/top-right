@@ -3,6 +3,7 @@ import {
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
   deriveStatus,
+  findNextPick,
   formatItemKey,
   isAgentScored,
   type ItemScores,
@@ -14,12 +15,11 @@ import {
 } from '@top-right/model';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
-import { DetailPane } from './DetailPane.tsx';
-import type { EdgeEnd } from './edge-path.ts';
-import { Edges, focusItem } from './Edges.tsx';
+import { choosePaneMode, DetailPane } from './DetailPane.tsx';
+import { Edges, focusItem, listEdgeEnds } from './Edges.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
-import { CELL_SIZE, type CellLayout, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
+import { CELL_SIZE, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
@@ -76,6 +76,7 @@ export function Chart({
   const [selectedKey, setSelectedKey] = useState<string>();
   const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
+  const [highlightedKey, setHighlightedKey] = useState<string>();
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
   const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
@@ -97,7 +98,8 @@ export function Chart({
     [items, scores],
   );
 
-  const shownKey = previewKey ?? selectedKey;
+  const pickKey = useMemo(() => findNextPick(items, scores, overrides), [items, scores, overrides]);
+  const shownKey = previewKey ?? selectedKey ?? pickKey;
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
   const review = useReview({
     items,
@@ -178,10 +180,16 @@ export function Chart({
                             cellY={cell.y}
                             circle={circle}
                             isAgentScored={isAgentScored(scores[circle.id])}
+                            isBlocked={blockedKeys.has(circle.id)}
+                            isHighlighted={circle.id === highlightedKey}
+                            isPick={circle.id === pickKey}
                             isFaded={isFaded(circle.id)}
                             isSelected={circle.id === selectedKey}
                             key={circle.id}
-                            name={`${labelItem(item, abbreviations)}: ${item.title}`}
+                            name={nameCircle(labelItem(item, abbreviations), item.title, {
+                              isBlocked: blockedKeys.has(circle.id),
+                              isPick: circle.id === pickKey,
+                            })}
                             onPreview={setPreviewKey}
                             onSelect={setSelectedKey}
                             progress={scores[circle.id]?.progress?.value ?? 0}
@@ -197,7 +205,9 @@ export function Chart({
                   cell.isGutter ? (
                     <GutterCell
                       abbreviations={abbreviations}
+                      blockedKeys={blockedKeys}
                       cell={cell}
+                      highlightedKey={highlightedKey}
                       isFaded={isFaded}
                       itemsByKey={itemsByKey}
                       key={`${cell.u},${cell.i}`}
@@ -219,12 +229,13 @@ export function Chart({
           blockedKeys={blockedKeys}
           isReviewing={review.kind !== undefined}
           item={shownItem}
-          mode={previewKey !== undefined && previewKey !== selectedKey ? 'preview' : 'selected'}
+          mode={choosePaneMode(previewKey, selectedKey)}
           onClose={() => {
             setSelectedKey(undefined);
             setPreviewKey(undefined);
           }}
           onKeep={onKeep ? review.keep : undefined}
+          onRelationHighlight={setHighlightedKey}
           onScoresChange={review.changeScores}
           onStatusChange={(itemKey, status) => {
             setSelectedKey(itemKey);
@@ -309,13 +320,8 @@ function lineClass(index: number): string {
   return 'tr-gridline';
 }
 
-/** Returns the centre and radius of every circle in the matrix, by key, in matrix units. */
-function listEdgeEnds(cells: readonly CellLayout[]): Map<string, EdgeEnd> {
-  const ends = new Map<string, EdgeEnd>();
-  for (const cell of cells) {
-    for (const circle of cell.circles)
-      ends.set(circle.id, { x: cell.x + circle.cx, y: cell.y + circle.cy, r: circle.r });
-  }
-  return ends;
+/** Returns a circle's accessible name: its id label and title, with the marks that it wears. */
+function nameCircle(label: string, title: string, marks: { isBlocked: boolean; isPick: boolean }): string {
+  return `${label}: ${title}${marks.isBlocked ? ', blocked' : ''}${marks.isPick ? ', next pick' : ''}`;
 }
 // endregion | Helpers

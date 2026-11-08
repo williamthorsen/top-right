@@ -243,7 +243,7 @@ describe(Chart, () => {
       await user.keyboard('{Enter}');
       expect(screen.queryByRole('button', { name: /Agent-scored/ })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Review agent scores (0)' })).toBeDisabled();
-      expect(within(getPane()).getByText('No item selected')).toBeInTheDocument();
+      expect(within(getPane()).getByText('Next pick')).toBeInTheDocument();
     });
 
     it('scrolls each item that the review moves to into view', async () => {
@@ -414,6 +414,48 @@ describe(Chart, () => {
 
       expect(listEdges()).toStrictEqual(['blocker:1>2:direct', 'blocker:2>1:direct']);
     });
+
+    it('rings a blocked item, in its cell and in the gutter, and names it blocked', () => {
+      const inGutter = buildItem({ number: 6, relations: [relate('blocked-by', 1)] });
+      renderChart([...chainItems, inGutter], {}, chainScores);
+
+      const circle = screen.getByRole('button', { name: /^t\.2:.*, blocked$/ });
+      expect(hasMark(circle, 'tr-node-blocked')).toBe(true);
+      expect(hasMark(screen.getByRole('button', { name: /^t\.1:/ }), 'tr-node-blocked')).toBe(false);
+      const row = within(screen.getByRole('list', { name: 'Unscored items' })).getByRole('button', {
+        name: /^t\.6:.*, blocked$/,
+      });
+      expect(hasMark(row, 'tr-circle-blocked')).toBe(true);
+    });
+
+    it('while nothing is selected, rings the next pick and shows it in the pane', async () => {
+      const user = userEvent.setup();
+      renderChart(chainItems, {}, chainScores);
+
+      const pick = screen.getByRole('button', { name: /^t\.5:.*, next pick$/ });
+      expect(hasMark(pick, 'tr-node-pick')).toBe(true);
+      expect(getPane()).toHaveTextContent('Next pick');
+      expect(getPane()).toHaveTextContent('Issue 5');
+      expect(within(getPane()).queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /^t\.4:/ }));
+      expect(getPane()).toHaveTextContent('Selected');
+      expect(getPane()).toHaveTextContent('Issue 4');
+      expect(hasMark(pick, 'tr-node-pick')).toBe(true);
+    });
+
+    it("when a relation row in the pane is hovered, rings that row's circle", async () => {
+      const user = userEvent.setup();
+      renderChart(chainItems, {}, chainScores);
+      await user.click(screen.getByRole('button', { name: /^t\.2:/ }));
+
+      const row = within(getPane()).getByRole('link', { name: /t\.3 Issue 3/ });
+      await user.hover(row);
+      expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-highlighted', 'true');
+
+      await user.unhover(row);
+      expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-highlighted', 'false');
+    });
   });
 });
 
@@ -440,6 +482,11 @@ function countTrails(): number {
 /** Returns whether the item wears the agent's halo, which is decorative SVG without a role to query. */
 function hasHalo(element: HTMLElement): boolean {
   return element.querySelector('.tr-node-halo, .tr-circle-halo') !== null;
+}
+
+/** Returns whether the item wears the mark of `className`, which is decorative SVG without a role to query. */
+function hasMark(element: HTMLElement, className: string): boolean {
+  return element.querySelector(`.${className}`) !== null;
 }
 
 function getGroup(name: string): HTMLElement {

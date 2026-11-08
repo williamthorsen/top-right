@@ -8,7 +8,7 @@ export interface ScoredCircleProps {
   /** The top-left corner of the circle's cell in the matrix. */
   cellX: number;
   cellY: number;
-  /** The accessible name and the tooltip: the id label and the title. */
+  /** The accessible name and the tooltip: the id label, the title, and the marks that the circle wears. */
   name: string;
   workType: WorkType;
   status: StatusCategory;
@@ -17,8 +17,14 @@ export interface ScoredCircleProps {
   isSelected: boolean;
   /** Whether the item carries an agent's score that the author has not kept, which its halo marks. */
   isAgentScored: boolean;
-  /** Whether a review fades the circle; it stays selectable. */
+  /** Whether a review or a focus fades the circle; it stays selectable. */
   isFaded: boolean;
+  /** Whether an open item blocks the item, which its red ring marks. */
+  isBlocked: boolean;
+  /** Whether the item is the next pick, which its outer ring marks. */
+  isPick: boolean;
+  /** Whether a relation row in the pane points at the item, which shows its hover ring. */
+  isHighlighted: boolean;
   onPreview: (id: string | undefined) => void;
   onSelect: (id: string) => void;
 }
@@ -27,6 +33,10 @@ export interface ScoredCircleProps {
 const HIT_RADIUS = 12;
 /** How far the agent's halo sits outside the circle, clear of the selection and focus rings. */
 const HALO_GAP = 9;
+/** How far outside the circle the blocked ring sits: inside the selection ring, hugging the border. */
+const BLOCKED_GAP = 1.5;
+/** How far outside the circle the pick ring sits: outermost, clear of the agent's halo. */
+const PICK_GAP = 12.5;
 /** The thinnest wedge that an in-progress pie draws, so that a nearly finished item still reads as in progress. */
 const MIN_WEDGE = Math.PI / 6;
 
@@ -42,6 +52,9 @@ export function ScoredCircle({
   isSelected,
   isAgentScored,
   isFaded,
+  isBlocked,
+  isPick,
+  isHighlighted,
   onPreview,
   onSelect,
 }: ScoredCircleProps): ReactElement {
@@ -60,6 +73,7 @@ export function ScoredCircle({
       className="tr-node"
       data-item-key={id}
       data-faded={isFaded && !isSelected}
+      data-highlighted={isHighlighted}
       data-status={status}
       data-work-type={workType}
       onBlur={() => onPreview(undefined)}
@@ -74,11 +88,13 @@ export function ScoredCircle({
     >
       <title>{name}</title>
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
+      {isPick ? <circle className="tr-node-pick" r={r + PICK_GAP} /> : null}
       {isAgentScored ? <circle className="tr-node-halo" r={r + HALO_GAP} /> : null}
       <circle className="tr-node-main" r={r} />
       {status === 'in-progress' ? <Pie r={r} remaining={1 - progress} /> : null}
       <circle className="tr-node-border" r={r} />
       {circle.floored ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
+      {isBlocked ? <circle className="tr-node-blocked" r={r + BLOCKED_GAP} /> : null}
       <circle className="tr-node-selected" r={r + 3} />
       <circle className="tr-node-focus" r={r + 5.5} />
     </g>

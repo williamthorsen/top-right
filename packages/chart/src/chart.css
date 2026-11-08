@@ -213,7 +213,8 @@
   cursor: pointer;
 }
 
-.tr-item:hover {
+.tr-item:hover,
+.tr-item[data-highlighted='true'] {
   background: var(--tr-surface-2);
 }
 
@@ -326,6 +327,26 @@
   display: block;
   stroke: var(--tr-ink);
   stroke-width: 2.5;
+}
+
+.tr-node[data-highlighted='true'] .tr-node-selected {
+  display: block;
+  stroke: var(--tr-axis);
+  stroke-width: 1.5;
+}
+
+/* The blocked ring hugs the border; the pick ring is the outermost. */
+.tr-node-blocked,
+.tr-circle-blocked {
+  fill: none;
+  stroke: var(--tr-block);
+  stroke-width: 2.5;
+}
+
+.tr-node-pick {
+  fill: none;
+  stroke: var(--tr-accent);
+  stroke-width: 3;
 }
 
 .tr-node:focus-visible .tr-node-focus {

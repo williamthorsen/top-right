@@ -17,7 +17,8 @@ import { type Abbreviations, labelItem } from './item-label.ts';
 import { WORK_TYPE_NAMES } from './Legend.tsx';
 import { PaneScores, type SettableStatus } from './PaneScores.tsx';
 
-export type PaneMode = 'preview' | 'selected';
+/** Why the pane shows its item: a hover or focus, a selection, or the next pick while nothing is selected. */
+export type PaneMode = 'pick' | 'preview' | 'selected';
 
 export interface DetailPaneProps {
   item: WorkItem | undefined;
@@ -35,7 +36,15 @@ export interface DetailPaneProps {
   onKeep: ((itemKey: string) => void) | undefined;
   onScoresChange: (itemKey: string, scores: Scores) => void;
   onStatusChange: (itemKey: string, status: SettableStatus) => void;
+  /** Reports the relation row under the pointer or focus, by item key, so that the chart can ring its circle. */
+  onRelationHighlight?: (itemKey: string | undefined) => void;
 }
+
+const MODE_HEADINGS: Readonly<Record<PaneMode, string>> = {
+  pick: 'Next pick',
+  preview: 'Preview',
+  selected: 'Selected',
+};
 
 const RELATION_HEADINGS: ReadonlyArray<[RelationKind, string]> = [
   ['blocked-by', 'Blocked by'],
@@ -43,6 +52,12 @@ const RELATION_HEADINGS: ReadonlyArray<[RelationKind, string]> = [
   ['parent', 'Parent'],
   ['sub-issue', 'Sub-issues'],
 ];
+
+export /** Returns the pane's mode: a preview of another item than the selection, the selection, or else the next pick. */
+function choosePaneMode(previewKey: string | undefined, selectedKey: string | undefined): PaneMode {
+  if (previewKey !== undefined && previewKey !== selectedKey) return 'preview';
+  return selectedKey === undefined ? 'pick' : 'selected';
+}
 
 /** The side pane (a bottom sheet at phone width) that shows the previewed or selected item. */
 export function DetailPane({
@@ -58,6 +73,7 @@ export function DetailPane({
   onKeep,
   onScoresChange,
   onStatusChange,
+  onRelationHighlight,
 }: DetailPaneProps): ReactElement {
   if (!item) {
     return (
@@ -70,7 +86,7 @@ export function DetailPane({
   return (
     <aside aria-label="Item detail" className="tr-pane" data-empty="false">
       <div className="tr-pane-head">
-        <p className="tr-pane-mode">{mode === 'preview' ? 'Preview' : 'Selected'}</p>
+        <p className="tr-pane-mode">{MODE_HEADINGS[mode]}</p>
         {mode === 'selected' ? (
           <button className="tr-pane-close" onClick={onClose} type="button">
             Close
@@ -111,7 +127,12 @@ export function DetailPane({
           )}
         </dd>
       </dl>
-      <RelationLists abbreviations={abbreviations} blockedKeys={blockedKeys} relations={item.relations} />
+      <RelationLists
+        abbreviations={abbreviations}
+        blockedKeys={blockedKeys}
+        onHighlight={onRelationHighlight}
+        relations={item.relations}
+      />
     </aside>
   );
 }
@@ -167,10 +188,12 @@ function RelationLists({
   relations,
   abbreviations,
   blockedKeys,
+  onHighlight,
 }: {
   relations: readonly Relation[];
   abbreviations: Abbreviations;
   blockedKeys: ReadonlySet<string>;
+  onHighlight: ((itemKey: string | undefined) => void) | undefined;
 }) {
   if (relations.length === 0) return <p className="tr-pane-empty">No relations</p>;
 
@@ -187,7 +210,16 @@ function RelationLists({
                 const key = formatItemKey(ref);
                 return (
                   <li key={key}>
-                    <a className="tr-relation" href={ref.url} rel="noreferrer" target="_blank">
+                    <a
+                      className="tr-relation"
+                      href={ref.url}
+                      onBlur={() => onHighlight?.(undefined)}
+                      onFocus={() => onHighlight?.(key)}
+                      onPointerEnter={() => onHighlight?.(key)}
+                      onPointerLeave={() => onHighlight?.(undefined)}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
                       <span className="tr-relation-id">{labelItem(ref, abbreviations)}</span>{' '}
                       <span className="tr-relation-title">{ref.title}</span>
                       {ref.state === 'closed' ? (

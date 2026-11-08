@@ -2,6 +2,7 @@ import type { Edge, RelationGraph } from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { buildEdgePath, type EdgeEnd } from './edge-path.ts';
+import type { CellLayout } from './layout.ts';
 
 /** How strongly an edge draws: the focused item's own edges, its blocker chain, or every other edge under All edges. */
 export type EdgeWeight = 'chain' | 'direct' | 'faint';
@@ -94,6 +95,16 @@ export function focusItem(graph: RelationGraph, key: string | undefined, showAll
     }
   }
   return { edges, related };
+}
+
+export /** Returns the centre and radius of every circle in the matrix, by key, in matrix units. */
+function listEdgeEnds(cells: readonly CellLayout[]): Map<string, EdgeEnd> {
+  const ends = new Map<string, EdgeEnd>();
+  for (const cell of cells) {
+    for (const circle of cell.circles)
+      ends.set(circle.id, { x: cell.x + circle.cx, y: cell.y + circle.cy, r: circle.r });
+  }
+  return ends;
 }
 
 // region | Helpers
