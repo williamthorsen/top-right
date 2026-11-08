@@ -26,6 +26,8 @@ const MAX_BODY_BYTES = 16_384;
 export interface ApiOptions {
   loadItems: () => Promise<WorkItem[]>;
   abbreviations: Readonly<Record<string, string>>;
+  /** The repositories (`owner/name`) whose open issues `loadItems` returns in full. */
+  repos: readonly string[];
   store: Store;
   /** The user whose scores the host reads and writes. */
   userId: string;
@@ -33,7 +35,16 @@ export interface ApiOptions {
 }
 
 /** Returns a handler that answers the host's `/api/` routes and passes every other request to `next`. */
-export function createApiHandler({ loadItems, abbreviations, store, userId, now = () => new Date() }: ApiOptions) {
+export function createApiHandler({
+  loadItems,
+  abbreviations,
+  repos,
+  store,
+  userId,
+  now = () => new Date(),
+}: ApiOptions) {
+  const loadedRepos = new Set(repos);
+
   type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
 
   const routes: Record<string, { method: string; handle: Route }> = {
@@ -106,7 +117,11 @@ export function createApiHandler({ loadItems, abbreviations, store, userId, now 
     },
   };
 
-  /** Deletes each stored override whose item's source state has changed, and returns the ones that still apply. */
+  /**
+   * Deletes each stored override whose item's source state has changed, and returns the ones that still apply. An item
+   * of a loaded repository that is missing from the open items has left the open state at its source, so its override
+   * is void too; an override of a repository that the host no longer loads is kept.
+   */
   async function dropVoidOverrides(
     items: readonly WorkItem[],
     overrides: Readonly<Record<string, StatusOverride>>,
@@ -115,7 +130,8 @@ export function createApiHandler({ loadItems, abbreviations, store, userId, now 
     const applying: Record<string, StatusOverride> = {};
     for (const [itemKey, override] of Object.entries(overrides)) {
       const item = itemsByKey.get(itemKey);
-      if (item && isOverrideVoid(item, override)) await store.writeStatusOverride(userId, itemKey, undefined);
+      const isVoid = item ? isOverrideVoid(item, override) : loadedRepos.has(readRepo(itemKey));
+      if (isVoid) await store.writeStatusOverride(userId, itemKey, undefined);
       else applying[itemKey] = override;
     }
     return applying;
@@ -153,6 +169,11 @@ function compactScores(scores: Readonly<Partial<Record<ScoreField, number | unde
 
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** Returns the `owner/name` part of an item key, `owner/name#number`. */
+function readRepo(itemKey: string): string {
+  return itemKey.slice(0, itemKey.lastIndexOf('#'));
 }
 
 /** Reads and validates a JSON request body, or answers 400 and resolves to `undefined`. */

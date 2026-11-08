@@ -44,6 +44,7 @@ async function startHost(): Promise<void> {
   const handleApi = createApiHandler({
     loadItems: () => fetchOpenIssuesOfRepos(request, repos),
     abbreviations,
+    repos,
     store,
     userId,
   });

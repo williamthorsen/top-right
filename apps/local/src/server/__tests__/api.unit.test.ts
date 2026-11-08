@@ -46,7 +46,28 @@ describe(createApiHandler, () => {
       });
     });
 
-    it('deletes and omits an override whose item has changed state at its source', async () => {
+    it('deletes and omits the override of an item of a loaded repository that is no longer open', async () => {
+      const closedKey = 'williamthorsen/top-right#9';
+      const store = createMemoryStore({ overrides: { [ITEM_KEY]: IN_PROGRESS, [closedKey]: IN_PROGRESS } });
+      const baseUrl = await startServer({ store });
+
+      const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
+
+      expect(body).toMatchObject({ overrides: { [ITEM_KEY]: IN_PROGRESS } });
+      expect(store.state.overrides).toStrictEqual({ [ITEM_KEY]: IN_PROGRESS });
+    });
+
+    it('keeps the override of an item whose repository the host no longer loads', async () => {
+      const otherKey = 'williamthorsen/elsewhere#3';
+      const store = createMemoryStore({ overrides: { [otherKey]: IN_PROGRESS } });
+      const baseUrl = await startServer({ store });
+
+      await fetch(`${baseUrl}/api/items`);
+
+      expect(store.state.overrides).toStrictEqual({ [otherKey]: IN_PROGRESS });
+    });
+
+    it('deletes and omits an override recorded against a state that the item no longer has', async () => {
       const store = createMemoryStore({ overrides: { [ITEM_KEY]: { ...IN_PROGRESS, sourceState: 'closed' } } });
       const baseUrl = await startServer({ store });
 
@@ -210,6 +231,7 @@ async function startServer(overrides: Partial<ApiOptions>): Promise<string> {
   const handle = createApiHandler({
     loadItems: () => Promise.resolve([ITEM]),
     abbreviations: { [ITEM.repo]: 't' },
+    repos: [ITEM.repo],
     store: createMemoryStore(),
     userId: 'github:author',
     now: () => NOW,
