@@ -13,6 +13,7 @@ import {
 } from '@top-right/model';
 import type { ReactElement } from 'react';
 
+import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
 import { WORK_TYPE_NAMES } from './Legend.tsx';
 import { PaneScores, type SettableStatus } from './PaneScores.tsx';
@@ -165,22 +166,6 @@ function AgentReview({
         </p>
       ) : null}
     </div>
-  );
-}
-
-function ExternalLinkIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      height="12"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      viewBox="0 0 12 12"
-      width="12"
-    >
-      <path d="M5 2H2v8h8V7M7 1h4v4M11 1 5.5 6.5" />
-    </svg>
   );
 }
 

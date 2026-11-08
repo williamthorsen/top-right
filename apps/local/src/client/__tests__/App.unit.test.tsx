@@ -10,6 +10,9 @@ import { App } from '../App.tsx';
 
 import '@testing-library/jest-dom/vitest';
 
+// jsdom does not implement scrolling, which the chart's table calls on each selection.
+Element.prototype.scrollIntoView = () => {};
+
 const ITEM_KEY = 'williamthorsen/top-right#12';
 const AT = '2026-11-08T10:00:00.000Z';
 const ITEMS: ItemsResponse = {

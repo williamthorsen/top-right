@@ -12,6 +12,7 @@ import { type ReactElement, useEffect, useEffectEvent, useRef, useState } from '
 
 import { formatPoints, formatProvenance } from './provenance.ts';
 import { SegmentedControl, type SegmentOption } from './SegmentedControl.tsx';
+import { STATUS_NAMES } from './status-names.ts';
 
 /** A status that the pane can set; Done is read from the source. */
 export type SettableStatus = 'in-progress' | 'to-do';
@@ -25,9 +26,9 @@ export interface PaneScoresProps {
 }
 
 const STATUS_OPTIONS: ReadonlyArray<SegmentOption<'done' | SettableStatus>> = [
-  { value: 'to-do', label: 'To do' },
-  { value: 'in-progress', label: 'In progress' },
-  { value: 'done', label: 'Done', isDisabled: true },
+  { value: 'to-do', label: STATUS_NAMES['to-do'] },
+  { value: 'in-progress', label: STATUS_NAMES['in-progress'] },
+  { value: 'done', label: STATUS_NAMES.done, isDisabled: true },
 ];
 
 const AXIS_OPTIONS = AXIS_SCALE.map((value) => ({ value, label: String(value) }));

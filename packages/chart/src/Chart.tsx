@@ -23,6 +23,7 @@ import { FilterBar } from './FilterBar.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
+import { ItemTable } from './ItemTable.tsx';
 import { layoutCells, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
@@ -253,6 +254,16 @@ export function Chart({
             </svg>
           </div>
           <Legend />
+          <ItemTable
+            items={visibleItems}
+            labelOf={labelOf}
+            onHighlight={setHighlightedKey}
+            onSelect={selection.push}
+            overrides={overrides}
+            scores={scores}
+            selectedKey={selectedKey}
+            workTypeMapping={workTypeMapping}
+          />
         </div>
         <DetailPane
           abbreviations={abbreviations}
