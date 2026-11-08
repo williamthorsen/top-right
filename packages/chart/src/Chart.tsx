@@ -1,11 +1,16 @@
 import {
   buildRelationGraph,
   classifyWorkType,
+  countByStatus,
+  DEFAULT_ITEM_FILTER,
   DEFAULT_WORK_TYPE_MAPPING,
   deriveStatus,
+  filterItems,
   findNextPick,
   formatItemKey,
   isAgentScored,
+  type ItemFilter,
+  type ItemRef,
   type ItemScores,
   listBlockedKeys,
   type Scores,
@@ -17,6 +22,7 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Edges, focusItem, listEdgeEnds } from './Edges.tsx';
+import { FilterBar } from './FilterBar.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
 import { CELL_SIZE, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
@@ -78,14 +84,21 @@ export function Chart({
   const [showAllEdges, setShowAllEdges] = useState(false);
   const [highlightedKey, setHighlightedKey] = useState<string>();
   const [highlightOwner, setHighlightOwner] = useState<string>();
+  const [filter, setFilter] = useState<ItemFilter>(DEFAULT_ITEM_FILTER);
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
   const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
   const graph = useMemo(() => buildRelationGraph(items), [items]);
+  const visibleItems = useMemo(() => filterItems(items, overrides, filter), [items, overrides, filter]);
+  const visibleKeys = useMemo(() => new Set(visibleItems.map(formatItemKey)), [visibleItems]);
+  const statusCounts = useMemo(() => countByStatus(items, overrides, filter.repo), [items, overrides, filter.repo]);
+  // Clear a selection or preview that the filter hides, whether the filter or the item's status changed.
+  if (selectedKey !== undefined && !visibleKeys.has(selectedKey)) setSelectedKey(undefined);
+  if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
   const cells = useMemo(
     () =>
       layoutCells(
-        items.map((item) => {
+        visibleItems.map((item) => {
           const id = formatItemKey(item);
           const itemScores = scores[id];
           return {
@@ -96,10 +109,10 @@ export function Chart({
           };
         }),
       ),
-    [items, scores],
+    [visibleItems, scores],
   );
 
-  const pickKey = useMemo(() => findNextPick(items, scores, overrides), [items, scores, overrides]);
+  const pickKey = useMemo(() => findNextPick(visibleItems, scores, overrides), [visibleItems, scores, overrides]);
   const shownKey = previewKey ?? selectedKey ?? pickKey;
   // A relation row unmounts without a pointer-leave or blur when the pane changes item, so the highlight ends with it.
   if (highlightOwner !== shownKey) {
@@ -108,7 +121,7 @@ export function Chart({
   }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
   const review = useReview({
-    items,
+    items: visibleItems,
     scores,
     selectedKey,
     setSelectedKey,
@@ -117,6 +130,17 @@ export function Chart({
     onScoresChange,
   });
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  /** Applies a filter, ending a running review, whose queue the filter would change under it. */
+  function changeFilter(next: ItemFilter): void {
+    setFilter(next);
+    if (review.kind !== undefined) review.end();
+  }
+
+  /** Returns an item's label on the board: the number alone while one repo is shown, else the abbreviated id. */
+  function labelOf(ref: Pick<ItemRef, 'number' | 'repo'>): string {
+    return filter.repo === undefined ? labelItem(ref, abbreviations) : String(ref.number);
+  }
 
   // Bring each item that a review moves to into view, since the chart scrolls on a narrow screen.
   useEffect(() => {
@@ -143,6 +167,7 @@ export function Chart({
       <div className="tr-work">
         <div className="tr-chart-area">
           <div className="tr-strip">
+            <FilterBar abbreviations={abbreviations} counts={statusCounts} filter={filter} onChange={changeFilter} />
             <ReviewStrip
               counts={{ agent: review.queues.agent.length, unscored: review.queues.unscored.length }}
               onEnd={review.end}
@@ -192,7 +217,7 @@ export function Chart({
                             isFaded={isFaded(circle.id)}
                             isSelected={circle.id === selectedKey}
                             key={circle.id}
-                            name={nameCircle(labelItem(item, abbreviations), item.title, {
+                            name={nameCircle(labelOf(item), item.title, {
                               isBlocked: blockedKeys.has(circle.id),
                               isPick: circle.id === pickKey,
                             })}
@@ -210,13 +235,13 @@ export function Chart({
                 {cells.map((cell) =>
                   cell.isGutter ? (
                     <GutterCell
-                      abbreviations={abbreviations}
                       blockedKeys={blockedKeys}
                       cell={cell}
                       highlightedKey={highlightedKey}
                       isFaded={isFaded}
                       itemsByKey={itemsByKey}
                       key={`${cell.u},${cell.i}`}
+                      labelOf={labelOf}
                       onPreview={setPreviewKey}
                       onSelect={setSelectedKey}
                       scores={scores}

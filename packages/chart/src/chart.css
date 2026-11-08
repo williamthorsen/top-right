@@ -390,6 +390,42 @@
   margin: 0 0 8px;
 }
 
+.tr-filter,
+.tr-filter-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.tr-filter-label {
+  color: var(--tr-ink-2);
+}
+
+.tr-filter-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-select {
+  min-height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--tr-ink-2);
+  border-radius: 7px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tr-select:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-select:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: 2px;
+}
+
 .tr-review {
   display: flex;
   flex-wrap: wrap;
