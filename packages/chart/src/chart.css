@@ -444,6 +444,115 @@
   margin: 0;
 }
 
+/* -- Scores in the pane -- */
+
+.tr-scores {
+  margin: 0 0 14px;
+}
+
+.tr-scores h3,
+.tr-relations h3 {
+  margin: 12px 0 6px;
+  color: var(--tr-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tr-score {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 10px;
+  margin: 0 0 8px;
+}
+
+.tr-score-name {
+  color: var(--tr-ink-2);
+  font-size: 12px;
+}
+
+.tr-score-who {
+  grid-column: 2;
+  color: var(--tr-ink-2);
+  font-size: 12px;
+}
+
+.tr-seg {
+  display: inline-flex;
+  justify-self: start;
+  border: 1px solid var(--tr-control-line);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--tr-surface);
+}
+
+.tr-root .tr-seg-option {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 7px;
+  border: 0;
+  border-right: 1px solid var(--tr-control-line);
+  background: transparent;
+  color: var(--tr-ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.tr-seg-option:last-child {
+  border-right: 0;
+}
+
+.tr-seg-option:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-seg-option[aria-checked='true'] {
+  background: var(--tr-ink);
+  color: var(--tr-bg);
+  font-weight: 600;
+}
+
+.tr-seg-option[aria-disabled='true'] {
+  cursor: default;
+}
+
+.tr-seg-option[aria-disabled='true']:not([aria-checked='true']) {
+  color: var(--tr-ink-2);
+}
+
+.tr-seg-option[aria-disabled='true']:hover:not([aria-checked='true']) {
+  background: transparent;
+}
+
+.tr-root .tr-seg-option:focus-visible {
+  outline-offset: -3px;
+}
+
+.tr-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tr-progress input {
+  width: min(100%, 200px);
+  accent-color: var(--tr-inprog);
+  cursor: pointer;
+}
+
+.tr-progress input:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: 2px;
+}
+
+.tr-progress output {
+  min-width: 3.5em;
+  font-variant-numeric: tabular-nums;
+}
+
 .tr-chips {
   display: flex;
   flex-wrap: wrap;
@@ -458,15 +567,6 @@
   border: 1px solid var(--tr-control-line);
   border-radius: 999px;
   font-size: 12px;
-}
-
-.tr-relations h3 {
-  margin: 12px 0 4px;
-  color: var(--tr-ink-2);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .tr-relations ul {

@@ -1,8 +1,11 @@
 import {
   classifyWorkType,
   formatItemKey,
+  type ItemScores,
   type Relation,
   type RelationKind,
+  type Scores,
+  type StatusOverride,
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
@@ -10,6 +13,7 @@ import type { ReactElement } from 'react';
 
 import { type Abbreviations, labelItem } from './item-label.ts';
 import { WORK_TYPE_NAMES } from './Legend.tsx';
+import { PaneScores, type SettableStatus } from './PaneScores.tsx';
 
 export type PaneMode = 'preview' | 'selected';
 
@@ -20,7 +24,11 @@ export interface DetailPaneProps {
   workTypeMapping: WorkTypeMapping;
   /** The keys of the open items that an open item blocks, for tagging relation rows. */
   blockedKeys: ReadonlySet<string>;
+  scores: ItemScores | undefined;
+  override: StatusOverride | undefined;
   onClose: () => void;
+  onScoresChange: (itemKey: string, scores: Scores) => void;
+  onStatusChange: (itemKey: string, status: SettableStatus) => void;
 }
 
 const RELATION_HEADINGS: ReadonlyArray<[RelationKind, string]> = [
@@ -37,7 +45,11 @@ export function DetailPane({
   abbreviations,
   workTypeMapping,
   blockedKeys,
+  scores,
+  override,
   onClose,
+  onScoresChange,
+  onStatusChange,
 }: DetailPaneProps): ReactElement {
   if (!item) {
     return (
@@ -63,9 +75,14 @@ export function DetailPane({
         <span className="tr-visually-hidden">(opens in a new tab)</span>
       </a>
       <h2 className="tr-pane-title">{item.title}</h2>
+      <PaneScores
+        item={item}
+        onScoresChange={(changed) => onScoresChange(formatItemKey(item), changed)}
+        onStatusChange={(status) => onStatusChange(formatItemKey(item), status)}
+        override={override}
+        scores={scores}
+      />
       <dl className="tr-pane-facts">
-        <dt>State</dt>
-        <dd>{item.state === 'open' ? 'Open' : 'Closed'}</dd>
         <dt>Type</dt>
         <dd>{WORK_TYPE_NAMES[classifyWorkType(item.labels, workTypeMapping)]}</dd>
         <dt>Labels</dt>

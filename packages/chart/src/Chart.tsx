@@ -4,6 +4,7 @@ import {
   deriveStatus,
   formatItemKey,
   type ItemScores,
+  type Scores,
   type StatusOverride,
   type WorkItem,
   type WorkTypeMapping,
@@ -15,6 +16,7 @@ import { DetailPane } from './DetailPane.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
 import { CELL_SIZE, type CellLayout, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
+import type { SettableStatus } from './PaneScores.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
 
 import './chart.css';
@@ -28,6 +30,10 @@ export interface ChartProps {
   scores?: Readonly<Record<string, ItemScores>>;
   /** The user's status overrides by item key. */
   overrides?: Readonly<Record<string, StatusOverride>>;
+  /** Reports a change of one or more of an item's scores; the host writes them and passes the result back. */
+  onScoresChange?: (itemKey: string, scores: Scores) => void;
+  /** Reports a status that the user chose for an item. */
+  onStatusChange?: (itemKey: string, status: SettableStatus) => void;
 }
 
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
@@ -53,6 +59,8 @@ export function Chart({
   workTypeMapping = DEFAULT_WORK_TYPE_MAPPING,
   scores = NO_SCORES,
   overrides = NO_OVERRIDES,
+  onScoresChange,
+  onStatusChange,
 }: ChartProps): ReactElement {
   const [selectedKey, setSelectedKey] = useState<string>();
   const [previewKey, setPreviewKey] = useState<string>();
@@ -157,6 +165,17 @@ export function Chart({
             setSelectedKey(undefined);
             setPreviewKey(undefined);
           }}
+          onScoresChange={(itemKey, changed) => {
+            // Editing a previewed item selects it, so that the pane stays on it once the pointer leaves.
+            setSelectedKey(itemKey);
+            onScoresChange?.(itemKey, changed);
+          }}
+          onStatusChange={(itemKey, status) => {
+            setSelectedKey(itemKey);
+            onStatusChange?.(itemKey, status);
+          }}
+          override={shownKey === undefined ? undefined : overrides[shownKey]}
+          scores={shownKey === undefined ? undefined : scores[shownKey]}
           workTypeMapping={workTypeMapping}
         />
       </div>
