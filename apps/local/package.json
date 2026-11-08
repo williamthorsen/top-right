@@ -21,6 +21,7 @@
     "@top-right/adapter-github": "workspace:*",
     "@top-right/chart": "workspace:*",
     "@top-right/model": "workspace:*",
+    "@top-right/store": "workspace:*",
     "@vitejs/plugin-react": "6.2.1",
     "react": "catalog:",
     "react-dom": "catalog:",
