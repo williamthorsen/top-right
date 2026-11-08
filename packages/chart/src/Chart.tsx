@@ -1,7 +1,10 @@
 import {
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
+  deriveStatus,
   formatItemKey,
+  type ItemScores,
+  type StatusOverride,
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
@@ -10,8 +13,9 @@ import { type ReactElement, useEffect, useMemo, useState } from 'react';
 import { CircleIcon } from './CircleIcon.tsx';
 import { DetailPane } from './DetailPane.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
-import { CELL_SIZE, type CellLayout, GRID_SIZE, layoutCells } from './layout.ts';
+import { CELL_SIZE, type CellLayout, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
+import { ScoredCircle } from './ScoredCircle.tsx';
 
 import './chart.css';
 
@@ -20,7 +24,14 @@ export interface ChartProps {
   /** Repository abbreviations keyed by `owner/name`; a repository without one takes its first letter. */
   abbreviations: Abbreviations;
   workTypeMapping?: WorkTypeMapping;
+  /** The user's scores by item key; an item without an entry is unscored. */
+  scores?: Readonly<Record<string, ItemScores>>;
+  /** The user's status overrides by item key. */
+  overrides?: Readonly<Record<string, StatusOverride>>;
 }
+
+const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
+const NO_OVERRIDES: Readonly<Record<string, StatusOverride>> = {};
 
 // -- Frame around the matrix, in chart units --
 const MARGIN_LEFT = 44;
@@ -36,14 +47,34 @@ const GUTTER_LINE = 1;
 const QUADRANT_LINE = 4;
 
 /** The Top Right chart: items by urgency and impact, with the detail pane and the legend. */
-export function Chart({ items, abbreviations, workTypeMapping = DEFAULT_WORK_TYPE_MAPPING }: ChartProps): ReactElement {
+export function Chart({
+  items,
+  abbreviations,
+  workTypeMapping = DEFAULT_WORK_TYPE_MAPPING,
+  scores = NO_SCORES,
+  overrides = NO_OVERRIDES,
+}: ChartProps): ReactElement {
   const [selectedKey, setSelectedKey] = useState<string>();
   const [previewKey, setPreviewKey] = useState<string>();
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
   const blockedKeys = useMemo(() => findBlockedKeys(items), [items]);
-  // Scores do not exist yet, so every item is unscored on both axes.
-  const cells = useMemo(() => layoutCells(items.map((item) => ({ id: formatItemKey(item), u: 0, i: 0 }))), [items]);
+  const cells = useMemo(
+    () =>
+      layoutCells(
+        items.map((item) => {
+          const id = formatItemKey(item);
+          const itemScores = scores[id];
+          return {
+            id,
+            u: itemScores?.urgency?.value ?? 0,
+            i: itemScores?.impact?.value ?? 0,
+            ...sizeCircle(itemScores?.effort?.value),
+          };
+        }),
+      ),
+    [items, scores],
+  );
 
   useEffect(() => {
     function clearOnEscape(event: KeyboardEvent): void {
@@ -73,6 +104,31 @@ export function Chart({ items, abbreviations, workTypeMapping = DEFAULT_WORK_TYP
             >
               <Grid />
               <g transform={`translate(${MARGIN_LEFT} ${MARGIN_TOP})`}>
+                {cells.map((cell) =>
+                  cell.isGutter ? null : (
+                    <g key={`${cell.u},${cell.i}`}>
+                      {cell.circles.map((circle) => {
+                        const item = itemsByKey.get(circle.id);
+                        if (!item) return null;
+                        return (
+                          <ScoredCircle
+                            cellX={cell.x}
+                            cellY={cell.y}
+                            circle={circle}
+                            isSelected={circle.id === selectedKey}
+                            key={circle.id}
+                            name={`${labelItem(item, abbreviations)}: ${item.title}`}
+                            onPreview={setPreviewKey}
+                            onSelect={setSelectedKey}
+                            progress={scores[circle.id]?.progress?.value ?? 0}
+                            status={deriveStatus(item, overrides[circle.id])}
+                            workType={classifyWorkType(item.labels, workTypeMapping)}
+                          />
+                        );
+                      })}
+                    </g>
+                  ),
+                )}
                 {cells.map((cell) =>
                   cell.isGutter ? (
                     <GutterCell

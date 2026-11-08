@@ -17,6 +17,9 @@
   --tr-cat-task: #a87600;
   --tr-cat-ops: #6a4fcb;
   --tr-cat-none: #6b6a63;
+  --tr-inprog: #2068c4;
+  --tr-on-todo: #161616;
+  --tr-on-inprog: #ffffff;
   --tr-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --tr-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
@@ -46,6 +49,9 @@
     --tr-cat-task: #d99a1a;
     --tr-cat-ops: #9c92ee;
     --tr-cat-none: #a8a79f;
+    --tr-inprog: #6aa4ee;
+    --tr-on-todo: #ffffff;
+    --tr-on-inprog: #161616;
 
     color-scheme: dark;
   }
@@ -69,6 +75,9 @@
   --tr-cat-task: #d99a1a;
   --tr-cat-ops: #9c92ee;
   --tr-cat-none: #a8a79f;
+  --tr-inprog: #6aa4ee;
+  --tr-on-todo: #ffffff;
+  --tr-on-inprog: #161616;
 
   color-scheme: dark;
 }
@@ -244,13 +253,99 @@
   stroke: var(--tr-cat-none);
 }
 
+/* -- Scored circles -- */
+
+.tr-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.tr-node-hit {
+  fill: transparent;
+}
+
+.tr-node-main {
+  fill: var(--tr-todo);
+}
+
+.tr-node-pie {
+  fill: var(--tr-inprog);
+}
+
+.tr-node-border {
+  fill: none;
+  stroke: var(--tr-cat-none);
+  stroke-width: 2.5;
+}
+
+.tr-node[data-work-type='feature'] .tr-node-border {
+  stroke: var(--tr-cat-feature);
+}
+
+.tr-node[data-work-type='bug'] .tr-node-border {
+  stroke: var(--tr-cat-bug);
+}
+
+.tr-node[data-work-type='task'] .tr-node-border {
+  stroke: var(--tr-cat-task);
+}
+
+.tr-node[data-work-type='ops'] .tr-node-border {
+  stroke: var(--tr-cat-ops);
+}
+
+.tr-node-floor {
+  fill: none;
+  stroke: var(--tr-on-todo);
+  stroke-width: 1.2;
+}
+
+.tr-node[data-status='in-progress'] .tr-node-floor {
+  stroke: var(--tr-on-inprog);
+}
+
+.tr-node-selected,
+.tr-node-focus {
+  display: none;
+  fill: none;
+}
+
+.tr-node:hover .tr-node-selected {
+  display: block;
+  stroke: var(--tr-axis);
+  stroke-width: 1.5;
+}
+
+.tr-node[aria-pressed='true'] .tr-node-selected {
+  display: block;
+  stroke: var(--tr-ink);
+  stroke-width: 2.5;
+}
+
+.tr-node:focus-visible .tr-node-focus {
+  display: block;
+  stroke: var(--tr-focus);
+  stroke-width: 3;
+}
+
 /* -- Legend -- */
+
+.tr-legends {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  margin: 8px 0 0;
+}
+
+.tr-legends .tr-node {
+  cursor: default;
+}
 
 .tr-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 16px;
-  margin: 8px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
   color: var(--tr-ink-2);
