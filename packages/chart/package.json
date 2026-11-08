@@ -23,10 +23,6 @@
   "dependencies": {
     "@top-right/model": "workspace:*"
   },
-  "peerDependencies": {
-    "react": "catalog:",
-    "react-dom": "catalog:"
-  },
   "devDependencies": {
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
@@ -38,6 +34,10 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "engines": {
     "node": ">=24"
