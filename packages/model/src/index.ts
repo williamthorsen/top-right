@@ -1,3 +1,4 @@
+export { countByStatus, DEFAULT_ITEM_FILTER, filterItems, type ItemFilter } from './filter.ts';
 export { abbreviate, formatIdLabel } from './id-label.ts';
 export { findNextPick } from './pick.ts';
 export {

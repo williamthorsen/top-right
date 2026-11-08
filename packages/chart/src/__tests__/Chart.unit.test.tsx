@@ -15,8 +15,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
 import { CELL_PADDING, CELL_SIZE, GUTTER_ROW_PITCH } from '../layout.ts';
-
-const REPO = 'williamthorsen/top-right';
+import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
+import { getGroup, getPane } from '../test-utils/chart-queries.ts';
 
 describe(Chart, () => {
   it('lists each item by its abbreviation and number, defaulting to the first letter', () => {
@@ -471,20 +471,6 @@ describe(Chart, () => {
 });
 
 // region | Helpers
-function buildItem(overrides: Partial<WorkItem> & Pick<WorkItem, 'number'>): WorkItem {
-  const repo = overrides.repo ?? REPO;
-  return {
-    repo,
-    title: `Issue ${overrides.number}`,
-    url: `https://github.com/${repo}/issues/${overrides.number}`,
-    state: 'open',
-    createdAt: '2026-11-01T09:00:00Z',
-    labels: ['feature'],
-    relations: [],
-    ...overrides,
-  };
-}
-
 /** Returns the number of trails on the chart; a trail is decorative SVG, which has no role to query. */
 function countTrails(): number {
   return screen.getByRole('group', { name: 'Items by urgency and impact' }).querySelectorAll('.tr-trail').length;
@@ -500,14 +486,6 @@ function hasMark(element: HTMLElement, className: string): boolean {
   return element.querySelector(`.${className}`) !== null;
 }
 
-function getGroup(name: string): HTMLElement {
-  return within(getPane()).getByRole('radiogroup', { name });
-}
-
-function getPane(): HTMLElement {
-  return screen.getByRole('complementary', { name: 'Item detail' });
-}
-
 /** Returns each drawn edge as `kind:from>to:weight` by issue number, in draw order; edges are decorative SVG. */
 function listEdges(): string[] {
   const group = screen.getByRole('group', { name: 'Items by urgency and impact' });
@@ -517,26 +495,11 @@ function listEdges(): string[] {
   });
 }
 
-/** Returns author scores that place an item in the cell at urgency `u` and impact `i`. */
-function place(u: number, i: number): ItemScores {
-  const at = '2026-11-08T00:00:00.000Z';
-  return { urgency: { value: u, by: 'author', at }, impact: { value: i, by: 'author', at } };
-}
-
 function relate(kind: RelationKind, number: number): Relation {
   return {
     kind,
     ref: { repo: REPO, number, title: `Issue ${number}`, url: `https://example.test/${number}`, state: 'open' },
   };
-}
-
-function renderChart(
-  items: WorkItem[],
-  abbreviations: Record<string, string> = {},
-  scores: Record<string, ItemScores> = {},
-  overrides: Record<string, StatusOverride> = {},
-) {
-  return render(<Chart abbreviations={abbreviations} items={items} overrides={overrides} scores={scores} />);
 }
 
 /** Renders the chart with a host that applies the author's writes and Keep to its scores, as the page does. */

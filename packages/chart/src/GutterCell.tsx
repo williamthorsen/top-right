@@ -8,7 +8,6 @@ import {
 import type { ReactElement } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
-import { type Abbreviations, labelItem } from './item-label.ts';
 import { CELL_SIZE, type CellLayout } from './layout.ts';
 
 export interface GutterCellProps {
@@ -16,7 +15,7 @@ export interface GutterCellProps {
   scores: Readonly<Record<string, ItemScores>>;
   isFaded: (key: string) => boolean;
   itemsByKey: ReadonlyMap<string, WorkItem>;
-  abbreviations: Abbreviations;
+  labelOf: (item: WorkItem) => string;
   workTypeMapping: WorkTypeMapping;
   selectedKey: string | undefined;
   /** The keys of the items that an open item blocks. */
@@ -33,7 +32,7 @@ export function GutterCell({
   scores,
   isFaded,
   itemsByKey,
-  abbreviations,
+  labelOf,
   workTypeMapping,
   selectedKey,
   blockedKeys,
@@ -47,7 +46,7 @@ export function GutterCell({
         {cell.ids.map((key) => {
           const item = itemsByKey.get(key);
           if (!item) return null;
-          const label = labelItem(item, abbreviations);
+          const label = labelOf(item);
           const isBlocked = blockedKeys.has(key);
           return (
             <li

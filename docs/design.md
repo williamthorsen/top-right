@@ -160,6 +160,8 @@ Two behaviours are kept distinct. A filter removes items from the board: the rep
 
 Decided at the prototype round (rows 22, 27): The developer asked for the distinction, and found that 4.1 disabled faded circles.
 
+The filter is not persisted and resets on reload, because a narrowed board that survives a restart hides items without saying so. A filter change ends a running review, because the change would replace the queue under it. The next pick and both review queues run over the filtered items, so that narrowing the board also narrows what the author is asked to do next. With one repo filtered, circles and gutter rows show the number alone, because the abbreviation would repeat on every item; the pane keeps the abbreviated id, because its relation rows can name items of other repos. Decided at the fifth MVP iteration (#25).
+
 ### Zoom and navigation
 
 At 1× the whole matrix fits the chart area wherever the area keeps the chart's text at its 12 px floor, and zoom is continuous above that, with a fit step. A narrower area, such as a phone's, shows the matrix at its floor scale and scrolls. A Top right control, with a quadrant icon, jumps to the top-right quadrant. When zoomed, a drag on the background pans, with a grab cursor. Hovering an empty spot in a cell shows a one-line callout for every circle in the cell, over faded neighbours, so that a crowded cell can be read without zooming.
