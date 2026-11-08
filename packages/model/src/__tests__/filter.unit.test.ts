@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { countByStatus, DEFAULT_ITEM_FILTER, filterItems, type ItemFilter } from '../filter.ts';
+import { countByStatus, DEFAULT_ITEM_FILTER, filterItems, type ItemFilter, revealItem } from '../filter.ts';
 import type { StatusCategory, StatusOverride } from '../status.ts';
 import type { ItemState, WorkItem } from '../work-item.ts';
 
@@ -45,6 +45,32 @@ describe(countByStatus, () => {
     const items = [buildItem('o/a', 1), buildItem('o/b', 2)];
 
     expect(countByStatus(items, {}, undefined)).toEqual({ done: 0, 'in-progress': 0, 'to-do': 2 });
+  });
+});
+
+describe(revealItem, () => {
+  it('returns the filter itself when it already keeps the item', () => {
+    const filter = buildFilter(['to-do']);
+
+    expect(revealItem(filter, buildItem('o/a', 1), undefined)).toBe(filter);
+  });
+
+  it("adds the item's status when the filter hides it", () => {
+    const revealed = revealItem(DEFAULT_ITEM_FILTER, buildItem('o/a', 1, 'closed'), undefined);
+
+    expect(revealed).toEqual({ repo: undefined, statuses: new Set(['done', 'in-progress', 'to-do']) });
+  });
+
+  it('clears the repo when another repo is selected', () => {
+    const revealed = revealItem({ ...DEFAULT_ITEM_FILTER, repo: 'o/b' }, buildItem('o/a', 1), undefined);
+
+    expect(revealed).toEqual({ repo: undefined, statuses: DEFAULT_ITEM_FILTER.statuses });
+  });
+
+  it('widens both when both hide the item, reading the status through the override', () => {
+    const revealed = revealItem({ repo: 'o/b', statuses: new Set(['to-do']) }, buildItem('o/a', 1), IN_PROGRESS);
+
+    expect(revealed).toEqual({ repo: undefined, statuses: new Set(['in-progress', 'to-do']) });
   });
 });
 

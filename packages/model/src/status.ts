@@ -3,6 +3,9 @@ import type { ItemRef, ItemState } from './work-item.ts';
 /** An item's status: the source's category, or the stored override when the override still applies. */
 export type StatusCategory = 'done' | 'in-progress' | 'to-do';
 
+/** The statuses in the order in which work moves through them, which is the order that a status sort follows. */
+export const STATUS_ORDER: readonly StatusCategory[] = ['to-do', 'in-progress', 'done'];
+
 /** A status that the app stores over the source's, recorded with the source state at the time it was set. */
 export interface StatusOverride {
   status: 'in-progress' | 'to-do';
