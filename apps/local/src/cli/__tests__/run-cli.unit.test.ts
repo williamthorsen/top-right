@@ -13,6 +13,7 @@ const ITEM: WorkItem = {
   title: 'Plot the issues',
   url: 'https://github.com/o/r/issues/1',
   state: 'open',
+  createdAt: '2026-11-01T09:00:00Z',
   labels: [],
   relations: [],
 };

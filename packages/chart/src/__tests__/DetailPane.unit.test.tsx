@@ -11,6 +11,7 @@ const ITEM: WorkItem = {
   title: 'Score items',
   url: 'https://github.com/williamthorsen/top-right/issues/12',
   state: 'open',
+  createdAt: '2026-11-01T09:00:00Z',
   labels: ['feature'],
   relations: [],
 };

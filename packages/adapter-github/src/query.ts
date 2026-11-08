@@ -15,6 +15,7 @@ query OpenIssues($owner: String!, $name: String!, $pageSize: Int!, $after: Strin
         title
         url
         state
+        createdAt
         labels(first: ${LABEL_LIMIT}) { nodes { name } }
         blockedBy(first: ${RELATION_LIMIT}) { nodes { ...IssueRef } }
         blocking(first: ${RELATION_LIMIT}) { nodes { ...IssueRef } }

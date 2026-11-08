@@ -338,6 +338,7 @@ function buildItem(overrides: Partial<WorkItem> & Pick<WorkItem, 'number'>): Wor
     title: `Issue ${overrides.number}`,
     url: `https://github.com/${repo}/issues/${overrides.number}`,
     state: 'open',
+    createdAt: '2026-11-01T09:00:00Z',
     labels: ['feature'],
     relations: [],
     ...overrides,

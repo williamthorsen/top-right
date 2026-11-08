@@ -9,6 +9,7 @@
             "title": "Build the Top Right MVP: the local host on the author's GitHub backlog",
             "url": "https://github.com/williamthorsen/top-right/issues/10",
             "state": "OPEN",
+            "createdAt": "2026-11-10T09:00:00Z",
             "labels": { "nodes": [{ "name": "feature" }] },
             "blockedBy": { "nodes": [] },
             "blocking": { "nodes": [] },
@@ -65,6 +66,7 @@
             "title": "Plot the author's open GitHub issues on the chart from the local host",
             "url": "https://github.com/williamthorsen/top-right/issues/11",
             "state": "OPEN",
+            "createdAt": "2026-11-11T09:00:00Z",
             "labels": { "nodes": [{ "name": "feature" }] },
             "blockedBy": { "nodes": [] },
             "blocking": {
@@ -92,6 +94,7 @@
             "title": "Score items on the chart and keep the scores per user across refreshes",
             "url": "https://github.com/williamthorsen/top-right/issues/12",
             "state": "OPEN",
+            "createdAt": "2026-11-12T09:00:00Z",
             "labels": { "nodes": [{ "name": "feature" }] },
             "blockedBy": {
               "nodes": [
@@ -129,6 +132,7 @@
             "title": "Score the backlog with an agent and review its scores on the chart",
             "url": "https://github.com/williamthorsen/top-right/issues/13",
             "state": "OPEN",
+            "createdAt": "2026-11-13T09:00:00Z",
             "labels": { "nodes": [{ "name": "feature" }] },
             "blockedBy": {
               "nodes": [
