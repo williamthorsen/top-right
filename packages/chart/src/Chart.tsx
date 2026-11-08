@@ -77,6 +77,7 @@ export function Chart({
   const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
   const [highlightedKey, setHighlightedKey] = useState<string>();
+  const [highlightOwner, setHighlightOwner] = useState<string>();
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
   const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
@@ -100,6 +101,11 @@ export function Chart({
 
   const pickKey = useMemo(() => findNextPick(items, scores, overrides), [items, scores, overrides]);
   const shownKey = previewKey ?? selectedKey ?? pickKey;
+  // A relation row unmounts without a pointer-leave or blur when the pane changes item, so the highlight ends with it.
+  if (highlightOwner !== shownKey) {
+    setHighlightOwner(shownKey);
+    setHighlightedKey(undefined);
+  }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
   const review = useReview({
     items,

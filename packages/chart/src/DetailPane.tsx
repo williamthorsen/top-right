@@ -53,8 +53,8 @@ const RELATION_HEADINGS: ReadonlyArray<[RelationKind, string]> = [
   ['sub-issue', 'Sub-issues'],
 ];
 
-export /** Returns the pane's mode: a preview of another item than the selection, the selection, or else the next pick. */
-function choosePaneMode(previewKey: string | undefined, selectedKey: string | undefined): PaneMode {
+/** Returns the pane's mode: a preview of another item than the selection, the selection, or else the next pick. */
+export function choosePaneMode(previewKey: string | undefined, selectedKey: string | undefined): PaneMode {
   if (previewKey !== undefined && previewKey !== selectedKey) return 'preview';
   return selectedKey === undefined ? 'pick' : 'selected';
 }

@@ -97,8 +97,8 @@ export function focusItem(graph: RelationGraph, key: string | undefined, showAll
   return { edges, related };
 }
 
-export /** Returns the centre and radius of every circle in the matrix, by key, in matrix units. */
-function listEdgeEnds(cells: readonly CellLayout[]): Map<string, EdgeEnd> {
+/** Returns the centre and radius of every circle in the matrix, by key, in matrix units. */
+export function listEdgeEnds(cells: readonly CellLayout[]): Map<string, EdgeEnd> {
   const ends = new Map<string, EdgeEnd>();
   for (const cell of cells) {
     for (const circle of cell.circles)

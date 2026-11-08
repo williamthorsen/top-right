@@ -335,12 +335,16 @@
   stroke-width: 1.5;
 }
 
-/* The blocked ring hugs the border; the pick ring is the outermost. */
+/*
+ * The blocked ring is dashed, so that it reads apart from the solid selection ring without colour; the pick ring is
+ * the outermost.
+ */
 .tr-node-blocked,
 .tr-circle-blocked {
   fill: none;
   stroke: var(--tr-block);
   stroke-width: 2.5;
+  stroke-dasharray: 3 2;
 }
 
 .tr-node-pick {

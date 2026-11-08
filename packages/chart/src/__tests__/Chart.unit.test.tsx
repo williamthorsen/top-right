@@ -456,6 +456,17 @@ describe(Chart, () => {
       await user.unhover(row);
       expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-highlighted', 'false');
     });
+
+    it("ends a relation row's highlight when the pane leaves its item under the pointer", async () => {
+      const user = userEvent.setup();
+      renderChart(chainItems, {}, chainScores);
+      await user.click(screen.getByRole('button', { name: /^t\.2:/ }));
+      await user.hover(within(getPane()).getByRole('link', { name: /t\.3 Issue 3/ }));
+
+      await user.keyboard('{Escape}');
+
+      expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-highlighted', 'false');
+    });
   });
 });
 
