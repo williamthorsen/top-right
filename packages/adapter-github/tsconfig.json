@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // The local host's server runs this source through Node's type stripping.
+    "erasableSyntaxOnly": true,
+    // The template test imports `node:` builtins.
+    "types": ["node"],
+  },
+  "include": ["src/", "*.ts"],
+}

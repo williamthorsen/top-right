@@ -1,0 +1,34 @@
+{
+  "name": "@top-right/adapter-github",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reads GitHub issues as Top Right work items",
+  "keywords": [
+    "top-right",
+    "github",
+    "adapter"
+  ],
+  "license": "UNLICENSED",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": ":"
+  },
+  "dependencies": {
+    "@top-right/model": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@williamthorsen/nmr": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

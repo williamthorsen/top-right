@@ -24,8 +24,15 @@ Scripts are run with `nmr`, a workspace bin. For the bare `nmr` command to resol
 `packages/` contains libraries that other workspaces or the public import:
 
 - `_workspace`: scaffold for creating new libraries
+- `adapter-github`: reads GitHub issues as work items
+- `chart`: the chart as a React component
+- `model`: work items, relations, and the work-type classifier
 
-`apps/` is reserved for runnable apps that nothing imports. To start a workspace, follow [Starting an app or a library from a template](docs/new-package.md).
+`apps/` contains runnable apps that nothing imports:
+
+- `local`: the local host, which serves the chart of the author's GitHub issues
+
+To start a workspace, follow [Starting an app or a library from a template](docs/new-package.md).
 
 ## Running scripts
 

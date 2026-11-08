@@ -1,0 +1,29 @@
+{
+  "name": "@top-right/model",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Work items, relations, and the work-type classifier for Top Right",
+  "keywords": [
+    "top-right",
+    "work-items"
+  ],
+  "license": "UNLICENSED",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": ":"
+  },
+  "devDependencies": {
+    "@williamthorsen/nmr": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
