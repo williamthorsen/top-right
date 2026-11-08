@@ -1,5 +1,19 @@
 export { abbreviate, formatIdLabel } from './id-label.ts';
 export {
+  AXIS_SCALE,
+  EFFORT_SCALE,
+  isValidScore,
+  type ItemScores,
+  PROGRESS_STEP,
+  readScoreValues,
+  SCORE_FIELDS,
+  type ScoreEntry,
+  type ScoreField,
+  type Scorer,
+  type Scores,
+} from './scores.ts';
+export { deriveStatus, isOverrideVoid, type StatusCategory, type StatusOverride } from './status.ts';
+export {
   formatItemKey,
   type ItemRef,
   type ItemState,
