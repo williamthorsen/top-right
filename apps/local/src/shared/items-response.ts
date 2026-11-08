@@ -8,7 +8,12 @@ const itemRefSchema = z.object({
   state: z.enum(['closed', 'open']),
 });
 
-const scoreEntrySchema = z.object({ value: z.number(), by: z.enum(['agent', 'author']), at: z.string() });
+const scoreEntrySchema = z.object({
+  value: z.number(),
+  by: z.enum(['agent', 'author']),
+  at: z.string(),
+  previous: z.number().exactOptional(),
+});
 
 /** An item's scores with their provenance. */
 export const itemScoresSchema = z.object({
