@@ -5,8 +5,8 @@ export const CELL_SIZE = 120;
 export const GRID_SIZE = 6;
 /** The smallest legible circle radius. */
 export const FLOOR_RADIUS = 6.5;
-/** The height of one row of a gutter cell's list. */
-export const GUTTER_ROW_PITCH = 18;
+/** The height of one row of a gutter cell's list, which `.tr-item` matches; 24 meets the WCAG 2.2 target size. */
+export const GUTTER_ROW_PITCH = 24;
 export const CELL_PADDING = 10;
 export const CIRCLE_GAP = 2;
 
