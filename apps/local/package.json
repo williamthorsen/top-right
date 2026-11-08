@@ -28,10 +28,14 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@testing-library/dom": "catalog:",
+    "@testing-library/jest-dom": "catalog:",
+    "@testing-library/react": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@williamthorsen/nmr": "catalog:",
+    "jsdom": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {

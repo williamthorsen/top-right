@@ -24,14 +24,14 @@
     "@top-right/model": "workspace:*"
   },
   "devDependencies": {
-    "@testing-library/dom": "10.4.2",
-    "@testing-library/jest-dom": "7.0.1",
-    "@testing-library/react": "16.3.3",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/jest-dom": "catalog:",
+    "@testing-library/react": "catalog:",
     "@testing-library/user-event": "14.6.8",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@williamthorsen/nmr": "catalog:",
-    "jsdom": "31.0.0",
+    "jsdom": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "vitest": "catalog:"
