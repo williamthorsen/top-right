@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import type { WorkItem } from '@top-right/model';
+import type { ItemScores, StatusOverride, WorkItem } from '@top-right/model';
 import { describe, expect, it } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
@@ -92,6 +92,79 @@ describe(Chart, () => {
 
     expect(screen.getByRole('list', { name: 'Unscored items' })).toHaveAttribute('data-overflow', 'true');
   });
+
+  describe('with scores', () => {
+    const at = '2026-11-08T00:00:00.000Z';
+    const author = 'author' as const;
+
+    it('moves an item with urgency and impact out of the gutter and into its cell', () => {
+      const scored = buildItem({ number: 1 });
+      const unscored = buildItem({ number: 2 });
+
+      renderChart(
+        [scored, unscored],
+        {},
+        {
+          [`${REPO}#1`]: { urgency: { value: 4, by: author, at }, impact: { value: 5, by: author, at } },
+        },
+      );
+
+      expect(screen.getByRole('button', { name: /^t\.1:/ })).toHaveAttribute('data-status', 'to-do');
+      const gutter = screen.getByRole('list', { name: 'Unscored items' });
+      expect(within(gutter).queryByRole('button', { name: /^t\.1:/ })).not.toBeInTheDocument();
+      expect(within(gutter).getByRole('button', { name: /^t\.2:/ })).toBeInTheDocument();
+    });
+
+    it('keeps an item with only one of urgency and impact in the gutter', () => {
+      renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: { urgency: { value: 3, by: author, at } } });
+
+      const gutter = screen.getByRole('list', { name: 'Unscored items' });
+      expect(within(gutter).getByRole('button', { name: /^t\.1:/ })).toBeInTheDocument();
+    });
+
+    it('draws an in-progress item with a pie and a to-do item without one', () => {
+      const placed: ItemScores = { urgency: { value: 2, by: author, at }, impact: { value: 2, by: author, at } };
+      const inProgress: StatusOverride = { status: 'in-progress', sourceState: 'open', at };
+
+      renderChart(
+        [buildItem({ number: 1 }), buildItem({ number: 2 })],
+        {},
+        { [`${REPO}#1`]: placed, [`${REPO}#2`]: placed },
+        { [`${REPO}#1`]: inProgress },
+      );
+
+      const first = screen.getByRole('button', { name: /^t\.1:/ });
+      const second = screen.getByRole('button', { name: /^t\.2:/ });
+      expect(first).toHaveAttribute('data-status', 'in-progress');
+      // eslint-disable-next-line testing-library/no-node-access -- the pie is decorative SVG, which has no role to query.
+      expect(first.querySelector('.tr-node-pie')).not.toBeNull();
+      expect(second).toHaveAttribute('data-status', 'to-do');
+      // eslint-disable-next-line testing-library/no-node-access -- the pie is decorative SVG, which has no role to query.
+      expect(second.querySelector('.tr-node-pie')).toBeNull();
+    });
+
+    it('selects a scored circle by click and by Enter', async () => {
+      const user = userEvent.setup();
+      renderChart(
+        [buildItem({ number: 1 }), buildItem({ number: 2 })],
+        {},
+        {
+          [`${REPO}#1`]: { urgency: { value: 1, by: author, at }, impact: { value: 1, by: author, at } },
+          [`${REPO}#2`]: { urgency: { value: 1, by: author, at }, impact: { value: 1, by: author, at } },
+        },
+      );
+      const first = screen.getByRole('button', { name: /^t\.1:/ });
+      const second = screen.getByRole('button', { name: /^t\.2:/ });
+
+      await user.click(first);
+      expect(first).toBePressed();
+
+      second.focus();
+      await user.keyboard('{Enter}');
+      expect(second).toBePressed();
+      expect(first).not.toBePressed();
+    });
+  });
 });
 
 // region | Helpers
@@ -112,7 +185,12 @@ function getPane(): HTMLElement {
   return screen.getByRole('complementary', { name: 'Item detail' });
 }
 
-function renderChart(items: WorkItem[], abbreviations: Record<string, string> = {}) {
-  return render(<Chart abbreviations={abbreviations} items={items} />);
+function renderChart(
+  items: WorkItem[],
+  abbreviations: Record<string, string> = {},
+  scores: Record<string, ItemScores> = {},
+  overrides: Record<string, StatusOverride> = {},
+) {
+  return render(<Chart abbreviations={abbreviations} items={items} overrides={overrides} scores={scores} />);
 }
 // endregion | Helpers

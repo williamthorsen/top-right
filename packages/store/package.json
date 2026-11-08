@@ -1,0 +1,36 @@
+{
+  "name": "@top-right/store",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The store interface through which Top Right reads and writes scores, overrides, and visits",
+  "keywords": [
+    "store",
+    "top-right"
+  ],
+  "license": "UNLICENSED",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "scripts": {
+    "build": ":"
+  },
+  "dependencies": {
+    "@top-right/model": "workspace:*"
+  },
+  "devDependencies": {
+    "@williamthorsen/nmr": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

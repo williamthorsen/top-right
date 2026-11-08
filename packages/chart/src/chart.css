@@ -17,6 +17,9 @@
   --tr-cat-task: #a87600;
   --tr-cat-ops: #6a4fcb;
   --tr-cat-none: #6b6a63;
+  --tr-inprog: #2068c4;
+  --tr-on-todo: #161616;
+  --tr-on-inprog: #ffffff;
   --tr-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --tr-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
@@ -46,6 +49,9 @@
     --tr-cat-task: #d99a1a;
     --tr-cat-ops: #9c92ee;
     --tr-cat-none: #a8a79f;
+    --tr-inprog: #6aa4ee;
+    --tr-on-todo: #ffffff;
+    --tr-on-inprog: #161616;
 
     color-scheme: dark;
   }
@@ -69,6 +75,9 @@
   --tr-cat-task: #d99a1a;
   --tr-cat-ops: #9c92ee;
   --tr-cat-none: #a8a79f;
+  --tr-inprog: #6aa4ee;
+  --tr-on-todo: #ffffff;
+  --tr-on-inprog: #161616;
 
   color-scheme: dark;
 }
@@ -244,13 +253,99 @@
   stroke: var(--tr-cat-none);
 }
 
+/* -- Scored circles -- */
+
+.tr-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.tr-node-hit {
+  fill: transparent;
+}
+
+.tr-node-main {
+  fill: var(--tr-todo);
+}
+
+.tr-node-pie {
+  fill: var(--tr-inprog);
+}
+
+.tr-node-border {
+  fill: none;
+  stroke: var(--tr-cat-none);
+  stroke-width: 2.5;
+}
+
+.tr-node[data-work-type='feature'] .tr-node-border {
+  stroke: var(--tr-cat-feature);
+}
+
+.tr-node[data-work-type='bug'] .tr-node-border {
+  stroke: var(--tr-cat-bug);
+}
+
+.tr-node[data-work-type='task'] .tr-node-border {
+  stroke: var(--tr-cat-task);
+}
+
+.tr-node[data-work-type='ops'] .tr-node-border {
+  stroke: var(--tr-cat-ops);
+}
+
+.tr-node-floor {
+  fill: none;
+  stroke: var(--tr-on-todo);
+  stroke-width: 1.2;
+}
+
+.tr-node[data-status='in-progress'] .tr-node-floor {
+  stroke: var(--tr-on-inprog);
+}
+
+.tr-node-selected,
+.tr-node-focus {
+  display: none;
+  fill: none;
+}
+
+.tr-node:hover .tr-node-selected {
+  display: block;
+  stroke: var(--tr-axis);
+  stroke-width: 1.5;
+}
+
+.tr-node[aria-pressed='true'] .tr-node-selected {
+  display: block;
+  stroke: var(--tr-ink);
+  stroke-width: 2.5;
+}
+
+.tr-node:focus-visible .tr-node-focus {
+  display: block;
+  stroke: var(--tr-focus);
+  stroke-width: 3;
+}
+
 /* -- Legend -- */
+
+.tr-legends {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  margin: 8px 0 0;
+}
+
+.tr-legends .tr-node {
+  cursor: default;
+}
 
 .tr-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 16px;
-  margin: 8px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
   color: var(--tr-ink-2);
@@ -349,6 +444,115 @@
   margin: 0;
 }
 
+/* -- Scores in the pane -- */
+
+.tr-scores {
+  margin: 0 0 14px;
+}
+
+.tr-scores h3,
+.tr-relations h3 {
+  margin: 12px 0 6px;
+  color: var(--tr-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tr-score {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 10px;
+  margin: 0 0 8px;
+}
+
+.tr-score-name {
+  color: var(--tr-ink-2);
+  font-size: 12px;
+}
+
+.tr-score-who {
+  grid-column: 2;
+  color: var(--tr-ink-2);
+  font-size: 12px;
+}
+
+.tr-seg {
+  display: inline-flex;
+  justify-self: start;
+  border: 1px solid var(--tr-control-line);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--tr-surface);
+}
+
+.tr-root .tr-seg-option {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 7px;
+  border: 0;
+  border-right: 1px solid var(--tr-control-line);
+  background: transparent;
+  color: var(--tr-ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.tr-seg-option:last-child {
+  border-right: 0;
+}
+
+.tr-seg-option:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-seg-option[aria-checked='true'] {
+  background: var(--tr-ink);
+  color: var(--tr-bg);
+  font-weight: 600;
+}
+
+.tr-seg-option[aria-disabled='true'] {
+  cursor: default;
+}
+
+.tr-seg-option[aria-disabled='true']:not([aria-checked='true']) {
+  color: var(--tr-ink-2);
+}
+
+.tr-seg-option[aria-disabled='true']:hover:not([aria-checked='true']) {
+  background: transparent;
+}
+
+.tr-root .tr-seg-option:focus-visible {
+  outline-offset: -3px;
+}
+
+.tr-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tr-progress input {
+  width: min(100%, 200px);
+  accent-color: var(--tr-inprog);
+  cursor: pointer;
+}
+
+.tr-progress input:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: 2px;
+}
+
+.tr-progress output {
+  min-width: 3.5em;
+  font-variant-numeric: tabular-nums;
+}
+
 .tr-chips {
   display: flex;
   flex-wrap: wrap;
@@ -363,15 +567,6 @@
   border: 1px solid var(--tr-control-line);
   border-radius: 999px;
   font-size: 12px;
-}
-
-.tr-relations h3 {
-  margin: 12px 0 4px;
-  color: var(--tr-ink-2);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .tr-relations ul {
