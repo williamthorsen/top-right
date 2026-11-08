@@ -4,7 +4,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 import { describeStoreContract } from '@top-right/store/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { openSqliteStore } from '../sqlite-store.ts';
 
@@ -36,6 +36,8 @@ describe('SqliteStore on a file', () => {
       at,
     });
     await before.writeLastVisit('github:author', at);
+    await before.writeWorkTypeMapping('github:author', { bug: ['defect'], feature: [], ops: [], task: [] });
+    await before.writeAbbreviations('github:author', { 'owner/repo': 'r' });
     const written = await before.readUserState('github:author');
     before.close();
 
@@ -50,7 +52,7 @@ describe('SqliteStore on a file', () => {
     reopened.close();
 
     using db = new DatabaseSync(file);
-    expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: 2 });
+    expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: 3 });
   });
 
   it('migrates a version-1 file and keeps its scores', async () => {
@@ -67,6 +69,22 @@ describe('SqliteStore on a file', () => {
       scores: { 'owner/repo#1': { urgency: { value: 3, by: 'author', at } } },
     });
     store.close();
+  });
+
+  it('ignores a stored setting that is not valid, with a warning', async () => {
+    const store = openSqliteStore(file);
+    await store.writeAbbreviations('github:author', { 'owner/repo': 'r' });
+    store.close();
+    {
+      using db = new DatabaseSync(file);
+      db.prepare("UPDATE settings SET value = '[1]' WHERE name = 'abbreviations'").run();
+    }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const reopened = openSqliteStore(file);
+    await expect(reopened.readUserState('github:author')).resolves.toMatchObject({ abbreviations: {} });
+    reopened.close();
+    expect(warn).toHaveBeenCalledOnce();
   });
 
   it('serves the version-1 statements on a migrated file', async () => {
