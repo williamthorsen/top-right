@@ -1,6 +1,8 @@
 import {
   classifyWorkType,
+  findTrailOrigin,
   formatItemKey,
+  isAgentScored,
   type ItemScores,
   type Relation,
   type RelationKind,
@@ -26,7 +28,11 @@ export interface DetailPaneProps {
   blockedKeys: ReadonlySet<string>;
   scores: ItemScores | undefined;
   override: StatusOverride | undefined;
+  /** Whether a review queue is running, in which Enter keeps the selected item. */
+  isReviewing: boolean;
   onClose: () => void;
+  /** Keeps the item's agent scores as the author's; Keep is shown only when the host passes it. */
+  onKeep: ((itemKey: string) => void) | undefined;
   onScoresChange: (itemKey: string, scores: Scores) => void;
   onStatusChange: (itemKey: string, status: SettableStatus) => void;
 }
@@ -47,7 +53,9 @@ export function DetailPane({
   blockedKeys,
   scores,
   override,
+  isReviewing,
   onClose,
+  onKeep,
   onScoresChange,
   onStatusChange,
 }: DetailPaneProps): ReactElement {
@@ -75,6 +83,9 @@ export function DetailPane({
         <span className="tr-visually-hidden">(opens in a new tab)</span>
       </a>
       <h2 className="tr-pane-title">{item.title}</h2>
+      {onKeep && isAgentScored(scores) ? (
+        <AgentReview isReviewing={isReviewing} onKeep={() => onKeep(formatItemKey(item))} scores={scores} />
+      ) : null}
       <PaneScores
         item={item}
         onScoresChange={(changed) => onScoresChange(formatItemKey(item), changed)}
@@ -106,6 +117,36 @@ export function DetailPane({
 }
 
 // region | Helpers
+/** The agent's mark on the item: the cell that the agent moved it from, and the Keep button. */
+function AgentReview({
+  scores,
+  isReviewing,
+  onKeep,
+}: {
+  scores: ItemScores | undefined;
+  isReviewing: boolean;
+  onKeep: () => void;
+}) {
+  const origin = findTrailOrigin(scores);
+  return (
+    <div className="tr-agent-review">
+      <button className="tr-button" onClick={onKeep} type="button">
+        Keep
+        {isReviewing ? (
+          <kbd aria-hidden="true" className="tr-kbd">
+            Enter
+          </kbd>
+        ) : null}
+      </button>
+      {origin ? (
+        <p className="tr-pane-note">
+          Moved by the agent from urgency {origin.urgency}, impact {origin.impact}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function ExternalLinkIcon() {
   return (
     <svg

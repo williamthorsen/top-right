@@ -328,6 +328,62 @@
   stroke-width: 3;
 }
 
+/* -- Review: the agent's halo, the trail, and the fade -- */
+
+.tr-node-halo,
+.tr-circle-halo {
+  fill: none;
+  stroke: var(--tr-ink-2);
+  stroke-width: 1.5;
+}
+
+.tr-trail circle,
+.tr-trail line {
+  fill: none;
+  stroke: var(--tr-ink-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+}
+
+.tr-node[data-faded='true'],
+.tr-gutter-list li[data-faded='true'] {
+  opacity: 0.25;
+}
+
+.tr-review {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 36px;
+  margin: 0 0 8px;
+}
+
+.tr-review-position {
+  margin-right: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-review-button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--tr-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tr-review-button:hover:not(:disabled) {
+  background: var(--tr-surface-2);
+}
+
+.tr-review-button:disabled {
+  color: var(--tr-ink-2);
+  cursor: default;
+}
+
 /* -- Legend -- */
 
 .tr-legends {
@@ -442,6 +498,48 @@
 
 .tr-pane-facts dd {
   margin: 0;
+}
+
+/* -- The agent's review in the pane -- */
+
+.tr-agent-review {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0 0 12px;
+}
+
+.tr-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--tr-control-line);
+  border-radius: 7px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tr-button:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-kbd {
+  padding: 0 4px;
+  border: 1px solid var(--tr-control-line);
+  border-radius: 4px;
+  color: var(--tr-ink-2);
+  font: 12px/1.4 var(--tr-mono);
+}
+
+.tr-pane-note {
+  margin: 0;
+  color: var(--tr-ink-2);
+  font-size: 12px;
 }
 
 /* -- Scores in the pane -- */

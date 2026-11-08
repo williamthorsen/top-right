@@ -1,6 +1,14 @@
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import type { ItemScores, StatusOverride, WorkItem } from '@top-right/model';
+import {
+  applyScoreWrite,
+  type ItemScores,
+  keepItemScores,
+  type Scores,
+  type StatusOverride,
+  type WorkItem,
+} from '@top-right/model';
+import { type ReactElement, useState } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
@@ -165,6 +173,121 @@ describe(Chart, () => {
       expect(first).not.toBePressed();
     });
   });
+
+  describe('with agent scores', () => {
+    const at = '2026-11-08T00:00:00.000Z';
+    const MOVED: ItemScores = {
+      urgency: { value: 4, by: 'agent', at, previous: 2 },
+      impact: { value: 5, by: 'agent', at, previous: 3 },
+    };
+    const FROM_GUTTER: ItemScores = { urgency: { value: 2, by: 'agent', at }, impact: { value: 2, by: 'agent', at } };
+    const AUTHOR_HELD: ItemScores = { urgency: { value: 5, by: 'author', at }, impact: { value: 5, by: 'author', at } };
+
+    it('wears a halo on an agent-scored circle and gutter item until the author keeps it', async () => {
+      const user = userEvent.setup();
+      renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {
+        [`${REPO}#1`]: MOVED,
+        [`${REPO}#2`]: { urgency: { value: 3, by: 'agent', at } },
+      });
+      const circle = screen.getByRole('button', { name: /^t\.1:/ });
+      const gutter = screen.getByRole('list', { name: 'Unscored items' });
+
+      expect(hasHalo(circle)).toBe(true);
+      expect(hasHalo(within(gutter).getByRole('button', { name: /^t\.2:/ }))).toBe(true);
+
+      await user.click(circle);
+      await user.click(screen.getByRole('button', { name: 'Keep' }));
+
+      expect(hasHalo(screen.getByRole('button', { name: /^t\.1:/ }))).toBe(false);
+    });
+
+    it('shows a trail only while the circle is hovered or selected, or during the Agent-scored review', async () => {
+      const user = userEvent.setup();
+      renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {
+        [`${REPO}#1`]: MOVED,
+        [`${REPO}#2`]: FROM_GUTTER,
+      });
+
+      expect(countTrails()).toBe(0);
+      await user.hover(screen.getByRole('button', { name: /^t\.1:/ }));
+      expect(countTrails()).toBe(1);
+      await user.unhover(screen.getByRole('button', { name: /^t\.1:/ }));
+      expect(countTrails()).toBe(0);
+
+      await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
+      // The item that the agent moved out of the gutter has no previous cell, so only one trail draws.
+      expect(countTrails()).toBe(1);
+    });
+
+    it('reviews the agent-scored items top-right first, fading the rest, and keeps them with Enter', async () => {
+      const user = userEvent.setup();
+      renderReview([buildItem({ number: 1 }), buildItem({ number: 2 }), buildItem({ number: 3 })], {
+        [`${REPO}#1`]: FROM_GUTTER,
+        [`${REPO}#2`]: MOVED,
+        [`${REPO}#3`]: AUTHOR_HELD,
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
+
+      expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · 1 of 2');
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-faded', 'true');
+      expect(screen.getByRole('button', { name: /^t\.1:/ })).toHaveAttribute('data-faded', 'false');
+
+      await user.keyboard('{Enter}');
+      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
+      expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · 1 of 1');
+
+      await user.keyboard('{Enter}');
+      expect(screen.queryByRole('button', { name: /Agent-scored/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Review agent scores (0)' })).toBeDisabled();
+      expect(within(getPane()).getByText('No item selected')).toBeInTheDocument();
+    });
+
+    it('skips without keeping, and ends the review by End review or Escape before Escape clears the selection', async () => {
+      const user = userEvent.setup();
+      renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {
+        [`${REPO}#1`]: FROM_GUTTER,
+        [`${REPO}#2`]: MOVED,
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
+      await user.click(screen.getByRole('button', { name: 'Skip' }));
+      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
+      await user.click(screen.getByRole('button', { name: 'Skip' }));
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(hasHalo(screen.getByRole('button', { name: /^t\.2:/ }))).toBe(true);
+
+      await user.click(screen.getByRole('button', { name: 'End review' }));
+      expect(screen.getByRole('button', { name: 'Review agent scores (2)' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+
+      await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
+      await user.keyboard('{Escape}');
+      expect(screen.getByRole('button', { name: 'Review agent scores (2)' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      await user.keyboard('{Escape}');
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).not.toBePressed();
+    });
+
+    it('moves an Unscored review on once the selected item has both urgency and impact', async () => {
+      const user = userEvent.setup();
+      renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {});
+
+      await user.click(screen.getByRole('button', { name: 'Review unscored (2)' }));
+      expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 2');
+      await user.click(
+        within(within(getPane()).getByRole('radiogroup', { name: 'Urgency' })).getByRole('radio', { name: '3' }),
+      );
+      expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 2');
+      await user.click(
+        within(within(getPane()).getByRole('radiogroup', { name: 'Impact' })).getByRole('radio', { name: '4' }),
+      );
+
+      expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 1');
+      expect(within(getPane()).getByText('Issue 2')).toBeInTheDocument();
+    });
+  });
 });
 
 // region | Helpers
@@ -181,6 +304,16 @@ function buildItem(overrides: Partial<WorkItem> & Pick<WorkItem, 'number'>): Wor
   };
 }
 
+/** Returns the number of trails on the chart; a trail is decorative SVG, which has no role to query. */
+function countTrails(): number {
+  return screen.getByRole('group', { name: 'Items by urgency and impact' }).querySelectorAll('.tr-trail').length;
+}
+
+/** Returns whether the item wears the agent's halo, which is decorative SVG without a role to query. */
+function hasHalo(element: HTMLElement): boolean {
+  return element.querySelector('.tr-node-halo, .tr-circle-halo') !== null;
+}
+
 function getPane(): HTMLElement {
   return screen.getByRole('complementary', { name: 'Item detail' });
 }
@@ -192,5 +325,25 @@ function renderChart(
   overrides: Record<string, StatusOverride> = {},
 ) {
   return render(<Chart abbreviations={abbreviations} items={items} overrides={overrides} scores={scores} />);
+}
+
+/** Renders the chart with a host that applies the author's writes and Keep to its scores, as the page does. */
+function renderReview(items: WorkItem[], initialScores: Record<string, ItemScores>) {
+  function ReviewHost(): ReactElement {
+    const [scores, setScores] = useState(initialScores);
+    const at = '2026-11-09T00:00:00.000Z';
+    return (
+      <Chart
+        abbreviations={{}}
+        items={items}
+        onKeep={(itemKey) => setScores((current) => ({ ...current, [itemKey]: keepItemScores(current[itemKey], at) }))}
+        onScoresChange={(itemKey, changed: Scores) =>
+          setScores((current) => ({ ...current, [itemKey]: applyScoreWrite(current[itemKey], changed, 'author', at) }))
+        }
+        scores={scores}
+      />
+    );
+  }
+  return render(<ReviewHost />);
 }
 // endregion | Helpers
