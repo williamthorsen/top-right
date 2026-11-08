@@ -66,6 +66,8 @@ Urgency, impact, effort, and progress live in the app's store, because the sourc
 
 Revised after the Jira site admin and developer evaluations: The decision offered the entity-property write-through as optional from the start, and a Forge manifest declares its scopes for every user at install, so an unused write scope still costs the admin a write approval; the decision also did not say how a score keeps its item across refreshes.
 
+The local host keys a score by the item's `owner/name#number` and by `github:<login>`, the user whom the GitHub token authenticates, and keeps the store in one SQLite file outside the repository, so that every worktree reads the same scores. Renaming or transferring a repository orphans its items' scores. Decided at the second MVP iteration (#12).
+
 ### Ordinal axes and the cell as the tie
 
 Urgency and impact are integers 1 to 5. A hand-scored backlog does not hold finer differences, and an integer scale makes a cell a guarantee: A drag snaps to a cell, a nudge inside the cell never reads as the neighbouring score, and every item in a cell has the same true point, so a tie is a cell. Tied circles pack inside their cell, and the cell's gridlines are the anchor; the chart draws neither spokes nor a centre dot, which would mark what the gridlines already show.
@@ -144,7 +146,7 @@ Decided at the prototype round (row 26). Revised after the first MVP iteration (
 
 Detail lives in a side pane on desktop and a bottom sheet on a phone, never in a tooltip, because a tooltip jumps and cannot carry the pane's structure. The pane shows the id with an external-link icon to the source, the title, the status control, the four scores as compact segmented controls with one provenance line each (who set it and when), the points under Progress, and the relations as lists of rows with the id in monospace and the title, each row tagged closed or blocked where that holds. Hovering a relation row rings its circle on the chart. A segmented control is one tab stop, and arrow keys move within it. The pane takes the room that a wide window offers and is resizable. While an item is selected, the pane shows a Close button that clears the selection, because touch has no Escape key; on a phone, the page leaves room to scroll the chart above the sheet.
 
-Decided at the prototype round: The relations list comes from 1.1 (row 30), and 4.1's pane won on feel (row 29); the "Open" state chip (row 34), the "Open on GitHub" button (row 36), and 3.1's tall rating buttons (row 24) were dropped. Revised after the first MVP iteration (#11): On a phone, the sheet covered the corner cell and offered no way to dismiss it.
+Decided at the prototype round: The relations list comes from 1.1 (row 30), and 4.1's pane won on feel (row 29); the "Open" state chip (row 34), the "Open on GitHub" button (row 36), and 3.1's tall rating buttons (row 24) were dropped. Revised after the first MVP iteration (#11): On a phone, the sheet covered the corner cell and offered no way to dismiss it. Revised at the second MVP iteration (#12): Progress is a range in steps of 5 % with a readout rather than a segmented control, because twenty-one segments do not fit the pane; Status, Urgency, Impact, and Effort stay segmented.
 
 ### Filter and fade
 
@@ -255,7 +257,7 @@ The package split is settled for the MVP, whose epic is #10. It follows the base
 - `packages/model`: work items, scores keyed by user, status categories and the override, relationships, the work-type classifier and its mapping, the next pick, and the review queues
 - `packages/chart`: the browser chart and its detail pane, which take props only, with the cell packing and the gutters inside it
 - `packages/adapter-github`: the GitHub adapter
-- `packages/store`: the store interface, including settings (the type mapping, repo abbreviations) and the last visit per user
+- `packages/store`: the store interface, with scores, status overrides, and the last visit per user, and the conformance tests that every store runs; settings (the type mapping, repo abbreviations) join it with Settings (#15)
 - `apps/local`: the local host, which implements the store on SQLite and serves the page with the toolbar and the table
 
 The Jira adapter, `packages/adapter-jira`, is added after the MVP, when its iteration starts. Every package under `packages/` is part of the published core. `apps/local` stays in this repository and is not published.
