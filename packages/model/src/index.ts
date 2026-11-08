@@ -1,4 +1,5 @@
 export { abbreviate, formatIdLabel } from './id-label.ts';
+export { findNextPick } from './pick.ts';
 export {
   type BlockerChain,
   buildRelationGraph,
