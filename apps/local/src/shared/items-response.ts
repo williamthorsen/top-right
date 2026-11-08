@@ -12,10 +12,10 @@ const scoreEntrySchema = z.object({ value: z.number(), by: z.enum(['agent', 'aut
 
 /** An item's scores with their provenance. */
 export const itemScoresSchema = z.object({
-  urgency: scoreEntrySchema.optional(),
-  impact: scoreEntrySchema.optional(),
-  effort: scoreEntrySchema.optional(),
-  progress: scoreEntrySchema.optional(),
+  urgency: scoreEntrySchema.exactOptional(),
+  impact: scoreEntrySchema.exactOptional(),
+  effort: scoreEntrySchema.exactOptional(),
+  progress: scoreEntrySchema.exactOptional(),
 });
 
 /** A stored status override. */
@@ -41,7 +41,7 @@ export const itemsResponseSchema = z.object({
   /** The user's status overrides that still apply, by item key. */
   overrides: z.record(z.string(), statusOverrideSchema),
   /** When the user's previous visit ended. */
-  lastVisitAt: z.string().optional(),
+  lastVisitAt: z.string().exactOptional(),
 });
 
 /** The body of a failed request to the host. */
