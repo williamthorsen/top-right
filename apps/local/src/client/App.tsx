@@ -13,13 +13,19 @@ import type { z } from 'zod';
 import { errorResponseSchema, type ItemsResponse, itemsResponseSchema } from '#src/shared/items-response.ts';
 import { scoresResponseSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
 
-/** The page: the chart of the configured repositories' open issues, whose scores and status it writes to the host. */
+import { useUrlSelection } from './useUrlSelection.ts';
+
+/**
+ * The page: the chart of the configured repositories' open issues, whose scores and status it writes to the host, with
+ * the selected item in the URL.
+ */
 export function App(): ReactElement {
   type LoadState = { kind: 'error'; message: string } | { kind: 'loaded'; data: ItemsResponse } | { kind: 'loading' };
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [scores, setScores] = useState<Record<string, ItemScores>>({});
   const [overrides, setOverrides] = useState<Record<string, StatusOverride>>({});
   const [failure, setFailure] = useState<string>();
+  const [selectedKey, changeSelectedKey] = useUrlSelection();
   // Writes for one item run in order, so that a late response cannot overwrite a newer change.
   const writeQueues = useRef(new Map<string, Promise<void>>());
 
@@ -124,12 +130,14 @@ export function App(): ReactElement {
         items={data.items}
         onKeep={keepScores}
         onScoresChange={changeScores}
+        onSelectedKeyChange={changeSelectedKey}
         onStatusChange={(itemKey, status) => {
           const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
           if (item) changeStatus(itemKey, status, item.state);
         }}
         overrides={overrides}
         scores={scores}
+        selectedKey={selectedKey}
       />
     </>
   );
