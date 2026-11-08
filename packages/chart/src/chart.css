@@ -20,6 +20,8 @@
   --tr-inprog: #2068c4;
   --tr-on-todo: #161616;
   --tr-on-inprog: #ffffff;
+  --tr-block: #c22a2a;
+  --tr-relation: #6b6a63;
   --tr-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --tr-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
@@ -52,6 +54,8 @@
     --tr-inprog: #6aa4ee;
     --tr-on-todo: #ffffff;
     --tr-on-inprog: #161616;
+    --tr-block: #f07070;
+    --tr-relation: #a8a79f;
 
     color-scheme: dark;
   }
@@ -78,6 +82,8 @@
   --tr-inprog: #6aa4ee;
   --tr-on-todo: #ffffff;
   --tr-on-inprog: #161616;
+  --tr-block: #f07070;
+  --tr-relation: #a8a79f;
 
   color-scheme: dark;
 }
@@ -350,13 +356,92 @@
   opacity: 0.25;
 }
 
+.tr-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  margin: 0 0 8px;
+}
+
 .tr-review {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
   min-height: 36px;
-  margin: 0 0 8px;
+}
+
+/* A toggle outside a toolbar: bordered at rest; pressed shows a check and an inverted fill. */
+.tr-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--tr-ink-2);
+  border-radius: 7px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tr-toggle:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-toggle[aria-pressed='true'] {
+  border-color: var(--tr-ink);
+  background: var(--tr-ink);
+  color: var(--tr-surface);
+}
+
+.tr-toggle[aria-pressed='true']::before {
+  content: '✓';
+}
+
+/* -- Edges: blocker arrows and sub-issue lines, weighted by focus -- */
+
+.tr-edges {
+  pointer-events: none;
+}
+
+.tr-edge-halo {
+  fill: none;
+  stroke: var(--tr-surface);
+  stroke-width: 5;
+  opacity: 0.9;
+}
+
+.tr-edge-line {
+  fill: none;
+  stroke-width: 2;
+}
+
+.tr-edge[data-kind='blocker'] .tr-edge-line {
+  stroke: var(--tr-block);
+}
+
+.tr-edge-arrow {
+  fill: var(--tr-block);
+}
+
+.tr-edge[data-kind='sub-issue'] .tr-edge-line {
+  stroke: var(--tr-relation);
+}
+
+.tr-edge[data-weight='chain'] {
+  opacity: 0.7;
+}
+
+.tr-edge[data-weight='chain'] .tr-edge-line {
+  stroke-width: 1.6;
+}
+
+.tr-edge[data-weight='faint'] {
+  opacity: 0.45;
 }
 
 .tr-review-position {

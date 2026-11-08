@@ -4,6 +4,8 @@ import {
   applyScoreWrite,
   type ItemScores,
   keepItemScores,
+  type Relation,
+  type RelationKind,
   type Scores,
   type StatusOverride,
   type WorkItem,
@@ -328,6 +330,91 @@ describe(Chart, () => {
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 1');
     });
   });
+
+  describe('with edges', () => {
+    // t.1 blocks t.2, which blocks t.3; t.4 is a sub-issue of t.2; t.5 stands apart.
+    const chainItems = [
+      buildItem({ number: 1, relations: [relate('blocking', 2)] }),
+      buildItem({ number: 2, relations: [relate('blocked-by', 1), relate('blocking', 3), relate('sub-issue', 4)] }),
+      buildItem({ number: 3, relations: [relate('blocked-by', 2)] }),
+      buildItem({ number: 4, relations: [relate('parent', 2)] }),
+      buildItem({ number: 5 }),
+    ];
+    const chainScores = {
+      [`${REPO}#1`]: place(1, 1),
+      [`${REPO}#2`]: place(2, 2),
+      [`${REPO}#3`]: place(3, 3),
+      [`${REPO}#4`]: place(4, 4),
+      [`${REPO}#5`]: place(5, 5),
+    };
+
+    it('draws no edge at rest', () => {
+      renderChart(chainItems, {}, chainScores);
+
+      expect(listEdges()).toStrictEqual([]);
+    });
+
+    it('when a circle is hovered, draws its own edges, and fades every unrelated circle', async () => {
+      const user = userEvent.setup();
+      renderChart(chainItems, {}, chainScores);
+
+      await user.hover(screen.getByRole('button', { name: /^t\.2:/ }));
+
+      expect(listEdges()).toStrictEqual(['blocker:1>2:direct', 'blocker:2>3:direct', 'sub-issue:4>2:direct']);
+      expect(screen.getByRole('button', { name: /^t\.5:/ })).toHaveAttribute('data-faded', 'true');
+      expect(screen.getByRole('button', { name: /^t\.4:/ })).toHaveAttribute('data-faded', 'false');
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toHaveAttribute('data-faded', 'false');
+    });
+
+    it('when a circle is selected, draws its blocker chain at reduced weight and keeps a faded circle selectable', async () => {
+      const user = userEvent.setup();
+      renderChart(chainItems, {}, chainScores);
+
+      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.unhover(screen.getByRole('button', { name: /^t\.1:/ }));
+
+      expect(listEdges()).toStrictEqual(['blocker:2>3:chain', 'blocker:1>2:direct']);
+      expect(screen.getByRole('button', { name: /^t\.4:/ })).toHaveAttribute('data-faded', 'true');
+
+      await user.click(screen.getByRole('button', { name: /^t\.4:/ }));
+      expect(screen.getByRole('button', { name: /^t\.4:/ })).toBePressed();
+    });
+
+    it('with All edges pressed, draws every edge once, faintly when nothing is focused', async () => {
+      const user = userEvent.setup();
+      renderChart(chainItems, {}, chainScores);
+      const toggle = screen.getByRole('button', { name: 'All edges' });
+
+      await user.click(toggle);
+
+      expect(toggle).toBePressed();
+      expect(listEdges()).toStrictEqual(['blocker:1>2:faint', 'blocker:2>3:faint', 'sub-issue:4>2:faint']);
+    });
+
+    it('during a review, fades by the queue rather than by focus', async () => {
+      const user = userEvent.setup();
+      const agent = { value: 3, by: 'agent' as const, at: '2026-11-08T00:00:00.000Z' };
+      renderReview(chainItems, { ...chainScores, [`${REPO}#5`]: { urgency: agent, impact: agent } });
+
+      await user.click(screen.getByRole('button', { name: 'Review agent scores (1)' }));
+
+      expect(screen.getByRole('button', { name: /^t\.5:/ })).toHaveAttribute('data-faded', 'false');
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toHaveAttribute('data-faded', 'true');
+    });
+
+    it('draws a blocker cycle', async () => {
+      const user = userEvent.setup();
+      const cycle = [
+        buildItem({ number: 1, relations: [relate('blocking', 2)] }),
+        buildItem({ number: 2, relations: [relate('blocking', 1)] }),
+      ];
+      renderChart(cycle, {}, { [`${REPO}#1`]: place(1, 1), [`${REPO}#2`]: place(3, 3) });
+
+      await user.hover(screen.getByRole('button', { name: /^t\.1:/ }));
+
+      expect(listEdges()).toStrictEqual(['blocker:1>2:direct', 'blocker:2>1:direct']);
+    });
+  });
 });
 
 // region | Helpers
@@ -361,6 +448,28 @@ function getGroup(name: string): HTMLElement {
 
 function getPane(): HTMLElement {
   return screen.getByRole('complementary', { name: 'Item detail' });
+}
+
+/** Returns each drawn edge as `kind:from>to:weight` by issue number, in draw order; edges are decorative SVG. */
+function listEdges(): string[] {
+  const group = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  return Array.from(group.querySelectorAll<SVGGElement>('.tr-edge'), ({ dataset }) => {
+    const ends = (dataset['ends'] ?? '').replaceAll(`${REPO}#`, '');
+    return `${dataset['kind']}:${ends}:${dataset['weight']}`;
+  });
+}
+
+/** Returns author scores that place an item in the cell at urgency `u` and impact `i`. */
+function place(u: number, i: number): ItemScores {
+  const at = '2026-11-08T00:00:00.000Z';
+  return { urgency: { value: u, by: 'author', at }, impact: { value: i, by: 'author', at } };
+}
+
+function relate(kind: RelationKind, number: number): Relation {
+  return {
+    kind,
+    ref: { repo: REPO, number, title: `Issue ${number}`, url: `https://example.test/${number}`, state: 'open' },
+  };
 }
 
 function renderChart(

@@ -1,4 +1,5 @@
 import {
+  buildRelationGraph,
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
   deriveStatus,
@@ -14,9 +15,11 @@ import {
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
 import { DetailPane } from './DetailPane.tsx';
+import type { EdgeEnd } from './edge-path.ts';
+import { Edges, focusItem } from './Edges.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
-import { CELL_SIZE, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
+import { CELL_SIZE, type CellLayout, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
@@ -72,9 +75,11 @@ export function Chart({
 }: ChartProps): ReactElement {
   const [selectedKey, setSelectedKey] = useState<string>();
   const [previewKey, setPreviewKey] = useState<string>();
+  const [showAllEdges, setShowAllEdges] = useState(false);
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
   const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
+  const graph = useMemo(() => buildRelationGraph(items), [items]);
   const cells = useMemo(
     () =>
       layoutCells(
@@ -112,6 +117,13 @@ export function Chart({
     element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [review.kind, selectedKey]);
 
+  const focus = focusItem(graph, previewKey ?? selectedKey, showAllEdges);
+  const ends = listEdgeEnds(cells);
+  // A running review's fade governs, so that the queue stays legible as the review steps.
+  function isFaded(key: string): boolean {
+    return review.kind === undefined ? focus.related !== undefined && !focus.related.has(key) : review.isFaded(key);
+  }
+
   const trails = listTrails(
     cells,
     scores,
@@ -122,13 +134,23 @@ export function Chart({
     <div className="tr-root">
       <div className="tr-work">
         <div className="tr-chart-area">
-          <ReviewStrip
-            counts={{ agent: review.queues.agent.length, unscored: review.queues.unscored.length }}
-            onEnd={review.end}
-            onSkip={review.skip}
-            onStart={review.start}
-            running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
-          />
+          <div className="tr-strip">
+            <ReviewStrip
+              counts={{ agent: review.queues.agent.length, unscored: review.queues.unscored.length }}
+              onEnd={review.end}
+              onSkip={review.skip}
+              onStart={review.start}
+              running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
+            />
+            <button
+              aria-pressed={showAllEdges}
+              className="tr-toggle"
+              onClick={() => setShowAllEdges((current) => !current)}
+              type="button"
+            >
+              All edges
+            </button>
+          </div>
           <div className="tr-chart-scroll" ref={scrollRef}>
             <svg
               aria-label="Items by urgency and impact"
@@ -143,6 +165,7 @@ export function Chart({
                 {trails.map((trail) => (
                   <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                 ))}
+                <Edges edges={focus.edges} ends={ends} />
                 {cells.map((cell) =>
                   cell.isGutter ? null : (
                     <g key={`${cell.u},${cell.i}`}>
@@ -155,7 +178,7 @@ export function Chart({
                             cellY={cell.y}
                             circle={circle}
                             isAgentScored={isAgentScored(scores[circle.id])}
-                            isFaded={review.isFaded(circle.id)}
+                            isFaded={isFaded(circle.id)}
                             isSelected={circle.id === selectedKey}
                             key={circle.id}
                             name={`${labelItem(item, abbreviations)}: ${item.title}`}
@@ -175,7 +198,7 @@ export function Chart({
                     <GutterCell
                       abbreviations={abbreviations}
                       cell={cell}
-                      isFaded={review.isFaded}
+                      isFaded={isFaded}
                       itemsByKey={itemsByKey}
                       key={`${cell.u},${cell.i}`}
                       onPreview={setPreviewKey}
@@ -284,5 +307,15 @@ function lineClass(index: number): string {
   if (index === GUTTER_LINE) return 'tr-gutterline';
   if (index === QUADRANT_LINE) return 'tr-quad';
   return 'tr-gridline';
+}
+
+/** Returns the centre and radius of every circle in the matrix, by key, in matrix units. */
+function listEdgeEnds(cells: readonly CellLayout[]): Map<string, EdgeEnd> {
+  const ends = new Map<string, EdgeEnd>();
+  for (const cell of cells) {
+    for (const circle of cell.circles)
+      ends.set(circle.id, { x: cell.x + circle.cx, y: cell.y + circle.cy, r: circle.r });
+  }
+  return ends;
 }
 // endregion | Helpers
