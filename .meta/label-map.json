@@ -23,6 +23,7 @@
     "chart": "scope:chart",
     "local": "scope:local",
     "model": "scope:model",
+    "store": "scope:store",
     "root": "scope:root"
   }
 }

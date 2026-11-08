@@ -17,6 +17,7 @@ const config = defineConfig({
       'scope:chart': { color: '00ff96', description: 'chart package' },
       'scope:local': { color: '00ff96', description: 'local package' },
       'scope:model': { color: '00ff96', description: 'model package' },
+      'scope:store': { color: '00ff96', description: 'store package' },
     },
   },
 
