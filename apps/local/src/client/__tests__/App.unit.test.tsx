@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // eslint-disable-next-line testing-library/no-manual-cleanup -- Vitest runs without globals, so Testing Library cannot register its own cleanup.
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,9 @@ import type { ItemsResponse } from '#src/shared/items-response.ts';
 import { App } from '../App.tsx';
 
 import '@testing-library/jest-dom/vitest';
+
+// jsdom does not implement scrolling, which the chart's table calls on each selection.
+Element.prototype.scrollIntoView = () => {};
 
 const ITEM_KEY = 'williamthorsen/top-right#12';
 const AT = '2026-11-08T10:00:00.000Z';
@@ -33,6 +36,7 @@ const ITEMS: ItemsResponse = {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  globalThis.history.replaceState(null, '', '/');
 });
 
 describe(App, () => {
@@ -157,6 +161,69 @@ describe(App, () => {
   });
 });
 
+describe('with the selection in the URL', () => {
+  const OTHER_KEY = 'williamthorsen/top-right#13';
+  const TWO_ITEMS: ItemsResponse = {
+    ...ITEMS,
+    items: [
+      ...ITEMS.items,
+      {
+        repo: 'williamthorsen/top-right',
+        number: 13,
+        title: 'Share a link',
+        url: 'https://github.com/williamthorsen/top-right/issues/13',
+        state: 'open',
+        createdAt: '2026-11-01T09:00:00Z',
+        labels: ['feature'],
+        relations: [],
+      },
+    ],
+  };
+
+  it('selects the item that the URL names when the page loads', async () => {
+    globalThis.history.replaceState(null, '', `/?item=${encodeURIComponent(ITEM_KEY)}`);
+    stubFetch(() => Promise.resolve(Response.json(ITEMS)));
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Close' })).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: 'Item detail' })).toHaveTextContent('Score items');
+  });
+
+  it('records a click selection as a history entry, so that Back returns to the previous item', async () => {
+    const user = userEvent.setup();
+    globalThis.history.replaceState(null, '', `/?item=${encodeURIComponent(ITEM_KEY)}`);
+    stubFetch(() => Promise.resolve(Response.json(TWO_ITEMS)));
+    render(<App />);
+    const entries = globalThis.history.length;
+
+    const other = await screen.findByRole('button', { name: /^t\.13:/ });
+    await user.click(other);
+    await user.unhover(other);
+    expect(readItemParameter()).toBe(OTHER_KEY);
+    expect(globalThis.history.length).toBe(entries + 1);
+
+    globalThis.history.back();
+
+    await waitFor(() =>
+      expect(screen.getByRole('complementary', { name: 'Item detail' })).toHaveTextContent('Score items'),
+    );
+    expect(readItemParameter()).toBe(ITEM_KEY);
+  });
+
+  it('records a review step in place of the current entry', async () => {
+    const user = userEvent.setup();
+    const agentScored = { ...ITEMS, scores: { [ITEM_KEY]: { urgency: { value: 2, by: 'agent' as const, at: AT } } } };
+    stubFetch(() => Promise.resolve(Response.json(agentScored)));
+    render(<App />);
+    const entries = globalThis.history.length;
+
+    await user.click(await screen.findByRole('button', { name: 'Review agent scores (1)' }));
+
+    expect(readItemParameter()).toBe(ITEM_KEY);
+    expect(globalThis.history.length).toBe(entries);
+  });
+});
+
 // region | Helpers
 function getGroup(name: string): HTMLElement {
   return screen.getByRole('radiogroup', { name });
@@ -164,6 +231,10 @@ function getGroup(name: string): HTMLElement {
 
 async function selectItem(user: ReturnType<typeof userEvent.setup>): Promise<void> {
   await user.click(await screen.findByRole('button', { name: /^t\.12:/ }));
+}
+
+function readItemParameter(): string | null {
+  return new URLSearchParams(globalThis.location.search).get('item');
 }
 
 function stubFetch(respond: (path: string) => Promise<Response>): void {

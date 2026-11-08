@@ -1,4 +1,4 @@
-export { countByStatus, DEFAULT_ITEM_FILTER, filterItems, type ItemFilter } from './filter.ts';
+export { countByStatus, DEFAULT_ITEM_FILTER, filterItems, type ItemFilter, revealItem } from './filter.ts';
 export { abbreviate, formatIdLabel } from './id-label.ts';
 export { findNextPick } from './pick.ts';
 export {
@@ -26,7 +26,7 @@ export {
   type Scorer,
   type Scores,
 } from './scores.ts';
-export { deriveStatus, isOverrideVoid, type StatusCategory, type StatusOverride } from './status.ts';
+export { deriveStatus, isOverrideVoid, STATUS_ORDER, type StatusCategory, type StatusOverride } from './status.ts';
 export {
   formatItemKey,
   type ItemRef,

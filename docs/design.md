@@ -168,6 +168,8 @@ At 1× the whole matrix fits the chart area wherever the area keeps the chart's 
 
 Each click selection is a history entry, so Back returns to the previous circle, and a selected item's URL can be shared. Hover and keyboard moves push nothing.
 
+The host owns the URL, because a Forge Custom UI iframe does not own the page's: The chart takes the selected key and reports each change with whether it is a history entry. A selection that the author makes, by a click or a key on a circle, a gutter id, or a table row, or by Close or Escape, is one; a selection that the chart makes itself, such as a review step or a filter that hides the selected item, replaces the current entry. A key that arrives from the host while the filter hides its item widens the filter to show it, so that a link or a Back never lands on nothing; a key that names none of the loaded items selects nothing. The local host keeps the key in the `item` query parameter. Decided at the sixth MVP iteration (#26).
+
 Decided at the prototype round: The callouts (row 31), drag to pan (row 35), and deep links (row 33) are the developer's ideas; the Top right control comes from 3.1 and 4.1 (row 23). 2.1's chart that scrolls at 1× so that the densest cell fits was adapted into fit-at-1× with zoom (row 7), because a chart that scrolls at 1× loses the whole-board view. Revised after the first MVP iteration (#11): At 390 px, a matrix fitted to the width scales its 12 px labels to about 6 px, so the phone keeps the floor and scrolls.
 
 ### Pointer model
@@ -181,6 +183,8 @@ Decided at the prototype round: From 3.1 Thumb and arrow keys (rows 14, 16); row
 The table below the chart is a second view of the same items and the same selection: Columns sort, status sorts by its enum order, a row click selects the row's circle with the same deep link, the selected circle's row highlights, and an external-link icon opens the source. The chart and the table sit in panes separated by a resizable divider, and the table scrolls within its pane. The legend is a strip pinned under the chart.
 
 Decided at the prototype round, from the developer's comments on the baseline; not rendered in the prototype.
+
+Revised at the sixth MVP iteration (#26): At 760 px wide or narrower, the panes stack without a divider and the page scrolls, because a scrolling table inside a scrolling page fails on touch. Hovering a row rings its circle without previewing the pane, as a relation row does. Rows do not fade, since the fade belongs to the chart, and neither the sort nor the split survives a reload, like the filter.
 
 ## Rejected alternatives
 
@@ -263,9 +267,9 @@ Questions for the round, answered: A recently closed item is reached through the
 The package split is settled for the MVP, whose epic is #10. It follows the baseline, and the chart is built as a React component from the start rather than trimmed from the baseline page, because the page is a reference and a trimmed copy would be rewritten in the second iteration. React, not a framework-free web component, because the next two hosts, a Forge Custom UI app and `skypilot-site`, are React. The packages are named under the `@top-right` npm scope, which the product owns, and stay private, read as source by the workspaces, until a consumer outside this repository needs a published version.
 
 - `packages/model`: work items, scores keyed by user, status categories and the override, relationships, the work-type classifier and its mapping, the next pick, and the review queues
-- `packages/chart`: the browser chart and its detail pane, which take props only, with the cell packing and the gutters inside it
+- `packages/chart`: the browser chart, its detail pane, and the table, which take props only, with the cell packing and the gutters inside it, and the selection that the chart and the table share
 - `packages/adapter-github`: the GitHub adapter
 - `packages/store`: the store interface, with scores, status overrides, and the last visit per user, and the conformance tests that every store runs; settings (the type mapping, repo abbreviations) join it with Settings (#15)
-- `apps/local`: the local host, which implements the store on SQLite and serves the page with the toolbar and the table
+- `apps/local`: the local host, which implements the store on SQLite, serves the page, and keeps the selection in the page's URL
 
 The Jira adapter, `packages/adapter-jira`, is added after the MVP, when its iteration starts. Every package under `packages/` is part of the published core. `apps/local` stays in this repository and is not published.

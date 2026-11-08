@@ -2,6 +2,7 @@ import type { ItemFilter, StatusCategory } from '@top-right/model';
 import { type ReactElement, useId } from 'react';
 
 import type { Abbreviations } from './item-label.ts';
+import { STATUS_NAMES } from './status-names.ts';
 
 export interface FilterBarProps {
   filter: ItemFilter;
@@ -13,10 +14,7 @@ export interface FilterBarProps {
 }
 
 /** The statuses that the filter offers as toggles, in display order. */
-const STATUS_TOGGLES: ReadonlyArray<{ status: StatusCategory; label: string }> = [
-  { status: 'to-do', label: 'To do' },
-  { status: 'in-progress', label: 'In progress' },
-];
+const STATUS_TOGGLES: readonly StatusCategory[] = ['to-do', 'in-progress'];
 
 /** The Filter group at the chart's top edge: a repo select and one toggle per status, each with its count. */
 export function FilterBar({ filter, abbreviations, counts, onChange }: FilterBarProps): ReactElement {
@@ -51,7 +49,7 @@ export function FilterBar({ filter, abbreviations, counts, onChange }: FilterBar
         ))}
       </select>
       <div aria-label="Status" className="tr-filter-statuses" role="group">
-        {STATUS_TOGGLES.map(({ status, label }) => (
+        {STATUS_TOGGLES.map((status) => (
           <button
             aria-pressed={filter.statuses.has(status)}
             className="tr-toggle"
@@ -59,7 +57,7 @@ export function FilterBar({ filter, abbreviations, counts, onChange }: FilterBar
             onClick={() => toggleStatus(status)}
             type="button"
           >
-            {label} <span className="tr-filter-count">{counts[status]}</span>
+            {STATUS_NAMES[status]} <span className="tr-filter-count">{counts[status]}</span>
           </button>
         ))}
       </div>

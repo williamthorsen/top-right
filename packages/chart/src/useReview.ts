@@ -13,7 +13,10 @@ export interface ReviewOptions {
   items: readonly WorkItem[];
   scores: Readonly<Record<string, ItemScores>>;
   selectedKey: string | undefined;
+  /** Selects in place of the current history entry. */
   setSelectedKey: Dispatch<SetStateAction<string | undefined>>;
+  /** Selects as a history entry. */
+  pushSelectedKey: (key: string | undefined) => void;
   setPreviewKey: (key: string | undefined) => void;
   onKeep: ((itemKey: string) => void) | undefined;
   onScoresChange: ((itemKey: string, scores: Scores) => void) | undefined;
@@ -49,6 +52,7 @@ export function useReview({
   scores,
   selectedKey,
   setSelectedKey,
+  pushSelectedKey,
   setPreviewKey,
   onKeep,
   onScoresChange,
@@ -119,7 +123,7 @@ export function useReview({
         endReview();
         return;
       }
-      setSelectedKey(undefined);
+      pushSelectedKey(undefined);
       setPreviewKey(undefined);
       return;
     }

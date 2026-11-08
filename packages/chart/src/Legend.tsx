@@ -1,8 +1,9 @@
-import { MAPPED_WORK_TYPES, type WorkType } from '@top-right/model';
+import { MAPPED_WORK_TYPES, type StatusCategory, type WorkType } from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
 import { FLOOR_RADIUS } from './layout.ts';
+import { STATUS_NAMES } from './status-names.ts';
 
 export const WORK_TYPE_NAMES: Record<WorkType, string> = {
   bug: 'Bug',
@@ -27,11 +28,11 @@ export function Legend(): ReactElement {
       <ul aria-label="Status" className="tr-legend">
         <li>
           <StatusSwatch status="to-do" />
-          To do
+          {STATUS_NAMES['to-do']}
         </li>
         <li>
           <StatusSwatch status="in-progress" />
-          In progress
+          {STATUS_NAMES['in-progress']}
         </li>
         <li>
           <StatusSwatch isFloored status="to-do" />
@@ -65,6 +66,32 @@ export function Legend(): ReactElement {
         </li>
       </ul>
     </div>
+  );
+}
+
+/** A circle drawn as the chart draws a scored item of `status`; an in-progress swatch shows a pie of two-thirds. */
+export function StatusSwatch({
+  status,
+  isFloored = false,
+}: {
+  status: StatusCategory;
+  isFloored?: boolean;
+}): ReactElement {
+  const r = SWATCH_RADIUS;
+  return (
+    <svg aria-hidden="true" height={SWATCH_SIZE} viewBox={`0 0 ${SWATCH_SIZE} ${SWATCH_SIZE}`} width={SWATCH_SIZE}>
+      <g className="tr-node" data-status={status} transform={`translate(${SWATCH_SIZE / 2} ${SWATCH_SIZE / 2})`}>
+        <circle className="tr-node-main" r={r} />
+        {status === 'in-progress' ? (
+          <path
+            className="tr-node-pie"
+            d={`M0 0 L0 ${-r} A${r} ${r} 0 1 1 ${(-r * Math.sin(Math.PI / 3)).toFixed(2)} ${(r / 2).toFixed(2)} Z`}
+          />
+        ) : null}
+        <circle className="tr-node-border" r={r} />
+        {isFloored ? <circle className="tr-node-floor" r={r - 3.5} /> : null}
+      </g>
+    </svg>
   );
 }
 
@@ -109,23 +136,4 @@ function RingSwatch({ ring }: { ring: 'blocked' | 'pick' }) {
   );
 }
 
-/** A circle drawn as the chart draws a scored item of `status`; an in-progress swatch shows a pie of two-thirds. */
-function StatusSwatch({ status, isFloored = false }: { status: 'in-progress' | 'to-do'; isFloored?: boolean }) {
-  const r = SWATCH_RADIUS;
-  return (
-    <svg aria-hidden="true" height={SWATCH_SIZE} viewBox={`0 0 ${SWATCH_SIZE} ${SWATCH_SIZE}`} width={SWATCH_SIZE}>
-      <g className="tr-node" data-status={status} transform={`translate(${SWATCH_SIZE / 2} ${SWATCH_SIZE / 2})`}>
-        <circle className="tr-node-main" r={r} />
-        {status === 'in-progress' ? (
-          <path
-            className="tr-node-pie"
-            d={`M0 0 L0 ${-r} A${r} ${r} 0 1 1 ${(-r * Math.sin(Math.PI / 3)).toFixed(2)} ${(r / 2).toFixed(2)} Z`}
-          />
-        ) : null}
-        <circle className="tr-node-border" r={r} />
-        {isFloored ? <circle className="tr-node-floor" r={r - 3.5} /> : null}
-      </g>
-    </svg>
-  );
-}
 // endregion | Helpers

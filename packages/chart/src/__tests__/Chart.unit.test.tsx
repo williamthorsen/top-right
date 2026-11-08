@@ -257,7 +257,9 @@ describe(Chart, () => {
       await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
       await user.click(screen.getByRole('button', { name: 'Skip' }));
 
-      expect(scrollIntoView.mock.contexts).toEqual([
+      // The table also scrolls its selected row into view; only the chart's calls are under test here.
+      const chartContexts = scrollIntoView.mock.contexts.filter((element) => !(element instanceof HTMLTableRowElement));
+      expect(chartContexts).toEqual([
         screen.getByRole('button', { name: /^t\.2:/ }),
         screen.getByRole('button', { name: /^t\.1:/ }),
       ]);

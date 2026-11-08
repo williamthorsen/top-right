@@ -28,8 +28,10 @@
   background: var(--tr-bg);
   color: var(--tr-ink);
   font: 14px/1.45 var(--tr-font);
-  min-height: 100%;
-  padding: 12px 16px 24px;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  padding: 12px 16px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -121,15 +123,73 @@
 .tr-work {
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(320px, 34%, 520px);
+  grid-template-rows: minmax(0, 1fr);
   gap: 14px;
-  align-items: start;
+  height: 100%;
 }
 
 .tr-chart-area {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+}
+
+/* The chart pane and the table pane share the height below the strip; the chart pane's flex-basis sets the split. */
+.tr-split {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tr-chart-pane {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.tr-table-pane {
+  /* Contain the rows' visually hidden text, which would otherwise extend the page below the fold. */
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--tr-surface);
+  border: 1px solid var(--tr-line);
+  border-radius: 8px;
+}
+
+.tr-divider {
+  position: relative;
+  flex-shrink: 0;
+  height: 12px;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.tr-divider::after {
+  content: '';
+  position: absolute;
+  inset: 5px 0;
+  border-radius: 1px;
+  background: var(--tr-line);
+}
+
+.tr-divider:hover::after {
+  inset: 4px 0;
+  background: var(--tr-axis);
+}
+
+.tr-divider:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: -2px;
 }
 
 .tr-chart-scroll {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   background: var(--tr-surface);
   border: 1px solid var(--tr-line);
@@ -560,12 +620,130 @@
   gap: 6px;
 }
 
+/* -- Table: the items as rows, sharing the chart's selection -- */
+
+.tr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tr-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0;
+  background: var(--tr-surface);
+  border-bottom: 1px solid var(--tr-line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tr-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--tr-grid);
+  vertical-align: middle;
+}
+
+.tr-table .tr-table-number {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tr-table td.tr-table-number {
+  font-family: var(--tr-mono);
+  font-size: 13px;
+}
+
+.tr-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  color: var(--tr-ink-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tr-table-number .tr-sort {
+  justify-content: flex-end;
+}
+
+.tr-sort:hover {
+  background: var(--tr-surface-2);
+  color: var(--tr-ink);
+}
+
+[aria-sort] .tr-sort {
+  color: var(--tr-ink);
+}
+
+.tr-sort-icon[data-sorted='false'] {
+  opacity: 0.45;
+}
+
+.tr-row {
+  cursor: pointer;
+}
+
+.tr-row:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-row[aria-current='true'] {
+  background: var(--tr-surface-2);
+  box-shadow: inset 3px 0 0 var(--tr-accent);
+}
+
+.tr-row-title {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--tr-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tr-row-title:hover {
+  text-decoration: underline;
+}
+
+.tr-row[aria-current='true'] .tr-row-title {
+  font-weight: 700;
+}
+
+.tr-table-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.tr-table-id:hover {
+  text-decoration: underline;
+}
+
+.tr-table-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.tr-table-empty {
+  color: var(--tr-ink-2);
+}
+
 /* -- Detail pane -- */
 
 .tr-pane {
-  position: sticky;
-  top: 12px;
-  max-height: calc(100vh - 24px);
+  min-height: 0;
   overflow: auto;
   padding: 14px 16px;
   background: var(--tr-surface);
@@ -857,8 +1035,30 @@
 /* -- Phone width: the pane becomes a bottom sheet -- */
 
 @media (max-width: 760px) {
+  .tr-root,
+  .tr-work {
+    height: auto;
+  }
+
   .tr-work {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+
+  /* The panes stack and the page scrolls, since a scrolling table inside a scrolling page fails on touch. */
+  .tr-split,
+  .tr-chart-pane {
+    display: block;
+  }
+
+  /* The table's height is unbounded here, so only its width scrolls within the pane. */
+  .tr-table-pane {
+    margin-top: 12px;
+    overflow: auto hidden;
+  }
+
+  .tr-divider {
+    display: none;
   }
 
   .tr-pane {
