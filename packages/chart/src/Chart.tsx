@@ -1,16 +1,12 @@
 import {
   buildRelationGraph,
   classifyWorkType,
-  countByStatus,
-  DEFAULT_ITEM_FILTER,
   DEFAULT_WORK_TYPE_MAPPING,
   deriveStatus,
-  filterItems,
   findNextPick,
   formatItemKey,
   isAgentScored,
   type ItemFilter,
-  type ItemRef,
   type ItemScores,
   listBlockedKeys,
   type Scores,
@@ -23,14 +19,16 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Edges, focusItem, listEdgeEnds } from './Edges.tsx';
 import { FilterBar } from './FilterBar.tsx';
+import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
-import { type Abbreviations, labelItem } from './item-label.ts';
-import { CELL_SIZE, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
+import type { Abbreviations } from './item-label.ts';
+import { layoutCells, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
+import { useItemFilter } from './useItemFilter.ts';
 import { useReview } from './useReview.ts';
 
 import './chart.css';
@@ -55,19 +53,6 @@ export interface ChartProps {
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
 const NO_OVERRIDES: Readonly<Record<string, StatusOverride>> = {};
 
-// -- Frame around the matrix, in chart units --
-const MARGIN_LEFT = 44;
-const MARGIN_TOP = 14;
-const MARGIN_RIGHT = 14;
-const AXIS_HEIGHT = 40;
-const MATRIX_SIZE = CELL_SIZE * GRID_SIZE;
-const WIDTH = MARGIN_LEFT + MATRIX_SIZE + MARGIN_RIGHT;
-const HEIGHT = MARGIN_TOP + MATRIX_SIZE + AXIS_HEIGHT;
-/** The gridline index, counted from the gutter side, that separates the gutter from the scores. */
-const GUTTER_LINE = 1;
-/** The gridline index that separates the low and high halves of each axis. */
-const QUADRANT_LINE = 4;
-
 /** The Top Right chart: items by urgency and impact, with the detail pane and the legend. */
 export function Chart({
   items,
@@ -84,14 +69,15 @@ export function Chart({
   const [showAllEdges, setShowAllEdges] = useState(false);
   const [highlightedKey, setHighlightedKey] = useState<string>();
   const [highlightOwner, setHighlightOwner] = useState<string>();
-  const [filter, setFilter] = useState<ItemFilter>(DEFAULT_ITEM_FILTER);
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
   const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
   const graph = useMemo(() => buildRelationGraph(items), [items]);
-  const visibleItems = useMemo(() => filterItems(items, overrides, filter), [items, overrides, filter]);
-  const visibleKeys = useMemo(() => new Set(visibleItems.map(formatItemKey)), [visibleItems]);
-  const statusCounts = useMemo(() => countByStatus(items, overrides, filter.repo), [items, overrides, filter.repo]);
+  const { filter, setFilter, visibleItems, visibleKeys, statusCounts, labelOf } = useItemFilter(
+    items,
+    overrides,
+    abbreviations,
+  );
   // Clear a selection or preview that the filter hides, whether the filter or the item's status changed.
   if (selectedKey !== undefined && !visibleKeys.has(selectedKey)) setSelectedKey(undefined);
   if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
@@ -135,11 +121,6 @@ export function Chart({
   function changeFilter(next: ItemFilter): void {
     setFilter(next);
     if (review.kind !== undefined) review.end();
-  }
-
-  /** Returns an item's label on the board: the number alone while one repo is shown, else the abbreviated id. */
-  function labelOf(ref: Pick<ItemRef, 'number' | 'repo'>): string {
-    return filter.repo === undefined ? labelItem(ref, abbreviations) : String(ref.number);
   }
 
   // Bring each item that a review moves to into view, since the chart scrolls on a narrow screen.
@@ -282,75 +263,6 @@ export function Chart({
 }
 
 // region | Helpers
-function Grid() {
-  const lines = Array.from({ length: GRID_SIZE + 1 }, (_, index) => index);
-  const scores = Array.from({ length: GRID_SIZE }, (_, index) => index);
-  const left = MARGIN_LEFT;
-  const top = MARGIN_TOP;
-  const bottom = MARGIN_TOP + MATRIX_SIZE;
-
-  return (
-    <g aria-hidden="true">
-      {lines.map((index) => (
-        <line
-          className={lineClass(index)}
-          key={`v${index}`}
-          x1={left + index * CELL_SIZE}
-          x2={left + index * CELL_SIZE}
-          y1={top}
-          y2={bottom}
-        />
-      ))}
-      {lines.map((index) => (
-        <line
-          className={lineClass(GRID_SIZE - index)}
-          key={`h${index}`}
-          x1={left}
-          x2={left + MATRIX_SIZE}
-          y1={top + index * CELL_SIZE}
-          y2={top + index * CELL_SIZE}
-        />
-      ))}
-      {scores.map((score) => (
-        <text
-          className="tr-axis-label"
-          key={`u${score}`}
-          textAnchor="middle"
-          x={left + (score + 0.5) * CELL_SIZE}
-          y={bottom + 16}
-        >
-          {score === 0 ? 'unscored' : score}
-        </text>
-      ))}
-      {scores.map((score) => (
-        <text
-          className="tr-axis-label"
-          key={`i${score}`}
-          textAnchor="middle"
-          transform={score === 0 ? `translate(${left - 10} ${bottom - CELL_SIZE / 2}) rotate(-90)` : undefined}
-          x={score === 0 ? 0 : left - 14}
-          y={score === 0 ? 0 : bottom - (score + 0.5) * CELL_SIZE + 4}
-        >
-          {score === 0 ? 'unscored' : score}
-        </text>
-      ))}
-      <text className="tr-axis-title" textAnchor="end" x={left + MATRIX_SIZE} y={bottom + 34}>
-        Urgency →
-      </text>
-      <text className="tr-axis-title" transform={`translate(12 ${top}) rotate(-90)`} textAnchor="end" x={0} y={0}>
-        Impact →
-      </text>
-    </g>
-  );
-}
-
-/** Returns the class of the gridline at `index` along an axis, counted from the gutter side. */
-function lineClass(index: number): string {
-  if (index === GUTTER_LINE) return 'tr-gutterline';
-  if (index === QUADRANT_LINE) return 'tr-quad';
-  return 'tr-gridline';
-}
-
 /** Returns a circle's accessible name: its id label and title, with the marks that it wears. */
 function nameCircle(label: string, title: string, marks: { isBlocked: boolean; isPick: boolean }): string {
   return `${label}: ${title}${marks.isBlocked ? ', blocked' : ''}${marks.isPick ? ', next pick' : ''}`;
