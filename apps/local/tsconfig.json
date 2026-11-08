@@ -7,7 +7,7 @@
     "jsx": "react-jsx",
     "lib": ["ES2025", "ESNext.Disposable", "ESNext.Array", "DOM", "DOM.Iterable"],
     // The template test imports `node:` builtins.
-    "types": ["node"],
+    "types": ["node", "vite/client"],
   },
   "include": ["src/", "*.ts"],
 }
