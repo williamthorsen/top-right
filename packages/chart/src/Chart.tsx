@@ -18,6 +18,7 @@ import {
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
+import { Divider } from './Divider.tsx';
 import { Edges, focusItem, listEdgeEnds } from './Edges.tsx';
 import { FilterBar } from './FilterBar.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
@@ -62,6 +63,8 @@ export interface ChartProps {
   onSelectedKeyChange?: (key: string | undefined, options: { push: boolean }) => void;
 }
 
+/** The chart pane's initial share of the height that it splits with the table, as a percentage. */
+const INITIAL_SPLIT = 60;
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
 const NO_OVERRIDES: Readonly<Record<string, StatusOverride>> = {};
 
@@ -135,6 +138,8 @@ export function Chart({
   });
   if (isRevealing && review.kind !== undefined) review.end();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const [split, setSplit] = useState(INITIAL_SPLIT);
 
   /** Applies a filter, ending a running review, whose queue the filter would change under it. */
   function changeFilter(next: ItemFilter): void {
@@ -184,86 +189,93 @@ export function Chart({
               All edges
             </button>
           </div>
-          <div className="tr-chart-scroll" ref={scrollRef}>
-            <svg
-              aria-label="Items by urgency and impact"
-              className="tr-chart"
-              height={HEIGHT}
-              role="group"
-              viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-              width={WIDTH}
-            >
-              <Grid />
-              <g transform={`translate(${MARGIN_LEFT} ${MARGIN_TOP})`}>
-                {trails.map((trail) => (
-                  <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
-                ))}
-                <Edges edges={focus.edges} ends={ends} />
-                {cells.map((cell) =>
-                  cell.isGutter ? null : (
-                    <g key={`${cell.u},${cell.i}`}>
-                      {cell.circles.map((circle) => {
-                        const item = itemsByKey.get(circle.id);
-                        if (!item) return null;
-                        return (
-                          <ScoredCircle
-                            cellX={cell.x}
-                            cellY={cell.y}
-                            circle={circle}
-                            isAgentScored={isAgentScored(scores[circle.id])}
-                            isBlocked={blockedKeys.has(circle.id)}
-                            isHighlighted={circle.id === highlightedKey}
-                            isPick={circle.id === pickKey}
-                            isFaded={isFaded(circle.id)}
-                            isSelected={circle.id === selectedKey}
-                            key={circle.id}
-                            name={nameCircle(labelOf(item), item.title, {
-                              isBlocked: blockedKeys.has(circle.id),
-                              isPick: circle.id === pickKey,
-                            })}
-                            onPreview={setPreviewKey}
-                            onSelect={selection.push}
-                            progress={scores[circle.id]?.progress?.value ?? 0}
-                            status={deriveStatus(item, overrides[circle.id])}
-                            workType={classifyWorkType(item.labels, workTypeMapping)}
-                          />
-                        );
-                      })}
-                    </g>
-                  ),
-                )}
-                {cells.map((cell) =>
-                  cell.isGutter ? (
-                    <GutterCell
-                      blockedKeys={blockedKeys}
-                      cell={cell}
-                      highlightedKey={highlightedKey}
-                      isFaded={isFaded}
-                      itemsByKey={itemsByKey}
-                      key={`${cell.u},${cell.i}`}
-                      labelOf={labelOf}
-                      onPreview={setPreviewKey}
-                      onSelect={selection.push}
-                      scores={scores}
-                      selectedKey={selectedKey}
-                      workTypeMapping={workTypeMapping}
-                    />
-                  ) : null,
-                )}
-              </g>
-            </svg>
+          <div className="tr-split" ref={splitRef}>
+            <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
+              <div className="tr-chart-scroll" ref={scrollRef}>
+                <svg
+                  aria-label="Items by urgency and impact"
+                  className="tr-chart"
+                  height={HEIGHT}
+                  role="group"
+                  viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                  width={WIDTH}
+                >
+                  <Grid />
+                  <g transform={`translate(${MARGIN_LEFT} ${MARGIN_TOP})`}>
+                    {trails.map((trail) => (
+                      <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
+                    ))}
+                    <Edges edges={focus.edges} ends={ends} />
+                    {cells.map((cell) =>
+                      cell.isGutter ? null : (
+                        <g key={`${cell.u},${cell.i}`}>
+                          {cell.circles.map((circle) => {
+                            const item = itemsByKey.get(circle.id);
+                            if (!item) return null;
+                            return (
+                              <ScoredCircle
+                                cellX={cell.x}
+                                cellY={cell.y}
+                                circle={circle}
+                                isAgentScored={isAgentScored(scores[circle.id])}
+                                isBlocked={blockedKeys.has(circle.id)}
+                                isHighlighted={circle.id === highlightedKey}
+                                isPick={circle.id === pickKey}
+                                isFaded={isFaded(circle.id)}
+                                isSelected={circle.id === selectedKey}
+                                key={circle.id}
+                                name={nameCircle(labelOf(item), item.title, {
+                                  isBlocked: blockedKeys.has(circle.id),
+                                  isPick: circle.id === pickKey,
+                                })}
+                                onPreview={setPreviewKey}
+                                onSelect={selection.push}
+                                progress={scores[circle.id]?.progress?.value ?? 0}
+                                status={deriveStatus(item, overrides[circle.id])}
+                                workType={classifyWorkType(item.labels, workTypeMapping)}
+                              />
+                            );
+                          })}
+                        </g>
+                      ),
+                    )}
+                    {cells.map((cell) =>
+                      cell.isGutter ? (
+                        <GutterCell
+                          blockedKeys={blockedKeys}
+                          cell={cell}
+                          highlightedKey={highlightedKey}
+                          isFaded={isFaded}
+                          itemsByKey={itemsByKey}
+                          key={`${cell.u},${cell.i}`}
+                          labelOf={labelOf}
+                          onPreview={setPreviewKey}
+                          onSelect={selection.push}
+                          scores={scores}
+                          selectedKey={selectedKey}
+                          workTypeMapping={workTypeMapping}
+                        />
+                      ) : null,
+                    )}
+                  </g>
+                </svg>
+              </div>
+              <Legend />
+            </div>
+            <Divider containerRef={splitRef} label="Chart and table" onChange={setSplit} value={split} />
+            <div className="tr-table-pane">
+              <ItemTable
+                items={visibleItems}
+                labelOf={labelOf}
+                onHighlight={setHighlightedKey}
+                onSelect={selection.push}
+                overrides={overrides}
+                scores={scores}
+                selectedKey={selectedKey}
+                workTypeMapping={workTypeMapping}
+              />
+            </div>
           </div>
-          <Legend />
-          <ItemTable
-            items={visibleItems}
-            labelOf={labelOf}
-            onHighlight={setHighlightedKey}
-            onSelect={selection.push}
-            overrides={overrides}
-            scores={scores}
-            selectedKey={selectedKey}
-            workTypeMapping={workTypeMapping}
-          />
         </div>
         <DetailPane
           abbreviations={abbreviations}
