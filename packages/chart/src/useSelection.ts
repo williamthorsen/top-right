@@ -41,7 +41,7 @@ export function useSelection({ selectedKey, onSelectedKeyChange }: SelectionOpti
     const resolved = typeof next === 'function' ? next(latest.current) : next;
     if (resolved === latest.current) return;
     latest.current = resolved;
-    if (resolved !== undefined) setKnownKey(resolved);
+    setKnownKey(resolved);
     onSelectedKeyChange(resolved, { push });
   }
 

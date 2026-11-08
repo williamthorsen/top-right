@@ -71,6 +71,24 @@ describe(Chart, () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
+    it('reveals an item that the host selects again after Close, once the filter hides it', async () => {
+      const user = userEvent.setup();
+      const items = [buildItem({ number: 1 }), buildItem({ number: 2 })];
+      const { onChange, select } = renderHosted(items, { [`${REPO}#2`]: place(3, 3) }, `${REPO}#2`, {
+        [`${REPO}#2`]: { status: 'in-progress', sourceState: 'open', at: AGENT_AT },
+      });
+      await user.click(screen.getByRole('button', { name: 'Close' }));
+      const toggle = screen.getByRole('button', { name: /^In progress/ });
+      await user.click(toggle);
+      onChange.mockClear();
+
+      act(() => select(`${REPO}#2`));
+
+      expect(toggle).toBePressed();
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
     it('clears a key that names none of the items, in place of the current entry', () => {
       const { onChange } = renderHosted([buildItem({ number: 1 })], {}, `${REPO}#99`);
 
