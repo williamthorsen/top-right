@@ -1,3 +1,9 @@
+export {
+  type AbbreviationClash,
+  findAbbreviationClashes,
+  isValidAbbreviation,
+  resolveAbbreviations,
+} from './abbreviations.ts';
 export { countByStatus, DEFAULT_ITEM_FILTER, filterItems, type ItemFilter, revealItem } from './filter.ts';
 export { abbreviate, formatIdLabel } from './id-label.ts';
 export { findNextPick } from './pick.ts';
@@ -38,6 +44,8 @@ export {
 export {
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
+  type DuplicateLabel,
+  findDuplicateLabels,
   MAPPED_WORK_TYPES,
   type MappedWorkType,
   type WorkType,

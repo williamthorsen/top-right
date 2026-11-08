@@ -34,6 +34,27 @@ export const DEFAULT_WORK_TYPE_MAPPING: WorkTypeMapping = {
   ],
 };
 
+/** A label that a mapping assigns to more than one work type. */
+export interface DuplicateLabel {
+  /** The label, lowercased. */
+  label: string;
+  /** The work types that list it, in `MAPPED_WORK_TYPES` order. */
+  workTypes: MappedWorkType[];
+}
+
+/** Returns each label that `mapping` assigns to more than one work type, compared case-insensitively. */
+export function findDuplicateLabels(mapping: WorkTypeMapping): DuplicateLabel[] {
+  const typesByLabel = new Map<string, MappedWorkType[]>();
+  for (const workType of MAPPED_WORK_TYPES) {
+    for (const label of new Set(mapping[workType].map((entry) => entry.toLowerCase()))) {
+      typesByLabel.set(label, [...(typesByLabel.get(label) ?? []), workType]);
+    }
+  }
+  return [...typesByLabel]
+    .filter(([, workTypes]) => workTypes.length > 1)
+    .map(([label, workTypes]) => ({ label, workTypes }));
+}
+
 /**
  * Returns the first work type, in `MAPPED_WORK_TYPES` order, whose labels include one of the item's labels. Labels
  * compare case-insensitively, because label case varies across repositories.
