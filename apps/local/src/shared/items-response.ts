@@ -8,6 +8,23 @@ const itemRefSchema = z.object({
   state: z.enum(['closed', 'open']),
 });
 
+const scoreEntrySchema = z.object({ value: z.number(), by: z.enum(['agent', 'author']), at: z.string() });
+
+/** An item's scores with their provenance. */
+export const itemScoresSchema = z.object({
+  urgency: scoreEntrySchema.optional(),
+  impact: scoreEntrySchema.optional(),
+  effort: scoreEntrySchema.optional(),
+  progress: scoreEntrySchema.optional(),
+});
+
+/** A stored status override. */
+export const statusOverrideSchema = z.object({
+  status: z.enum(['in-progress', 'to-do']),
+  sourceState: z.enum(['closed', 'open']),
+  at: z.string(),
+});
+
 /** The body of a successful `GET /api/items`. */
 export const itemsResponseSchema = z.object({
   items: z.array(
@@ -19,9 +36,15 @@ export const itemsResponseSchema = z.object({
     }),
   ),
   abbreviations: z.record(z.string(), z.string()),
+  /** The user's scores by item key. */
+  scores: z.record(z.string(), itemScoresSchema),
+  /** The user's status overrides that still apply, by item key. */
+  overrides: z.record(z.string(), statusOverrideSchema),
+  /** When the user's previous visit ended. */
+  lastVisitAt: z.string().optional(),
 });
 
-/** The body of a failed `GET /api/items`. */
+/** The body of a failed request to the host. */
 export const errorResponseSchema = z.object({ error: z.string() });
 
 export type ItemsResponse = z.infer<typeof itemsResponseSchema>;
