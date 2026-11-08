@@ -1,4 +1,4 @@
-import { type ItemScores, SCORE_FIELDS, type StatusOverride } from '@top-right/model';
+import { applyScoreWrite, keepItemScores, type StatusOverride } from '@top-right/model';
 import type { Store, UserState } from '@top-right/store';
 
 /** A `Store` held in memory for one user, whose state a test reads directly. */
@@ -12,12 +12,14 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
   return {
     state,
     readUserState: () => Promise.resolve(structuredClone(state)),
+    keepScores: (_userId, itemKey, at) => {
+      const itemScores = keepItemScores(state.scores[itemKey], at);
+      if (Object.keys(itemScores).length > 0) state.scores[itemKey] = itemScores;
+      return Promise.resolve(structuredClone(itemScores));
+    },
     writeScores: (_userId, itemKey, values, by, at) => {
-      const itemScores: ItemScores = (state.scores[itemKey] ??= {});
-      for (const field of SCORE_FIELDS) {
-        const value = values[field];
-        if (value !== undefined) itemScores[field] = { value, by, at };
-      }
+      const itemScores = applyScoreWrite(state.scores[itemKey], values, by, at);
+      state.scores[itemKey] = itemScores;
       return Promise.resolve(structuredClone(itemScores));
     },
     writeStatusOverride: (_userId, itemKey, override: StatusOverride | undefined) => {

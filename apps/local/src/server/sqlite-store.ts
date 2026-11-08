@@ -1,6 +1,15 @@
 import { DatabaseSync } from 'node:sqlite';
 
-import { type ItemScores, SCORE_FIELDS, type Scorer, type Scores, type StatusOverride } from '@top-right/model';
+import {
+  applyScoreWrite,
+  type ItemScores,
+  keepItemScores,
+  SCORE_FIELDS,
+  type ScoreEntry,
+  type Scorer,
+  type Scores,
+  type StatusOverride,
+} from '@top-right/model';
 import type { Store, UserState } from '@top-right/store';
 import { z } from 'zod';
 
@@ -34,7 +43,11 @@ const MIGRATIONS: readonly string[] = [
     last_visit_at TEXT NOT NULL
   ) STRICT;
   `,
+  'ALTER TABLE scores ADD COLUMN previous_value REAL;',
 ];
+
+/** How long a statement waits for another process's lock on the file before it fails. */
+const BUSY_TIMEOUT_MS = 5000;
 
 const scoreRowSchema = z.object({
   item_key: z.string(),
@@ -42,6 +55,7 @@ const scoreRowSchema = z.object({
   value: z.number(),
   scored_by: z.enum(['agent', 'author']),
   scored_at: z.string(),
+  previous_value: z.number().nullable(),
 });
 
 const overrideRowSchema = z.object({
@@ -57,20 +71,36 @@ const userVersionSchema = z.object({ user_version: z.number() });
 
 /** Opens the SQLite store at `path` (`:memory:` for a store that lives as long as the process), migrating it. */
 export function openSqliteStore(path: string): SqliteStore {
-  const db = new DatabaseSync(path);
+  const db = new DatabaseSync(path, { timeout: BUSY_TIMEOUT_MS });
   migrate(db);
 
   const selectScores = db.prepare(
-    'SELECT item_key, field, value, scored_by, scored_at FROM scores WHERE user_id = ? ORDER BY item_key, field',
+    `SELECT item_key, field, value, scored_by, scored_at, previous_value FROM scores
+     WHERE user_id = ? ORDER BY item_key, field`,
   );
   const selectItemScores = db.prepare(
-    'SELECT item_key, field, value, scored_by, scored_at FROM scores WHERE user_id = ? AND item_key = ?',
+    `SELECT item_key, field, value, scored_by, scored_at, previous_value FROM scores
+     WHERE user_id = ? AND item_key = ?`,
   );
-  const upsertScore = db.prepare(
-    `INSERT INTO scores (user_id, item_key, field, value, scored_by, scored_at) VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT (user_id, item_key, field)
-     DO UPDATE SET value = excluded.value, scored_by = excluded.scored_by, scored_at = excluded.scored_at`,
+  const deleteItemScores = db.prepare('DELETE FROM scores WHERE user_id = ? AND item_key = ?');
+  const insertScore = db.prepare(
+    `INSERT INTO scores (user_id, item_key, field, value, scored_by, scored_at, previous_value)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
+
+  /** Reads the item's scores, applies `update` to them, and replaces the stored rows, in one transaction. */
+  function updateItemScores(userId: string, itemKey: string, update: (existing: ItemScores) => ItemScores): ItemScores {
+    let result: ItemScores = {};
+    runInTransaction(db, () => {
+      result = update(readItemScores(z.array(scoreRowSchema).parse(selectItemScores.all(userId, itemKey))));
+      deleteItemScores.run(userId, itemKey);
+      for (const field of SCORE_FIELDS) {
+        const entry = result[field];
+        if (entry) insertScore.run(userId, itemKey, field, entry.value, entry.by, entry.at, entry.previous ?? null);
+      }
+    });
+    return result;
+  }
   const selectOverrides = db.prepare(
     'SELECT item_key, status, source_state, set_at FROM status_overrides WHERE user_id = ?',
   );
@@ -87,12 +117,16 @@ export function openSqliteStore(path: string): SqliteStore {
   );
 
   return {
+    keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores> {
+      return Promise.resolve(updateItemScores(userId, itemKey, (existing) => keepItemScores(existing, at)));
+    },
+
     readUserState(userId: string): Promise<UserState> {
       const scores: Record<string, ItemScores> = {};
       const scoreRows = z.array(scoreRowSchema).parse(selectScores.all(userId));
       for (const row of scoreRows) {
         const itemScores = (scores[row.item_key] ??= {});
-        itemScores[row.field] = { value: row.value, by: row.scored_by, at: row.scored_at };
+        itemScores[row.field] = readEntry(row);
       }
       const overrides: Record<string, StatusOverride> = {};
       const overrideRows = z.array(overrideRowSchema).parse(selectOverrides.all(userId));
@@ -104,18 +138,9 @@ export function openSqliteStore(path: string): SqliteStore {
     },
 
     writeScores(userId: string, itemKey: string, values: Scores, by: Scorer, at: string): Promise<ItemScores> {
-      runInTransaction(db, () => {
-        for (const field of SCORE_FIELDS) {
-          const value = values[field];
-          if (value !== undefined) upsertScore.run(userId, itemKey, field, value, by, at);
-        }
-      });
-      const itemScores: ItemScores = {};
-      const scoreRows = z.array(scoreRowSchema).parse(selectItemScores.all(userId, itemKey));
-      for (const row of scoreRows) {
-        itemScores[row.field] = { value: row.value, by: row.scored_by, at: row.scored_at };
-      }
-      return Promise.resolve(itemScores);
+      return Promise.resolve(
+        updateItemScores(userId, itemKey, (existing) => applyScoreWrite(existing, values, by, at)),
+      );
     },
 
     writeStatusOverride(userId: string, itemKey: string, override: StatusOverride | undefined): Promise<void> {
@@ -145,6 +170,18 @@ function migrate(db: DatabaseSync): void {
       db.exec(`PRAGMA user_version = ${index + 1}`);
     });
   }
+}
+
+function readEntry(row: z.infer<typeof scoreRowSchema>): ScoreEntry {
+  const entry: ScoreEntry = { value: row.value, by: row.scored_by, at: row.scored_at };
+  if (row.previous_value !== null) entry.previous = row.previous_value;
+  return entry;
+}
+
+function readItemScores(rows: ReadonlyArray<z.infer<typeof scoreRowSchema>>): ItemScores {
+  const itemScores: ItemScores = {};
+  for (const row of rows) itemScores[row.field] = readEntry(row);
+  return itemScores;
 }
 
 function runInTransaction(db: DatabaseSync, work: () => void): void {
