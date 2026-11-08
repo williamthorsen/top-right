@@ -1,9 +1,12 @@
 export { abbreviate, formatIdLabel } from './id-label.ts';
+export { type Cell, findTrailOrigin, isAgentScored, listReviewQueue, type ReviewQueueKind } from './review.ts';
 export {
+  applyScoreWrite,
   AXIS_SCALE,
   EFFORT_SCALE,
   isValidScore,
   type ItemScores,
+  keepItemScores,
   PROGRESS_STEP,
   readScoreValues,
   SCORE_FIELDS,
