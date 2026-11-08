@@ -1,4 +1,4 @@
-import { isValidScore, SCORE_FIELDS, type ScoreField } from '@top-right/model';
+import { isValidScore, SCORE_FIELDS, type ScoreField, type Scores } from '@top-right/model';
 import { z } from 'zod';
 
 import { itemScoresSchema, statusOverrideSchema } from './items-response.ts';
@@ -36,6 +36,16 @@ export const statusResponseSchema = z.object({ itemKey: z.string(), override: st
 export type KeepRequest = z.infer<typeof keepRequestSchema>;
 export type ScoresRequest = z.infer<typeof scoresRequestSchema>;
 export type StatusRequest = z.infer<typeof statusRequestSchema>;
+
+/** Returns the scores without the fields that a parsed request left undefined. */
+export function compactScores(scores: Readonly<Partial<Record<ScoreField, number | undefined>>>): Scores {
+  const compact: Scores = {};
+  for (const field of SCORE_FIELDS) {
+    const value = scores[field];
+    if (value !== undefined) compact[field] = value;
+  }
+  return compact;
+}
 
 // region | Helpers
 function scoreValueSchema(field: ScoreField) {

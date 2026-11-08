@@ -4,8 +4,9 @@ import type { AddressInfo } from 'node:net';
 import type { StatusOverride, WorkItem } from '@top-right/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { createMemoryStore } from '#src/test-utils/memory-store.ts';
+
 import { type ApiOptions, createApiHandler } from '../api.ts';
-import { createMemoryStore } from '../test-utils/memory-store.ts';
 
 const ITEM: WorkItem = {
   repo: 'williamthorsen/top-right',
