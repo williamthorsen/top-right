@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { findAbbreviationClashes, isValidAbbreviation, resolveAbbreviations } from '../abbreviations.ts';
+import {
+  describeAbbreviationClash,
+  findAbbreviationClashes,
+  isValidAbbreviation,
+  resolveAbbreviations,
+} from '../abbreviations.ts';
 
 describe(resolveAbbreviations, () => {
   it('takes the stored abbreviation, else the first letter', () => {
@@ -35,5 +40,13 @@ describe(isValidAbbreviation, () => {
     { abbreviation: 'c.a', expected: false },
   ])('when the abbreviation is "$abbreviation", returns $expected', ({ abbreviation, expected }) => {
     expect(isValidAbbreviation(abbreviation)).toBe(expected);
+  });
+});
+
+describe(describeAbbreviationClash, () => {
+  it('names the abbreviation, every repository, and the fix', () => {
+    expect(describeAbbreviationClash({ abbreviation: 'c', repos: ['w/a', 'w/b', 'w/c'] })).toBe(
+      '"c" is used by w/a, w/b and w/c. Give each its own abbreviation.',
+    );
   });
 });

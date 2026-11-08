@@ -2,6 +2,7 @@
 // eslint-disable-next-line testing-library/no-manual-cleanup -- Vitest runs without globals, so Testing Library cannot register its own cleanup.
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
+import { DEFAULT_WORK_TYPE_MAPPING } from '@top-right/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ItemsResponse } from '#src/shared/items-response.ts';
@@ -29,6 +30,8 @@ const ITEMS: ItemsResponse = {
     },
   ],
   abbreviations: {},
+  abbreviationClashes: [],
+  workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
   scores: { [ITEM_KEY]: { urgency: { value: 2, by: 'author', at: AT } } },
   overrides: {},
 };

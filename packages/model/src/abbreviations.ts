@@ -8,6 +8,16 @@ export interface AbbreviationClash {
   repos: string[];
 }
 
+/** Returns the message that refuses repositories sharing an abbreviation. */
+export function describeAbbreviationClash({ abbreviation, repos }: AbbreviationClash): string {
+  return `"${abbreviation}" is used by ${repos.slice(0, -1).join(', ')} and ${repos.at(-1) ?? ''}. Give each its own abbreviation.`;
+}
+
+/** Returns the message that refuses an abbreviation that `isValidAbbreviation` rejects. */
+export function describeInvalidAbbreviation(repo: string, abbreviation: string): string {
+  return `"${abbreviation}" is not a valid abbreviation for ${repo}. Leave out spaces and dots.`;
+}
+
 /** Returns the repositories that share an abbreviation, compared case-insensitively, in the order of `abbreviations`. */
 export function findAbbreviationClashes(abbreviations: Readonly<Record<string, string>>): AbbreviationClash[] {
   const reposByAbbreviation = new Map<string, string[]>();

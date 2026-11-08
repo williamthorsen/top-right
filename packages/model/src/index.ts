@@ -1,5 +1,7 @@
 export {
   type AbbreviationClash,
+  describeAbbreviationClash,
+  describeInvalidAbbreviation,
   findAbbreviationClashes,
   isValidAbbreviation,
   resolveAbbreviations,
@@ -44,10 +46,13 @@ export {
 export {
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
+  describeDuplicateLabel,
   type DuplicateLabel,
   findDuplicateLabels,
   MAPPED_WORK_TYPES,
   type MappedWorkType,
+  normalizeWorkTypeMapping,
+  WORK_TYPE_NAMES,
   type WorkType,
   type WorkTypeMapping,
 } from './work-type.ts';

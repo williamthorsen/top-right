@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
+  describeDuplicateLabel,
   findDuplicateLabels,
   MAPPED_WORK_TYPES,
+  normalizeWorkTypeMapping,
   type WorkTypeMapping,
 } from '../work-type.ts';
 
@@ -50,5 +52,24 @@ describe(findDuplicateLabels, () => {
 
   it('does not count a label that one work type lists twice', () => {
     expect(findDuplicateLabels({ bug: ['bug', 'BUG'], feature: [], ops: [], task: [] })).toStrictEqual([]);
+  });
+});
+
+describe(describeDuplicateLabel, () => {
+  it('names the label, its work types, and the fix', () => {
+    expect(describeDuplicateLabel({ label: 'fix', workTypes: ['bug', 'task'] })).toBe(
+      '"fix" is in Bug and Task. Keep it in one type.',
+    );
+  });
+});
+
+describe(normalizeWorkTypeMapping, () => {
+  it('trims each label and drops the empty ones', () => {
+    expect(normalizeWorkTypeMapping({ bug: [' bug ', ''], feature: ['  '], ops: [], task: ['chore'] })).toStrictEqual({
+      bug: ['bug'],
+      feature: [],
+      ops: [],
+      task: ['chore'],
+    });
   });
 });
