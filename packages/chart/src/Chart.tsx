@@ -97,6 +97,10 @@ export function Chart({ items, abbreviations, workTypeMapping = DEFAULT_WORK_TYP
           blockedKeys={blockedKeys}
           item={shownItem}
           mode={previewKey !== undefined && previewKey !== selectedKey ? 'preview' : 'selected'}
+          onClose={() => {
+            setSelectedKey(undefined);
+            setPreviewKey(undefined);
+          }}
           workTypeMapping={workTypeMapping}
         />
       </div>

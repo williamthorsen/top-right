@@ -20,6 +20,7 @@ export interface DetailPaneProps {
   workTypeMapping: WorkTypeMapping;
   /** The keys of the open items that an open item blocks, for tagging relation rows. */
   blockedKeys: ReadonlySet<string>;
+  onClose: () => void;
 }
 
 const RELATION_HEADINGS: ReadonlyArray<[RelationKind, string]> = [
@@ -30,7 +31,14 @@ const RELATION_HEADINGS: ReadonlyArray<[RelationKind, string]> = [
 ];
 
 /** The side pane (a bottom sheet at phone width) that shows the previewed or selected item. */
-export function DetailPane({ item, mode, abbreviations, workTypeMapping, blockedKeys }: DetailPaneProps): ReactElement {
+export function DetailPane({
+  item,
+  mode,
+  abbreviations,
+  workTypeMapping,
+  blockedKeys,
+  onClose,
+}: DetailPaneProps): ReactElement {
   if (!item) {
     return (
       <aside aria-label="Item detail" className="tr-pane" data-empty="true">
@@ -41,7 +49,14 @@ export function DetailPane({ item, mode, abbreviations, workTypeMapping, blocked
 
   return (
     <aside aria-label="Item detail" className="tr-pane" data-empty="false">
-      <p className="tr-pane-mode">{mode === 'preview' ? 'Preview' : 'Selected'}</p>
+      <div className="tr-pane-head">
+        <p className="tr-pane-mode">{mode === 'preview' ? 'Preview' : 'Selected'}</p>
+        {mode === 'selected' ? (
+          <button className="tr-pane-close" onClick={onClose} type="button">
+            Close
+          </button>
+        ) : null}
+      </div>
       <a className="tr-pane-id" href={item.url} rel="noreferrer" target="_blank">
         {labelItem(item, abbreviations)}
         <ExternalLinkIcon />

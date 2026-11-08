@@ -170,6 +170,17 @@
 .tr-gutter-list[data-overflow='true'] {
   overflow-y: auto;
   overscroll-behavior: contain;
+  /*
+   * Scroll shadows mark an edge past which the list continues: The `local` covers scroll with the content and hide
+   * the `scroll` shadows once an end is reached. Overlay scrollbars stay hidden until a scroll, so they cannot be the cue.
+   */
+  background:
+    linear-gradient(var(--tr-surface) 30%, transparent) top / 100% 24px no-repeat local,
+    linear-gradient(transparent, var(--tr-surface) 70%) bottom / 100% 24px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgb(0 0 0 / 30%), transparent) top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / 30%), transparent) bottom / 100% 10px no-repeat scroll;
+  scrollbar-color: var(--tr-axis) transparent;
+  scrollbar-width: thin;
 }
 
 .tr-item {
@@ -265,8 +276,30 @@
   border-radius: 8px;
 }
 
-.tr-pane-mode {
+.tr-pane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0 0 6px;
+}
+
+.tr-pane-close {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--tr-control-line);
+  border-radius: 7px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  cursor: pointer;
+}
+
+.tr-pane-close:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-pane-mode {
+  margin: 0;
   color: var(--tr-ink-2);
   font-size: 12px;
   letter-spacing: 0.04em;
@@ -393,5 +426,10 @@
 
   .tr-pane[data-empty='true'] {
     display: none;
+  }
+
+  /* Leave room to scroll the chart above the sheet. */
+  .tr-work:has(.tr-pane[data-empty='false']) {
+    padding-bottom: 50vh;
   }
 }

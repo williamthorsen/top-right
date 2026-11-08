@@ -44,6 +44,19 @@ describe(Chart, () => {
     expect(button).not.toBePressed();
   });
 
+  it('when Close is pressed, clears the selection', async () => {
+    const user = userEvent.setup();
+    renderChart([buildItem({ number: 1 })]);
+    const button = screen.getByRole('button', { name: /^t\.1:/ });
+
+    await user.click(button);
+    await user.unhover(button);
+    await user.click(within(getPane()).getByRole('button', { name: 'Close' }));
+
+    expect(button).not.toBePressed();
+    expect(getPane()).toHaveTextContent('No item selected');
+  });
+
   it('lists relations under their kind, with closed and blocked tags', async () => {
     const user = userEvent.setup();
     const blocker = buildItem({ number: 2, title: 'Blocker' });
