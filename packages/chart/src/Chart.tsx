@@ -9,6 +9,7 @@ import {
   type ItemFilter,
   type ItemScores,
   listBlockedKeys,
+  revealItem,
   type Scores,
   type StatusOverride,
   type WorkItem,
@@ -30,6 +31,8 @@ import { ScoredCircle } from './ScoredCircle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
 import { useItemFilter } from './useItemFilter.ts';
 import { useReview } from './useReview.ts';
+import { useSelection } from './useSelection.ts';
+import { useVisibleSelection } from './useVisibleSelection.ts';
 
 import './chart.css';
 
@@ -48,6 +51,14 @@ export interface ChartProps {
   onStatusChange?: (itemKey: string, status: SettableStatus) => void;
   /** Reports that the author keeps an item's agent scores; without it, the chart offers neither Keep nor Enter-to-keep. */
   onKeep?: (itemKey: string) => void;
+  /** The selected item's key, read only while `onSelectedKeyChange` is passed; a key that the filter hides widens the filter. */
+  selectedKey?: string | undefined;
+  /**
+   * Reports a change of selection, which makes the selection the host's to hold. `push` is true for a selection that the
+   * author makes (a click or a key on a circle, a gutter id, or a table row; Close; Escape), so that the host can record
+   * it as a history entry, and false for one that the chart makes itself, such as a review step.
+   */
+  onSelectedKeyChange?: (key: string | undefined, options: { push: boolean }) => void;
 }
 
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
@@ -63,8 +74,10 @@ export function Chart({
   onScoresChange,
   onStatusChange,
   onKeep,
+  selectedKey: hostSelectedKey,
+  onSelectedKeyChange,
 }: ChartProps): ReactElement {
-  const [selectedKey, setSelectedKey] = useState<string>();
+  const selection = useSelection({ selectedKey: hostSelectedKey, onSelectedKeyChange });
   const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
   const [highlightedKey, setHighlightedKey] = useState<string>();
@@ -78,8 +91,11 @@ export function Chart({
     overrides,
     abbreviations,
   );
-  // Clear a selection or preview that the filter hides, whether the filter or the item's status changed.
-  if (selectedKey !== undefined && !visibleKeys.has(selectedKey)) setSelectedKey(undefined);
+  const { selectedKey, isRevealing } = useVisibleSelection(selection, visibleKeys, (key) => {
+    const item = itemsByKey.get(key);
+    if (item) setFilter(revealItem(filter, item, overrides[key]));
+    return item !== undefined;
+  });
   if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
   const cells = useMemo(
     () =>
@@ -110,11 +126,13 @@ export function Chart({
     items: visibleItems,
     scores,
     selectedKey,
-    setSelectedKey,
+    setSelectedKey: selection.replace,
+    pushSelectedKey: selection.push,
     setPreviewKey,
     onKeep,
     onScoresChange,
   });
+  if (isRevealing && review.kind !== undefined) review.end();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   /** Applies a filter, ending a running review, whose queue the filter would change under it. */
@@ -203,7 +221,7 @@ export function Chart({
                               isPick: circle.id === pickKey,
                             })}
                             onPreview={setPreviewKey}
-                            onSelect={setSelectedKey}
+                            onSelect={selection.push}
                             progress={scores[circle.id]?.progress?.value ?? 0}
                             status={deriveStatus(item, overrides[circle.id])}
                             workType={classifyWorkType(item.labels, workTypeMapping)}
@@ -224,7 +242,7 @@ export function Chart({
                       key={`${cell.u},${cell.i}`}
                       labelOf={labelOf}
                       onPreview={setPreviewKey}
-                      onSelect={setSelectedKey}
+                      onSelect={selection.push}
                       scores={scores}
                       selectedKey={selectedKey}
                       workTypeMapping={workTypeMapping}
@@ -243,14 +261,14 @@ export function Chart({
           item={shownItem}
           mode={choosePaneMode(previewKey, selectedKey)}
           onClose={() => {
-            setSelectedKey(undefined);
+            selection.push(undefined);
             setPreviewKey(undefined);
           }}
           onKeep={onKeep ? review.keep : undefined}
           onRelationHighlight={setHighlightedKey}
           onScoresChange={review.changeScores}
           onStatusChange={(itemKey, status) => {
-            setSelectedKey(itemKey);
+            selection.replace(itemKey);
             onStatusChange?.(itemKey, status);
           }}
           override={shownKey === undefined ? undefined : overrides[shownKey]}
