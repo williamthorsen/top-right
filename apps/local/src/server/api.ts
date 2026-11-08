@@ -1,21 +1,19 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import {
-  formatItemKey,
-  isOverrideVoid,
-  SCORE_FIELDS,
-  type ScoreField,
-  type Scores,
-  type StatusOverride,
-  type WorkItem,
-} from '@top-right/model';
+import { formatItemKey, isOverrideVoid, type StatusOverride, type WorkItem } from '@top-right/model';
 import type { Store } from '@top-right/store';
 import type { z } from 'zod';
 
 import type { ItemsResponse } from '#src/shared/items-response.ts';
-import { scoresRequestSchema, statusRequestSchema } from '#src/shared/write-requests.ts';
+import {
+  compactScores,
+  keepRequestSchema,
+  scoresRequestSchema,
+  statusRequestSchema,
+} from '#src/shared/write-requests.ts';
 
 export const ITEMS_PATH = '/api/items';
+export const KEEP_PATH = '/api/keep';
 export const SCORES_PATH = '/api/scores';
 export const STATUS_PATH = '/api/status';
 export const VISIT_PATH = '/api/visit';
@@ -68,6 +66,15 @@ export function createApiHandler({
           ...(state.lastVisitAt !== undefined && { lastVisitAt: state.lastVisitAt }),
         };
         sendJson(response, 200, body);
+      },
+    },
+    [KEEP_PATH]: {
+      method: 'POST',
+      handle: async (request, response) => {
+        const body = await readRequest(request, response, keepRequestSchema);
+        if (!body) return;
+        const scores = await store.keepScores(userId, body.itemKey, now().toISOString());
+        sendJson(response, 200, { itemKey: body.itemKey, scores });
       },
     },
     [SCORES_PATH]: {
@@ -157,16 +164,6 @@ export function createApiHandler({
 }
 
 // region | Helpers
-/** Returns the scores without the fields that a parsed request left undefined. */
-function compactScores(scores: Readonly<Partial<Record<ScoreField, number | undefined>>>): Scores {
-  const compact: Scores = {};
-  for (const field of SCORE_FIELDS) {
-    const value = scores[field];
-    if (value !== undefined) compact[field] = value;
-  }
-  return compact;
-}
-
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }

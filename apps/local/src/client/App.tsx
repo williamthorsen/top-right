@@ -1,5 +1,12 @@
 import { Chart, type SettableStatus } from '@top-right/chart';
-import { formatItemKey, type ItemScores, SCORE_FIELDS, type Scores, type StatusOverride } from '@top-right/model';
+import {
+  applyScoreWrite,
+  formatItemKey,
+  type ItemScores,
+  keepItemScores,
+  type Scores,
+  type StatusOverride,
+} from '@top-right/model';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
 import type { z } from 'zod';
 
@@ -57,7 +64,8 @@ export function App(): ReactElement {
 
   function changeScores(itemKey: string, changed: Scores): void {
     const previous = scores[itemKey];
-    setScores((current) => ({ ...current, [itemKey]: applyScores(current[itemKey], changed) }));
+    const at = new Date().toISOString();
+    setScores((current) => ({ ...current, [itemKey]: applyScoreWrite(current[itemKey], changed, 'author', at) }));
     enqueueWrite(itemKey, async () => {
       try {
         const body = await postJson('/api/scores', { itemKey, scores: changed }, scoresResponseSchema);
@@ -65,6 +73,21 @@ export function App(): ReactElement {
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
         setFailure(`Score not saved: ${describeError(error)}. Try again.`);
+      }
+    });
+  }
+
+  function keepScores(itemKey: string): void {
+    const previous = scores[itemKey];
+    const at = new Date().toISOString();
+    setScores((current) => ({ ...current, [itemKey]: keepItemScores(current[itemKey], at) }));
+    enqueueWrite(itemKey, async () => {
+      try {
+        const body = await postJson('/api/keep', { itemKey }, scoresResponseSchema);
+        setScores((current) => ({ ...current, [itemKey]: body.scores }));
+      } catch (error) {
+        setScores((current) => replaceEntry(current, itemKey, previous));
+        setFailure(`Scores not kept: ${describeError(error)}. Try again.`);
       }
     });
   }
@@ -99,6 +122,7 @@ export function App(): ReactElement {
       <Chart
         abbreviations={data.abbreviations}
         items={data.items}
+        onKeep={keepScores}
         onScoresChange={changeScores}
         onStatusChange={(itemKey, status) => {
           const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
@@ -112,17 +136,6 @@ export function App(): ReactElement {
 }
 
 // region | Helpers
-/** Returns `scores` with the changed fields as the author's, written now, before the host confirms them. */
-function applyScores(scores: ItemScores | undefined, changed: Scores): ItemScores {
-  const at = new Date().toISOString();
-  const applied: ItemScores = { ...scores };
-  for (const field of SCORE_FIELDS) {
-    const value = changed[field];
-    if (value !== undefined) applied[field] = { value, by: 'author', at };
-  }
-  return applied;
-}
-
 /** Returns the reason for a failed request as a phrase: the host's message, or what the client observed. */
 function describeError(error: unknown): string {
   if (error instanceof TypeError) return 'the host did not respond';

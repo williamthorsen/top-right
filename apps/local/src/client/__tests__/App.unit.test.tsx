@@ -104,6 +104,45 @@ describe(App, () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('keeps an agent score before the host confirms it, and restores it with an alert when the write fails', async () => {
+    const user = userEvent.setup();
+    const keep = Promise.withResolvers<Response>();
+    const agentScored = { ...ITEMS, scores: { [ITEM_KEY]: { urgency: { value: 2, by: 'agent' as const, at: AT } } } };
+    stubFetch((path) => (path === '/api/keep' ? keep.promise : Promise.resolve(Response.json(agentScored))));
+    render(<App />);
+
+    await selectItem(user);
+    await user.click(screen.getByRole('button', { name: 'Keep' }));
+    expect(screen.queryByRole('button', { name: 'Keep' })).not.toBeInTheDocument();
+
+    keep.resolve(Response.json({ error: 'disk full' }, { status: 500 }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Scores not kept: disk full. Try again.');
+    expect(screen.getByRole('button', { name: 'Keep' })).toBeInTheDocument();
+  });
+
+  it("turns an item's agent scores into the author's as soon as the author corrects one", async () => {
+    const user = userEvent.setup();
+    const agentScored = {
+      ...ITEMS,
+      scores: {
+        [ITEM_KEY]: {
+          urgency: { value: 2, by: 'agent' as const, at: AT },
+          effort: { value: 3, by: 'agent' as const, at: AT },
+        },
+      },
+    };
+    stubFetch((path) =>
+      path === '/api/scores' ? new Promise<Response>(() => {}) : Promise.resolve(Response.json(agentScored)),
+    );
+    render(<App />);
+
+    await selectItem(user);
+    expect(screen.getByRole('button', { name: 'Keep' })).toBeInTheDocument();
+    await user.click(within(getGroup('Impact')).getByRole('radio', { name: '4' }));
+
+    expect(screen.queryByRole('button', { name: 'Keep' })).not.toBeInTheDocument();
+  });
+
   it('records the end of the visit when the page is hidden', async () => {
     const sendBeacon = vi.fn(() => true);
     vi.stubGlobal('navigator', { sendBeacon });

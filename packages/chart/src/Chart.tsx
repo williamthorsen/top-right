@@ -3,21 +3,25 @@ import {
   DEFAULT_WORK_TYPE_MAPPING,
   deriveStatus,
   formatItemKey,
+  isAgentScored,
   type ItemScores,
   type Scores,
   type StatusOverride,
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { type ReactElement, useEffect, useMemo, useState } from 'react';
+import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
-import { CircleIcon } from './CircleIcon.tsx';
 import { DetailPane } from './DetailPane.tsx';
+import { GutterCell } from './GutterCell.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
-import { CELL_SIZE, type CellLayout, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
+import { CELL_SIZE, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
+import { ReviewStrip } from './ReviewStrip.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
+import { listTrails, Trail } from './Trail.tsx';
+import { useReview } from './useReview.ts';
 
 import './chart.css';
 
@@ -34,6 +38,8 @@ export interface ChartProps {
   onScoresChange?: (itemKey: string, scores: Scores) => void;
   /** Reports a status that the user chose for an item. */
   onStatusChange?: (itemKey: string, status: SettableStatus) => void;
+  /** Reports that the author keeps an item's agent scores; without it, the chart offers neither Keep nor Enter-to-keep. */
+  onKeep?: (itemKey: string) => void;
 }
 
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
@@ -61,6 +67,7 @@ export function Chart({
   overrides = NO_OVERRIDES,
   onScoresChange,
   onStatusChange,
+  onKeep,
 }: ChartProps): ReactElement {
   const [selectedKey, setSelectedKey] = useState<string>();
   const [previewKey, setPreviewKey] = useState<string>();
@@ -84,24 +91,44 @@ export function Chart({
     [items, scores],
   );
 
-  useEffect(() => {
-    function clearOnEscape(event: KeyboardEvent): void {
-      if (event.key !== 'Escape') return;
-      setSelectedKey(undefined);
-      setPreviewKey(undefined);
-    }
-    document.addEventListener('keydown', clearOnEscape);
-    return () => document.removeEventListener('keydown', clearOnEscape);
-  }, []);
-
   const shownKey = previewKey ?? selectedKey;
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
+  const review = useReview({
+    items,
+    scores,
+    selectedKey,
+    setSelectedKey,
+    setPreviewKey,
+    onKeep,
+    onScoresChange,
+  });
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Bring each item that a review moves to into view, since the chart scrolls on a narrow screen.
+  useEffect(() => {
+    if (review.kind === undefined || selectedKey === undefined) return;
+    const element = scrollRef.current?.querySelector(`[data-item-key="${CSS.escape(selectedKey)}"]`);
+    element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [review.kind, selectedKey]);
+
+  const trails = listTrails(
+    cells,
+    scores,
+    (key) => review.kind === 'agent' || key === previewKey || key === selectedKey,
+  );
 
   return (
     <div className="tr-root">
       <div className="tr-work">
         <div className="tr-chart-area">
-          <div className="tr-chart-scroll">
+          <ReviewStrip
+            counts={{ agent: review.queues.agent.length, unscored: review.queues.unscored.length }}
+            onEnd={review.end}
+            onSkip={review.skip}
+            onStart={review.start}
+            running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
+          />
+          <div className="tr-chart-scroll" ref={scrollRef}>
             <svg
               aria-label="Items by urgency and impact"
               className="tr-chart"
@@ -112,6 +139,9 @@ export function Chart({
             >
               <Grid />
               <g transform={`translate(${MARGIN_LEFT} ${MARGIN_TOP})`}>
+                {trails.map((trail) => (
+                  <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
+                ))}
                 {cells.map((cell) =>
                   cell.isGutter ? null : (
                     <g key={`${cell.u},${cell.i}`}>
@@ -123,6 +153,8 @@ export function Chart({
                             cellX={cell.x}
                             cellY={cell.y}
                             circle={circle}
+                            isAgentScored={isAgentScored(scores[circle.id])}
+                            isFaded={review.isFaded(circle.id)}
                             isSelected={circle.id === selectedKey}
                             key={circle.id}
                             name={`${labelItem(item, abbreviations)}: ${item.title}`}
@@ -142,10 +174,12 @@ export function Chart({
                     <GutterCell
                       abbreviations={abbreviations}
                       cell={cell}
+                      isFaded={review.isFaded}
                       itemsByKey={itemsByKey}
                       key={`${cell.u},${cell.i}`}
                       onPreview={setPreviewKey}
                       onSelect={setSelectedKey}
+                      scores={scores}
                       selectedKey={selectedKey}
                       workTypeMapping={workTypeMapping}
                     />
@@ -159,17 +193,15 @@ export function Chart({
         <DetailPane
           abbreviations={abbreviations}
           blockedKeys={blockedKeys}
+          isReviewing={review.kind !== undefined}
           item={shownItem}
           mode={previewKey !== undefined && previewKey !== selectedKey ? 'preview' : 'selected'}
           onClose={() => {
             setSelectedKey(undefined);
             setPreviewKey(undefined);
           }}
-          onScoresChange={(itemKey, changed) => {
-            // Editing a previewed item selects it, so that the pane stays on it once the pointer leaves.
-            setSelectedKey(itemKey);
-            onScoresChange?.(itemKey, changed);
-          }}
+          onKeep={onKeep ? review.keep : undefined}
+          onScoresChange={review.changeScores}
           onStatusChange={(itemKey, status) => {
             setSelectedKey(itemKey);
             onStatusChange?.(itemKey, status);
@@ -255,57 +287,6 @@ function Grid() {
         Impact →
       </text>
     </g>
-  );
-}
-
-interface GutterCellProps {
-  cell: CellLayout;
-  itemsByKey: ReadonlyMap<string, WorkItem>;
-  abbreviations: Abbreviations;
-  workTypeMapping: WorkTypeMapping;
-  selectedKey: string | undefined;
-  onPreview: (key: string | undefined) => void;
-  onSelect: (key: string) => void;
-}
-
-/** A gutter cell's list of items, which scrolls within the cell when it is taller than the cell. */
-function GutterCell({
-  cell,
-  itemsByKey,
-  abbreviations,
-  workTypeMapping,
-  selectedKey,
-  onPreview,
-  onSelect,
-}: GutterCellProps) {
-  return (
-    <foreignObject height={CELL_SIZE} width={CELL_SIZE} x={cell.x} y={cell.y}>
-      <ul aria-label="Unscored items" className="tr-gutter-list" data-overflow={cell.overflow}>
-        {cell.ids.map((key) => {
-          const item = itemsByKey.get(key);
-          if (!item) return null;
-          const label = labelItem(item, abbreviations);
-          return (
-            <li data-work-type={classifyWorkType(item.labels, workTypeMapping)} key={key}>
-              <button
-                aria-label={`${label}: ${item.title}`}
-                aria-pressed={key === selectedKey}
-                className="tr-item"
-                onBlur={() => onPreview(undefined)}
-                onClick={() => onSelect(key)}
-                onFocus={() => onPreview(key)}
-                onPointerEnter={() => onPreview(key)}
-                onPointerLeave={() => onPreview(undefined)}
-                type="button"
-              >
-                <CircleIcon />
-                {label}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </foreignObject>
   );
 }
 

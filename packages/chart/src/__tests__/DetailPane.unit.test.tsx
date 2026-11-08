@@ -18,6 +18,35 @@ const ITEM_KEY = 'williamthorsen/top-right#12';
 const AT = '2026-11-08T10:00:00.000Z';
 
 describe(DetailPane, () => {
+  describe('with agent scores', () => {
+    const moved: ItemScores = {
+      urgency: { value: 4, by: 'agent', at: AT, previous: 2 },
+      impact: { value: 5, by: 'author', at: AT },
+    };
+
+    it('offers Keep, which keeps the item, and names the cell that the agent moved it from', async () => {
+      const user = userEvent.setup();
+      const { onKeep } = renderPane({ scores: moved });
+
+      expect(screen.getByText('Moved by the agent from urgency 2, impact 5')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Keep' }));
+
+      expect(onKeep).toHaveBeenCalledWith(ITEM_KEY);
+    });
+
+    it('shows the Enter hint on Keep only during a review', () => {
+      renderPane({ scores: moved, isReviewing: true });
+
+      expect(screen.getByRole('button', { name: 'Keep' })).toHaveTextContent('KeepEnter');
+    });
+
+    it('offers no Keep for an item that the author holds', () => {
+      renderPane({ scores: { urgency: { value: 4, by: 'author', at: AT } } });
+
+      expect(screen.queryByRole('button', { name: 'Keep' })).not.toBeInTheDocument();
+    });
+  });
+
   it('reports a chosen score with the item key and the changed field only', async () => {
     const user = userEvent.setup();
     const { onScoresChange } = renderPane();
@@ -111,13 +140,16 @@ function getGroup(name: string): HTMLElement {
 function renderPane(overrides: Partial<DetailPaneProps> & { scores?: ItemScores } = {}) {
   const onScoresChange = vi.fn<DetailPaneProps['onScoresChange']>();
   const onStatusChange = vi.fn<DetailPaneProps['onStatusChange']>();
+  const onKeep = vi.fn<(itemKey: string) => void>();
   render(
     <DetailPane
       abbreviations={{}}
       blockedKeys={new Set()}
+      isReviewing={false}
       item={ITEM}
       mode="selected"
       onClose={() => {}}
+      onKeep={onKeep}
       onScoresChange={onScoresChange}
       onStatusChange={onStatusChange}
       override={undefined}
@@ -126,6 +158,6 @@ function renderPane(overrides: Partial<DetailPaneProps> & { scores?: ItemScores 
       {...overrides}
     />,
   );
-  return { onScoresChange, onStatusChange };
+  return { onKeep, onScoresChange, onStatusChange };
 }
 // endregion | Helpers

@@ -13,6 +13,8 @@ export interface ScoreEntry {
   by: Scorer;
   /** When the score was written, as an ISO timestamp. */
   at: string;
+  /** The value that the author held before an agent changed it; present only on an agent's entry. */
+  previous?: number;
 }
 
 /** An item's scores with their provenance, by field. */
@@ -29,6 +31,23 @@ export const EFFORT_SCALE: readonly number[] = [1, 2, 3, 5, 8, 13];
 /** The step between progress values, as a fraction of the whole. */
 export const PROGRESS_STEP = 0.05;
 
+/**
+ * Returns an item's scores after `by` writes `values` at `at`. An author write reviews the whole item: Every agent
+ * entry becomes the author's and loses its previous value. An agent write leaves an unchanged value alone, and on a
+ * changed one records the value that the author last held, which survives later agent writes until a review.
+ */
+export function applyScoreWrite(existing: ItemScores | undefined, values: Scores, by: Scorer, at: string): ItemScores {
+  const result: ItemScores = {};
+  for (const field of SCORE_FIELDS) {
+    const entry =
+      by === 'author'
+        ? writeAuthorEntry(existing?.[field], values[field], at)
+        : writeAgentEntry(existing?.[field], values[field], at);
+    if (entry) result[field] = entry;
+  }
+  return result;
+}
+
 /** Returns whether `value` lies on the scale of `field`; progress is a fraction from 0 to 1 in steps of 0.05. */
 export function isValidScore(field: ScoreField, value: number): boolean {
   switch (field) {
@@ -40,6 +59,11 @@ export function isValidScore(field: ScoreField, value: number): boolean {
     case 'progress':
       return isProgressStep(value);
   }
+}
+
+/** Returns an item's scores after the author keeps them at `at`: an author write of no values. */
+export function keepItemScores(existing: ItemScores | undefined, at: string): ItemScores {
+  return applyScoreWrite(existing, {}, 'author', at);
 }
 
 /** Returns the values of `scores` without their provenance. */
@@ -58,5 +82,23 @@ function isProgressStep(value: number): boolean {
   const steps = value / PROGRESS_STEP;
   // Absorb the float error of values such as 0.15 / 0.05.
   return Math.abs(steps - Math.round(steps)) < 1e-9;
+}
+
+function writeAgentEntry(entry: ScoreEntry | undefined, value: number | undefined, at: string): ScoreEntry | undefined {
+  if (value === undefined || entry?.value === value) return entry;
+  const previous = entry?.by === 'author' ? entry.value : entry?.previous;
+  return { value, by: 'agent', at, ...(previous !== undefined && { previous }) };
+}
+
+function writeAuthorEntry(
+  entry: ScoreEntry | undefined,
+  value: number | undefined,
+  at: string,
+): ScoreEntry | undefined {
+  if (value !== undefined) return { value, by: 'author', at };
+  if (!entry) return undefined;
+  return entry.by === 'agent'
+    ? { value: entry.value, by: 'author', at }
+    : { value: entry.value, by: 'author', at: entry.at };
 }
 // endregion | Helpers

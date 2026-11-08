@@ -15,7 +15,8 @@
   },
   "scripts": {
     "build": ":",
-    "start": "node src/server/main.ts"
+    "start": "node src/server/main.ts",
+    "top-right": "node src/cli/main.ts"
   },
   "dependencies": {
     "@top-right/adapter-github": "workspace:*",

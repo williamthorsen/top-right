@@ -4,8 +4,9 @@ import type { AddressInfo } from 'node:net';
 import type { StatusOverride, WorkItem } from '@top-right/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { createMemoryStore } from '#src/test-utils/memory-store.ts';
+
 import { type ApiOptions, createApiHandler } from '../api.ts';
-import { createMemoryStore } from '../test-utils/memory-store.ts';
 
 const ITEM: WorkItem = {
   repo: 'williamthorsen/top-right',
@@ -30,7 +31,12 @@ afterEach(() => {
 describe(createApiHandler, () => {
   describe('GET /api/items', () => {
     it("answers with the items, the abbreviations, and the user's scores, overrides, and last visit", async () => {
-      const scores = { [ITEM_KEY]: { urgency: { value: 4, by: 'author' as const, at: EARLIER } } };
+      const scores = {
+        [ITEM_KEY]: {
+          urgency: { value: 4, by: 'author' as const, at: EARLIER },
+          impact: { value: 5, by: 'agent' as const, at: EARLIER, previous: 3 },
+        },
+      };
       const store = createMemoryStore({ scores, overrides: { [ITEM_KEY]: IN_PROGRESS }, lastVisitAt: EARLIER });
       const baseUrl = await startServer({ store });
 
@@ -86,6 +92,30 @@ describe(createApiHandler, () => {
 
       expect(response.status).toBe(502);
       expect(await response.json()).toStrictEqual({ error: 'GitHub rejected the token (401).' });
+    });
+  });
+
+  describe('POST /api/keep', () => {
+    it("keeps the item's agent scores as the author's, at the host's time, and answers with them", async () => {
+      const store = createMemoryStore({
+        scores: { [ITEM_KEY]: { urgency: { value: 4, by: 'agent', at: EARLIER, previous: 2 } } },
+      });
+      const baseUrl = await startServer({ store });
+
+      const response = await post(`${baseUrl}/api/keep`, { itemKey: ITEM_KEY });
+
+      const expected = { urgency: { value: 4, by: 'author', at: NOW.toISOString() } };
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual({ itemKey: ITEM_KEY, scores: expected });
+      expect(store.state.scores[ITEM_KEY]).toStrictEqual(expected);
+    });
+
+    it('if the body names no item, responds 400', async () => {
+      const baseUrl = await startServer({});
+
+      const response = await post(`${baseUrl}/api/keep`, {});
+
+      expect(response.status).toBe(400);
     });
   });
 

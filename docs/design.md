@@ -8,7 +8,7 @@ Top Right plots work items as circles on a chart. Urgency runs along the x-axis 
 
 A session's job is to choose the next item to work on and to review the scores that changed since the last session. A feature belongs in the MVP when the product cannot do that job without it.
 
-The chart names the next pick itself: the open, scored item nearest the top-right corner that an open item does not block. The session's second job is a review: the chart marks every score that an agent wrote since the last visit, and the author keeps or corrects each one.
+The chart names the next pick itself: the open, scored item nearest the top-right corner that an open item does not block. The session's second job is a review: the chart marks every agent score until the author keeps or corrects it.
 
 Each circle links to the item's source of truth. Hovering a circle previews its detail; selecting it, by click, by tap, or by keyboard, keeps the detail open in a side pane and keeps the item's arrows shown. Done items are hidden by default.
 
@@ -68,6 +68,8 @@ Revised after the Jira site admin and developer evaluations: The decision offere
 
 The local host keys a score by the item's `owner/name#number` and by `github:<login>`, the user whom the GitHub token authenticates, and keeps the store in one SQLite file outside the repository, so that every worktree reads the same scores. Renaming or transferring a repository orphans its items' scores. Decided at the second MVP iteration (#12).
 
+An agent writes scores through the local host's `top-right` CLI, which writes through the store interface as the agent and refuses a batch that names an item that is not open at its source. An agent may write over the author's scores, because the review is how the author sees a change; an agent's write records the value that the author last held, which the trail reads, and an author write to any of an item's scores makes every agent score on the item the author's. Decided at the third MVP iteration (#13): A CLI needs no running host and leaves the host without a route on which any local page could claim to be the agent.
+
 ### Ordinal axes and the cell as the tie
 
 Urgency and impact are integers 1 to 5. A hand-scored backlog does not hold finer differences, and an integer scale makes a cell a guarantee: A drag snaps to a cell, a nudge inside the cell never reads as the neighbouring score, and every item in a cell has the same true point, so a tie is a cell. Tied circles pack inside their cell, and the cell's gridlines are the anchor; the chart draws neither spokes nor a centre dot, which would mark what the gridlines already show.
@@ -86,9 +88,9 @@ Added after the product manager, interaction designer, and developer evaluations
 
 The chart computes the next pick, rings it, and shows its detail in the pane while nothing is selected. The pick is the open, scored item with the highest urgency plus impact, then impact, then in progress before to do, then the least remaining scope, then the oldest; an item that an open item blocks is never the pick.
 
-A review is a queue: Agent-scored, the items whose scores an agent wrote since the last visit, and Unscored, the items that lack a placing score. Starting a queue selects its first item and fades the rest; Enter or a Keep button keeps the selected item's scores and advances; Skip advances without keeping. Keeping, or correcting any score, turns an agent score into the author's, clears the item's agent mark, and clears its trail. An agent-scored item wears a halo, and a circle that the agent moved shows a dashed trail from its previous cell while the review is on or while it is hovered or selected, so that the resting chart stays calm. "Since the last visit" means since the end of the previous session, stored per user.
+A review is a queue: Agent-scored, the items with an agent score that the author has not yet kept or corrected, and Unscored, the items that lack a placing score. Starting a queue selects its first item and fades the rest; Enter or a Keep button keeps the selected item's scores and advances; Skip advances without keeping. Keeping, or correcting any score, turns an agent score into the author's, clears the item's agent mark, and clears its trail. An agent-scored item wears a halo, and a circle that the agent moved within the matrix shows a dashed trail from its previous cell while the Agent-scored review is on or while it is hovered or selected, so that the resting chart stays calm. An item that the agent moved out of a gutter has no trail. "Since the last visit", which the "Changed since the last visit" fade reads, means since the end of the previous session, stored per user.
 
-Decided at the prototype round: The pick and the queue come from 1.1 Next item (rows 1, 2, 3, 25); Keep answers the developer's question of how an agent score becomes a user score without re-entering the value (row 5). Open: The Review controls do not behave like the Filter controls, and the developer found their behaviour hard to infer; the controls are redesigned in a later session, and the refinement log records the item.
+Decided at the prototype round: The pick and the queue come from 1.1 Next item (rows 1, 2, 3, 25); Keep answers the developer's question of how an agent score becomes a user score without re-entering the value (row 5). Revised at the third MVP iteration (#13): An agent score stays marked until the author keeps or corrects it, rather than only when written since the last visit, so that a skipped item keeps its mark. The Review controls, which the developer found hard to infer as toggles beside the Filter controls, follow a find bar: a strip at the chart's top edge with a start button per queue, labelled with its count, and, while a queue runs, the queue's name and position, Skip, and End review; Escape ends a review before it clears the selection.
 
 ### GitHub adapter first, Jira adapter second
 

@@ -1,7 +1,10 @@
-import { isValidScore, SCORE_FIELDS, type ScoreField } from '@top-right/model';
+import { isValidScore, SCORE_FIELDS, type ScoreField, type Scores } from '@top-right/model';
 import { z } from 'zod';
 
 import { itemScoresSchema, statusOverrideSchema } from './items-response.ts';
+
+/** The body of `POST /api/keep`: the item whose agent scores the author keeps. */
+export const keepRequestSchema = z.object({ itemKey: z.string().min(1) });
 
 /** The body of `POST /api/scores`: one or more of an item's scores. */
 export const scoresRequestSchema = z.object({
@@ -24,14 +27,25 @@ export const statusRequestSchema = z.object({
   sourceState: z.enum(['closed', 'open']),
 });
 
-/** The body of a successful `POST /api/scores`: the item's resulting scores. */
+/** The body of a successful `POST /api/scores` or `POST /api/keep`: the item's resulting scores. */
 export const scoresResponseSchema = z.object({ itemKey: z.string(), scores: itemScoresSchema });
 
 /** The body of a successful `POST /api/status`: the item's resulting override, or `null` when it has none. */
 export const statusResponseSchema = z.object({ itemKey: z.string(), override: statusOverrideSchema.nullable() });
 
+export type KeepRequest = z.infer<typeof keepRequestSchema>;
 export type ScoresRequest = z.infer<typeof scoresRequestSchema>;
 export type StatusRequest = z.infer<typeof statusRequestSchema>;
+
+/** Returns the scores without the fields that a parsed request left undefined. */
+export function compactScores(scores: Readonly<Partial<Record<ScoreField, number | undefined>>>): Scores {
+  const compact: Scores = {};
+  for (const field of SCORE_FIELDS) {
+    const value = scores[field];
+    if (value !== undefined) compact[field] = value;
+  }
+  return compact;
+}
 
 // region | Helpers
 function scoreValueSchema(field: ScoreField) {

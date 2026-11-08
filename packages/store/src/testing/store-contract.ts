@@ -50,13 +50,54 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
     });
 
     it('leaves the fields that a write omits, and their provenance, unchanged', async () => {
-      await opened.store.writeScores(USER, ITEM, { urgency: 2, impact: 3 }, 'agent', EARLIER);
+      await opened.store.writeScores(USER, ITEM, { urgency: 2, impact: 3 }, 'author', EARLIER);
       const written = await opened.store.writeScores(USER, ITEM, { impact: 5 }, 'author', LATER);
 
       expect(written).toEqual({
-        urgency: { value: 2, by: 'agent', at: EARLIER },
+        urgency: { value: 2, by: 'author', at: EARLIER },
         impact: { value: 5, by: 'author', at: LATER },
       });
+    });
+
+    it('records the value that the author held when an agent changes it', async () => {
+      await opened.store.writeScores(USER, ITEM, { urgency: 2 }, 'author', EARLIER);
+      await opened.store.writeScores(USER, ITEM, { urgency: 4 }, 'agent', LATER);
+
+      expect((await opened.store.readUserState(USER)).scores[ITEM]).toEqual({
+        urgency: { value: 4, by: 'agent', at: LATER, previous: 2 },
+      });
+    });
+
+    it('turns every agent score into the author’s when the author writes any of the item’s scores', async () => {
+      await opened.store.writeScores(USER, ITEM, { urgency: 2 }, 'author', EARLIER);
+      await opened.store.writeScores(USER, ITEM, { urgency: 4, effort: 5 }, 'agent', EARLIER);
+      const written = await opened.store.writeScores(USER, ITEM, { impact: 3 }, 'author', LATER);
+
+      const expected = {
+        urgency: { value: 4, by: 'author', at: LATER },
+        impact: { value: 3, by: 'author', at: LATER },
+        effort: { value: 5, by: 'author', at: LATER },
+      };
+      expect(written).toEqual(expected);
+      expect((await opened.store.readUserState(USER)).scores[ITEM]).toEqual(expected);
+    });
+
+    it('keeps an item’s agent scores as the author’s', async () => {
+      await opened.store.writeScores(USER, ITEM, { impact: 3 }, 'author', EARLIER);
+      await opened.store.writeScores(USER, ITEM, { impact: 5, urgency: 2 }, 'agent', EARLIER);
+      const kept = await opened.store.keepScores(USER, ITEM, LATER);
+
+      const expected = {
+        urgency: { value: 2, by: 'author', at: LATER },
+        impact: { value: 5, by: 'author', at: LATER },
+      };
+      expect(kept).toEqual(expected);
+      expect((await opened.store.readUserState(USER)).scores[ITEM]).toEqual(expected);
+    });
+
+    it('keeps nothing for an item without scores', async () => {
+      await expect(opened.store.keepScores(USER, ITEM, LATER)).resolves.toEqual({});
+      expect((await opened.store.readUserState(USER)).scores).toEqual({});
     });
 
     it('keeps users and items apart', async () => {

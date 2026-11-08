@@ -15,12 +15,18 @@ export interface ScoredCircleProps {
   /** The fraction of the work done, 0 when unscored. */
   progress: number;
   isSelected: boolean;
+  /** Whether the item carries an agent's score that the author has not kept, which its halo marks. */
+  isAgentScored: boolean;
+  /** Whether a review fades the circle; it stays selectable. */
+  isFaded: boolean;
   onPreview: (id: string | undefined) => void;
   onSelect: (id: string) => void;
 }
 
 /** The smallest radius that a circle's hit target takes: 12 units is 24 px at 1×, the WCAG 2.2 target size. */
 const HIT_RADIUS = 12;
+/** How far the agent's halo sits outside the circle, clear of the selection and focus rings. */
+const HALO_GAP = 9;
 /** The thinnest wedge that an in-progress pie draws, so that a nearly finished item still reads as in progress. */
 const MIN_WEDGE = Math.PI / 6;
 
@@ -34,6 +40,8 @@ export function ScoredCircle({
   status,
   progress,
   isSelected,
+  isAgentScored,
+  isFaded,
   onPreview,
   onSelect,
 }: ScoredCircleProps): ReactElement {
@@ -50,6 +58,8 @@ export function ScoredCircle({
       aria-label={name}
       aria-pressed={isSelected}
       className="tr-node"
+      data-item-key={id}
+      data-faded={isFaded && !isSelected}
       data-status={status}
       data-work-type={workType}
       onBlur={() => onPreview(undefined)}
@@ -64,6 +74,7 @@ export function ScoredCircle({
     >
       <title>{name}</title>
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
+      {isAgentScored ? <circle className="tr-node-halo" r={r + HALO_GAP} /> : null}
       <circle className="tr-node-main" r={r} />
       {status === 'in-progress' ? <Pie r={r} remaining={1 - progress} /> : null}
       <circle className="tr-node-border" r={r} />
