@@ -71,7 +71,11 @@ export function PaneScores({ item, scores, override, onScoresChange, onStatusCha
       />
       <ScoreRow
         label="Effort"
-        line={`${formatPoints(scores?.effort?.value)} · ${formatProvenance(scores?.effort)}`}
+        line={
+          scores?.effort
+            ? `${formatPoints(scores.effort.value)} · ${formatProvenance(scores.effort)}`
+            : formatPoints(undefined)
+        }
         onChange={(value) => onScoresChange({ effort: value })}
         options={EFFORT_OPTIONS}
         value={scores?.effort?.value}

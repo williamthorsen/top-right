@@ -58,6 +58,13 @@ describe(DetailPane, () => {
     expect(pane).toHaveTextContent('Unscored');
   });
 
+  it('reads an unsized effort as drawn at the floor, without a provenance line', () => {
+    renderPane();
+
+    // An exact match fails if the line goes on to a provenance.
+    expect(screen.getByText('Unsized, drawn at the floor')).toBeInTheDocument();
+  });
+
   it('sets In progress and To do, and never Done', async () => {
     const user = userEvent.setup();
     const override: StatusOverride = { status: 'in-progress', sourceState: 'open', at: AT };
