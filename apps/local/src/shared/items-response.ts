@@ -34,6 +34,7 @@ export const statusOverrideSchema = z.object({
 export const itemsResponseSchema = z.object({
   items: z.array(
     itemRefSchema.extend({
+      createdAt: z.string(),
       labels: z.array(z.string()),
       relations: z.array(
         z.object({ kind: z.enum(['blocked-by', 'blocking', 'parent', 'sub-issue']), ref: itemRefSchema }),

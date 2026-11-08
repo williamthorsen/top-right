@@ -1,10 +1,13 @@
 import {
+  buildRelationGraph,
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
   deriveStatus,
+  findNextPick,
   formatItemKey,
   isAgentScored,
   type ItemScores,
+  listBlockedKeys,
   type Scores,
   type StatusOverride,
   type WorkItem,
@@ -12,7 +15,8 @@ import {
 } from '@top-right/model';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
-import { DetailPane } from './DetailPane.tsx';
+import { choosePaneMode, DetailPane } from './DetailPane.tsx';
+import { Edges, focusItem, listEdgeEnds } from './Edges.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
 import { CELL_SIZE, GRID_SIZE, layoutCells, sizeCircle } from './layout.ts';
@@ -71,9 +75,13 @@ export function Chart({
 }: ChartProps): ReactElement {
   const [selectedKey, setSelectedKey] = useState<string>();
   const [previewKey, setPreviewKey] = useState<string>();
+  const [showAllEdges, setShowAllEdges] = useState(false);
+  const [highlightedKey, setHighlightedKey] = useState<string>();
+  const [highlightOwner, setHighlightOwner] = useState<string>();
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
-  const blockedKeys = useMemo(() => findBlockedKeys(items), [items]);
+  const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
+  const graph = useMemo(() => buildRelationGraph(items), [items]);
   const cells = useMemo(
     () =>
       layoutCells(
@@ -91,7 +99,13 @@ export function Chart({
     [items, scores],
   );
 
-  const shownKey = previewKey ?? selectedKey;
+  const pickKey = useMemo(() => findNextPick(items, scores, overrides), [items, scores, overrides]);
+  const shownKey = previewKey ?? selectedKey ?? pickKey;
+  // A relation row unmounts without a pointer-leave or blur when the pane changes item, so the highlight ends with it.
+  if (highlightOwner !== shownKey) {
+    setHighlightOwner(shownKey);
+    setHighlightedKey(undefined);
+  }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
   const review = useReview({
     items,
@@ -111,6 +125,13 @@ export function Chart({
     element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [review.kind, selectedKey]);
 
+  const focus = focusItem(graph, previewKey ?? selectedKey, showAllEdges);
+  const ends = listEdgeEnds(cells);
+  // A running review's fade governs, so that the queue stays legible as the review steps.
+  function isFaded(key: string): boolean {
+    return review.kind === undefined ? focus.related !== undefined && !focus.related.has(key) : review.isFaded(key);
+  }
+
   const trails = listTrails(
     cells,
     scores,
@@ -121,13 +142,23 @@ export function Chart({
     <div className="tr-root">
       <div className="tr-work">
         <div className="tr-chart-area">
-          <ReviewStrip
-            counts={{ agent: review.queues.agent.length, unscored: review.queues.unscored.length }}
-            onEnd={review.end}
-            onSkip={review.skip}
-            onStart={review.start}
-            running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
-          />
+          <div className="tr-strip">
+            <ReviewStrip
+              counts={{ agent: review.queues.agent.length, unscored: review.queues.unscored.length }}
+              onEnd={review.end}
+              onSkip={review.skip}
+              onStart={review.start}
+              running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
+            />
+            <button
+              aria-pressed={showAllEdges}
+              className="tr-toggle"
+              onClick={() => setShowAllEdges((current) => !current)}
+              type="button"
+            >
+              All edges
+            </button>
+          </div>
           <div className="tr-chart-scroll" ref={scrollRef}>
             <svg
               aria-label="Items by urgency and impact"
@@ -142,6 +173,7 @@ export function Chart({
                 {trails.map((trail) => (
                   <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                 ))}
+                <Edges edges={focus.edges} ends={ends} />
                 {cells.map((cell) =>
                   cell.isGutter ? null : (
                     <g key={`${cell.u},${cell.i}`}>
@@ -154,10 +186,16 @@ export function Chart({
                             cellY={cell.y}
                             circle={circle}
                             isAgentScored={isAgentScored(scores[circle.id])}
-                            isFaded={review.isFaded(circle.id)}
+                            isBlocked={blockedKeys.has(circle.id)}
+                            isHighlighted={circle.id === highlightedKey}
+                            isPick={circle.id === pickKey}
+                            isFaded={isFaded(circle.id)}
                             isSelected={circle.id === selectedKey}
                             key={circle.id}
-                            name={`${labelItem(item, abbreviations)}: ${item.title}`}
+                            name={nameCircle(labelItem(item, abbreviations), item.title, {
+                              isBlocked: blockedKeys.has(circle.id),
+                              isPick: circle.id === pickKey,
+                            })}
                             onPreview={setPreviewKey}
                             onSelect={setSelectedKey}
                             progress={scores[circle.id]?.progress?.value ?? 0}
@@ -173,8 +211,10 @@ export function Chart({
                   cell.isGutter ? (
                     <GutterCell
                       abbreviations={abbreviations}
+                      blockedKeys={blockedKeys}
                       cell={cell}
-                      isFaded={review.isFaded}
+                      highlightedKey={highlightedKey}
+                      isFaded={isFaded}
                       itemsByKey={itemsByKey}
                       key={`${cell.u},${cell.i}`}
                       onPreview={setPreviewKey}
@@ -195,12 +235,13 @@ export function Chart({
           blockedKeys={blockedKeys}
           isReviewing={review.kind !== undefined}
           item={shownItem}
-          mode={previewKey !== undefined && previewKey !== selectedKey ? 'preview' : 'selected'}
+          mode={choosePaneMode(previewKey, selectedKey)}
           onClose={() => {
             setSelectedKey(undefined);
             setPreviewKey(undefined);
           }}
           onKeep={onKeep ? review.keep : undefined}
+          onRelationHighlight={setHighlightedKey}
           onScoresChange={review.changeScores}
           onStatusChange={(itemKey, status) => {
             setSelectedKey(itemKey);
@@ -216,18 +257,6 @@ export function Chart({
 }
 
 // region | Helpers
-/** Returns the keys of the items that an open item blocks. */
-function findBlockedKeys(items: readonly WorkItem[]): Set<string> {
-  const blocked = new Set<string>();
-  for (const item of items) {
-    const isBlocked = item.relations.some(
-      (relation) => relation.kind === 'blocked-by' && relation.ref.state === 'open',
-    );
-    if (isBlocked) blocked.add(formatItemKey(item));
-  }
-  return blocked;
-}
-
 function Grid() {
   const lines = Array.from({ length: GRID_SIZE + 1 }, (_, index) => index);
   const scores = Array.from({ length: GRID_SIZE }, (_, index) => index);
@@ -295,5 +324,10 @@ function lineClass(index: number): string {
   if (index === GUTTER_LINE) return 'tr-gutterline';
   if (index === QUADRANT_LINE) return 'tr-quad';
   return 'tr-gridline';
+}
+
+/** Returns a circle's accessible name: its id label and title, with the marks that it wears. */
+function nameCircle(label: string, title: string, marks: { isBlocked: boolean; isPick: boolean }): string {
+  return `${label}: ${title}${marks.isBlocked ? ', blocked' : ''}${marks.isPick ? ', next pick' : ''}`;
 }
 // endregion | Helpers

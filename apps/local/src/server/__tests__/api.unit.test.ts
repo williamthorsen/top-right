@@ -14,6 +14,7 @@ const ITEM: WorkItem = {
   title: 'Plot the issues',
   url: 'https://github.com/williamthorsen/top-right/issues/11',
   state: 'open',
+  createdAt: '2026-11-01T09:00:00Z',
   labels: ['feature'],
   relations: [],
 };

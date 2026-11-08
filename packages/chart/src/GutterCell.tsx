@@ -19,6 +19,10 @@ export interface GutterCellProps {
   abbreviations: Abbreviations;
   workTypeMapping: WorkTypeMapping;
   selectedKey: string | undefined;
+  /** The keys of the items that an open item blocks. */
+  blockedKeys: ReadonlySet<string>;
+  /** The item that a relation row in the pane points at. */
+  highlightedKey: string | undefined;
   onPreview: (key: string | undefined) => void;
   onSelect: (key: string) => void;
 }
@@ -32,6 +36,8 @@ export function GutterCell({
   abbreviations,
   workTypeMapping,
   selectedKey,
+  blockedKeys,
+  highlightedKey,
   onPreview,
   onSelect,
 }: GutterCellProps): ReactElement {
@@ -42,6 +48,7 @@ export function GutterCell({
           const item = itemsByKey.get(key);
           if (!item) return null;
           const label = labelItem(item, abbreviations);
+          const isBlocked = blockedKeys.has(key);
           return (
             <li
               data-faded={isFaded(key) && key !== selectedKey}
@@ -49,10 +56,11 @@ export function GutterCell({
               key={key}
             >
               <button
-                aria-label={`${label}: ${item.title}`}
+                aria-label={`${label}: ${item.title}${isBlocked ? ', blocked' : ''}`}
                 aria-pressed={key === selectedKey}
                 data-item-key={key}
                 className="tr-item"
+                data-highlighted={key === highlightedKey}
                 onBlur={() => onPreview(undefined)}
                 onClick={() => onSelect(key)}
                 onFocus={() => onPreview(key)}
@@ -60,7 +68,7 @@ export function GutterCell({
                 onPointerLeave={() => onPreview(undefined)}
                 type="button"
               >
-                <CircleIcon hasHalo={isAgentScored(scores[key])} />
+                <CircleIcon hasHalo={isAgentScored(scores[key])} isBlocked={isBlocked} />
                 {label}
               </button>
             </li>

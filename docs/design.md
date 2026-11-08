@@ -92,6 +92,8 @@ A review is a queue: Agent-scored, the items with an agent score that the author
 
 Decided at the prototype round: The pick and the queue come from 1.1 Next item (rows 1, 2, 3, 25); Keep answers the developer's question of how an agent score becomes a user score without re-entering the value (row 5). Revised at the third MVP iteration (#13): An agent score stays marked until the author keeps or corrects it, rather than only when written since the last visit, so that a skipped item keeps its mark. The Review controls, which the developer found hard to infer as toggles beside the Filter controls, follow a find bar: a strip at the chart's top edge with a start button per queue, labelled with its count, and, while a queue runs, the queue's name and position, Skip, and End review; Escape ends a review before it clears the selection.
 
+An agent's score places an item for the pick as the author's does, because it is a score until the author corrects it. At the remaining-scope step, an item without effort sorts after every item with one, because an unknown scope is not assumed to be small; "the oldest" is the item's creation date at its source, because issue numbers do not compare across repos. The pick's ring shows at rest, but its edges show only while it is hovered or selected, so that the resting chart stays calm. Decided at the fourth MVP iteration (#14).
+
 ### GitHub adapter first, Jira adapter second
 
 The GitHub adapter comes first, because using the tool on real data on the development machine is what keeps it from staying an idea. The local host reads its GitHub token from `GITHUB_TOKEN` or from `gh auth token`, so that the first run needs nothing beyond `gh auth login`. The Jira adapter comes second. It is built against a personal Atlassian site seeded by a script, and it depends on `@williamthorsen/atlassian-tools` for auth and transport.
@@ -121,6 +123,8 @@ A blocker is an arrow from the blocking item to the blocked one. GitHub's blocke
 An item that an open item blocks wears a red ring, and the arrow into it is red; a blocking item carries no mark of its own, because the arrow out of it says enough. A hidden done item keeps a ghost at its true point while an edge reaches it, and a click on the ghost reveals that one item. The longest blocker chain is an advanced view under a More menu, not a top-level control.
 
 Edges never move circles, because a circle's position states the item's urgency and impact, and moving it would misstate them.
+
+An edge joins two circles in the matrix only. A gutter cell's list scrolls within the cell, so an edge cannot anchor on its rows, and the pane's relation list covers an item that the gutter holds or that the chart does not load. A sub-issue edge has no arrowhead, as the decision above states. While a review runs, the review's fade governs and the focus fade is off, so that the queue stays legible as the review steps; the edges still follow the hovered or selected item. The longest chain is #22. Decided at the fourth MVP iteration (#14).
 
 Revised after the developer and interaction designer evaluations: The decision did not name which source relations are blockers, and it used hover and selection interchangeably. Revised at the prototype round: 4.1 Blocker edges won the round on these edges (rows 19, 21, 22); the red ring replaces red on both ends, which the developer found confusing.
 

@@ -14,6 +14,7 @@ describe(mapIssue, () => {
       number: 12,
       url: `https://github.com/${REPO}/issues/12`,
       state: 'open',
+      createdAt: '2026-11-12T09:00:00Z',
       labels: ['feature'],
       relations: [
         { kind: 'blocked-by', ref: { repo: REPO, number: 11, state: 'open' } },

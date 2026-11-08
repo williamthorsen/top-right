@@ -21,6 +21,8 @@ export interface Relation {
 
 /** A work item read from a source, with its labels and relations. */
 export interface WorkItem extends ItemRef {
+  /** When the item was created at its source, as an ISO timestamp. */
+  createdAt: string;
   labels: string[];
   relations: Relation[];
 }

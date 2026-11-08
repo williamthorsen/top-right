@@ -10,6 +10,7 @@ const issueRefSchema = z.object({
 });
 
 const issueSchema = issueRefSchema.omit({ repository: true }).extend({
+  createdAt: z.string(),
   labels: z.object({ nodes: z.array(z.object({ name: z.string() })) }),
   blockedBy: z.object({ nodes: z.array(issueRefSchema) }),
   blocking: z.object({ nodes: z.array(issueRefSchema) }),
@@ -41,6 +42,7 @@ export type GitHubIssue = z.infer<typeof issueSchema>;
 export function mapIssue(issue: GitHubIssue, repo: string): WorkItem {
   return {
     ...mapRef({ ...issue, repository: { nameWithOwner: repo } }),
+    createdAt: issue.createdAt,
     labels: issue.labels.nodes.map((label) => label.name),
     relations: [
       ...mapRelations('blocked-by', issue.blockedBy.nodes),
