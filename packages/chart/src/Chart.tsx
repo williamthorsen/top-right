@@ -53,7 +53,7 @@ export interface ChartProps {
   onStatusChange?: (itemKey: string, status: SettableStatus) => void;
   /** Reports that the author keeps an item's agent scores; without it, the chart offers neither Keep nor Enter-to-keep. */
   onKeep?: (itemKey: string) => void;
-  /** The selected item's key, read only while `onSelectedKeyChange` is passed; a key that the filter hides widens the filter. */
+  /** The selected item's key, read only while `onSelectedKeyChange` is passed; a new key whose item the filter hides widens the filter. */
   selectedKey?: string | undefined;
   /**
    * Reports a change of selection, which makes the selection the host's to hold. `push` is true for a selection that the
@@ -68,7 +68,10 @@ const INITIAL_SPLIT = 60;
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
 const NO_OVERRIDES: Readonly<Record<string, StatusOverride>> = {};
 
-/** The Top Right chart: items by urgency and impact, with the detail pane and the legend. */
+/**
+ * The Top Right chart: items by urgency and impact, with the legend, the table, and the detail pane. It fills its
+ * container's height, which the container must bound for the table to scroll within its pane.
+ */
 export function Chart({
   items,
   abbreviations,
