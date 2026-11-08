@@ -69,7 +69,7 @@ export function Legend(): ReactElement {
   );
 }
 
-/** A floor-sized circle filled as an item of the status is. */
+/** A circle drawn as the chart draws a scored item of `status`; an in-progress swatch shows a pie of two-thirds. */
 export function StatusSwatch({
   status,
   isFloored = false,
@@ -136,5 +136,4 @@ function RingSwatch({ ring }: { ring: 'blocked' | 'pick' }) {
   );
 }
 
-/** A circle drawn as the chart draws a scored item of `status`; an in-progress swatch shows a pie of two-thirds. */
 // endregion | Helpers

@@ -39,7 +39,10 @@ export function filterItems(
   );
 }
 
-/** Returns a filter that keeps the item: the filter itself when it already does, else one widened by the item's status and, when another repo is selected, by every repo. */
+/**
+ * Returns a filter that keeps the item: the filter itself when it already does, else one widened by the item's status
+ * and, when another repo is selected, by every repo.
+ */
 export function revealItem(filter: ItemFilter, item: WorkItem, override: StatusOverride | undefined): ItemFilter {
   const status = deriveStatus(item, override);
   const isRepoKept = isInRepo(item, filter.repo);

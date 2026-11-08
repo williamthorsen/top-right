@@ -47,7 +47,10 @@ function compareValues(a: SortValue, b: SortValue): number {
   return 0;
 }
 
-/** Returns the value by which the item sorts in the column; the ID sorts by repo, then number, since numbers do not compare across repos. */
+/**
+ * Returns the value by which the item sorts in the column; the ID sorts by repo, then number, since numbers do not
+ * compare across repos.
+ */
 function readSortValue(item: WorkItem, column: SortColumn, context: SortContext): SortValue | undefined {
   const scores = context.scores[context.keyOf(item)];
   switch (column) {

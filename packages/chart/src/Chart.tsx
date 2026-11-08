@@ -53,12 +53,15 @@ export interface ChartProps {
   onStatusChange?: (itemKey: string, status: SettableStatus) => void;
   /** Reports that the author keeps an item's agent scores; without it, the chart offers neither Keep nor Enter-to-keep. */
   onKeep?: (itemKey: string) => void;
-  /** The selected item's key, read only while `onSelectedKeyChange` is passed; a new key whose item the filter hides widens the filter. */
+  /**
+   * The selected item's key, read only while `onSelectedKeyChange` is passed; a new key whose item the filter hides
+   * widens the filter.
+   */
   selectedKey?: string | undefined;
   /**
-   * Reports a change of selection, which makes the selection the host's to hold. `push` is true for a selection that the
-   * author makes (a click or a key on a circle, a gutter id, or a table row; Close; Escape), so that the host can record
-   * it as a history entry, and false for one that the chart makes itself, such as a review step.
+   * Reports a change of selection, which makes the selection the host's to hold. `push` is true for a selection that
+   * the author makes (a click or a key on a circle, a gutter id, or a table row; Close; Escape), so that the host can
+   * record it as a history entry, and false for one that the chart makes itself, such as a review step.
    */
   onSelectedKeyChange?: (key: string | undefined, options: { push: boolean }) => void;
 }

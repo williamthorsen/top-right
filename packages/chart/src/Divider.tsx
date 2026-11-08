@@ -63,7 +63,10 @@ export function Divider({ value, onChange, containerRef, label }: DividerProps):
   );
 }
 
-/** Returns the split clamped so that each pane keeps its floor, or an even split when the container cannot hold both floors. */
+/**
+ * Returns the split clamped so that each pane keeps its floor, or an even split when the container cannot hold both
+ * floors.
+ */
 export function clampSplit(value: number, containerHeight: number): number {
   const [min, max] = findSplitLimits(containerHeight);
   return Math.min(max, Math.max(min, value));
