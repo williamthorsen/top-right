@@ -20,10 +20,10 @@ try {
 
 /** Starts the local host: the items endpoint in front of Vite, which serves the page. */
 async function startHost(): Promise<void> {
-  const { abbreviations, databasePath, loadItems, repos, store, userId } = await openHostContext();
+  const { databasePath, loadItems, repos, store, userId } = await openHostContext();
 
   const vite = await createViteServer({ configFile: VITE_CONFIG_PATH, server: { middlewareMode: true } });
-  const handleApi = createApiHandler({ loadItems, abbreviations, repos, store, userId });
+  const handleApi = createApiHandler({ loadItems, repos, store, userId });
   const port = Number(process.env['PORT'] ?? DEFAULT_PORT);
 
   createServer((req, res) => void handleApi(req, res, () => vite.middlewares(req, res))).listen(

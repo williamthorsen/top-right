@@ -1,15 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseConfig, readConfig, resolveAbbreviations } from '../config.ts';
+import { formatAbbreviationNotice, parseConfig, readConfig } from '../config.ts';
 import { StartupError } from '../startup-error.ts';
 
 const PATH = '/repo/apps/local/config.local.json';
 
 describe(parseConfig, () => {
   it('returns the configured repositories', () => {
-    const config = parseConfig('{"repos":[{"repo":"williamthorsen/top-right","abbreviation":"tr"}]}', PATH);
+    const config = parseConfig('{"repos":[{"repo":"w/codeassembly"},{"repo":"w/configs.macos"}]}', PATH);
 
-    expect(config.repos).toStrictEqual([{ repo: 'williamthorsen/top-right', abbreviation: 'tr' }]);
+    expect(config).toStrictEqual({ repos: ['w/codeassembly', 'w/configs.macos'], reposWithAbbreviation: [] });
+  });
+
+  it('reports the repositories whose entry still sets an abbreviation', () => {
+    const config = parseConfig('{"repos":[{"repo":"w/top-right","abbreviation":"tr"},{"repo":"w/other"}]}', PATH);
+
+    expect(config.reposWithAbbreviation).toStrictEqual(['w/top-right']);
   });
 
   it.each([
@@ -31,25 +37,15 @@ describe(readConfig, () => {
   });
 });
 
-describe(resolveAbbreviations, () => {
-  it('keys abbreviations by owner/name, defaulting to the first letter', () => {
-    const abbreviations = resolveAbbreviations({
-      repos: [{ repo: 'williamthorsen/top-right' }, { repo: 'williamthorsen/codeassembly', abbreviation: 'ca' }],
-    });
+describe(formatAbbreviationNotice, () => {
+  it('names each repository whose entry sets an abbreviation, and Settings', () => {
+    const notice = formatAbbreviationNotice({ repos: ['w/a', 'w/b'], reposWithAbbreviation: ['w/a', 'w/b'] });
 
-    expect(abbreviations).toStrictEqual({ 'williamthorsen/top-right': 't', 'williamthorsen/codeassembly': 'ca' });
+    expect(notice).toContain('w/a, w/b');
+    expect(notice).toContain('Settings');
   });
 
-  it.each([
-    { case: 'two defaults match', repos: [{ repo: 'w/codeassembly' }, { repo: 'w/configs.macos' }] },
-    {
-      case: 'abbreviations match case-insensitively',
-      repos: [{ repo: 'w/a', abbreviation: 'C' }, { repo: 'w/configs' }],
-    },
-  ])('if $case, throws a StartupError that names both repositories', ({ repos }) => {
-    const resolve = () => resolveAbbreviations({ repos });
-
-    expect(resolve).toThrow(StartupError);
-    for (const { repo } of repos) expect(resolve).toThrow(repo);
+  it('returns undefined when no entry sets an abbreviation', () => {
+    expect(formatAbbreviationNotice({ repos: ['w/a'], reposWithAbbreviation: [] })).toBeUndefined();
   });
 });

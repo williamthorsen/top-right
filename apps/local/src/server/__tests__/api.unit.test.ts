@@ -53,6 +53,15 @@ describe(createApiHandler, () => {
       });
     });
 
+    it("resolves each configured repository's abbreviation from the user's stored ones", async () => {
+      const store = createMemoryStore({ abbreviations: { [ITEM.repo]: 'tr', 'w/gone': 'g' } });
+      const baseUrl = await startServer({ store, repos: [ITEM.repo, 'w/codeassembly'] });
+
+      const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
+
+      expect(body).toMatchObject({ abbreviations: { [ITEM.repo]: 'tr', 'w/codeassembly': 'c' } });
+    });
+
     it('deletes and omits the override of an item of a loaded repository that is no longer open', async () => {
       const closedKey = 'williamthorsen/top-right#9';
       const store = createMemoryStore({ overrides: { [ITEM_KEY]: IN_PROGRESS, [closedKey]: IN_PROGRESS } });
@@ -261,7 +270,6 @@ function post(url: string, body: unknown): Promise<Response> {
 async function startServer(overrides: Partial<ApiOptions>): Promise<string> {
   const handle = createApiHandler({
     loadItems: () => Promise.resolve([ITEM]),
-    abbreviations: { [ITEM.repo]: 't' },
     repos: [ITEM.repo],
     store: createMemoryStore(),
     userId: 'github:author',

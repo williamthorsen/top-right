@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
 
-import { abbreviate } from '@top-right/model';
 import { z } from 'zod';
 
 import { StartupError } from './startup-error.ts';
@@ -10,13 +9,18 @@ const configSchema = z.object({
     .array(
       z.object({
         repo: z.string().regex(/^[\w.-]+\/[\w.-]+$/, 'expected owner/name'),
-        abbreviation: z.string().min(1).optional(),
+        abbreviation: z.unknown().optional(),
       }),
     )
     .min(1),
 });
 
-export type HostConfig = z.infer<typeof configSchema>;
+/** The host's config: the repositories to read, as `owner/name`. */
+export interface HostConfig {
+  repos: string[];
+  /** The repositories whose entry still sets `abbreviation`, which the host ignores. */
+  reposWithAbbreviation: string[];
+}
 
 /** Reads and validates the host's config file. */
 export async function readConfig(path: string): Promise<HostConfig> {
@@ -29,6 +33,12 @@ export async function readConfig(path: string): Promise<HostConfig> {
     );
   }
   return parseConfig(text, path);
+}
+
+/** Returns the startup notice for config entries that still set `abbreviation`, or undefined when none does. */
+export function formatAbbreviationNotice(config: HostConfig): string | undefined {
+  if (config.reposWithAbbreviation.length === 0) return undefined;
+  return `The config file's "abbreviation" is ignored (${config.reposWithAbbreviation.join(', ')}). Set abbreviations in Settings and remove the field.`;
 }
 
 /** Parses the text of a config file, naming the file in any error. */
@@ -44,27 +54,10 @@ export function parseConfig(text: string, path: string): HostConfig {
     const issues = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ');
     throw new StartupError(`Config file is invalid: ${path}. ${issues}.`);
   }
-  return parsed.data;
-}
-
-/**
- * Returns each repository's abbreviation, the configured one or its first letter, keyed by `owner/name`. Two
- * repositories whose abbreviations match case-insensitively make the ids ambiguous, so they stop the host.
- */
-export function resolveAbbreviations(config: HostConfig): Record<string, string> {
-  const abbreviations: Record<string, string> = {};
-  const reposByAbbreviation = new Map<string, string[]>();
-  for (const { repo, abbreviation = abbreviate(repo) } of config.repos) {
-    abbreviations[repo] = abbreviation;
-    const key = abbreviation.toLowerCase();
-    reposByAbbreviation.set(key, [...(reposByAbbreviation.get(key) ?? []), repo]);
-  }
-  const clashes = [...reposByAbbreviation].filter(([, repos]) => repos.length > 1);
-  if (clashes.length > 0) {
-    const listed = clashes.map(([key, repos]) => `"${key}" (${repos.join(', ')})`).join('; ');
-    throw new StartupError(
-      `Repositories share an abbreviation: ${listed}. Give each an "abbreviation" in the config file.`,
-    );
-  }
-  return abbreviations;
+  return {
+    repos: parsed.data.repos.map((entry) => entry.repo),
+    reposWithAbbreviation: parsed.data.repos
+      .filter((entry) => entry.abbreviation !== undefined)
+      .map((entry) => entry.repo),
+  };
 }

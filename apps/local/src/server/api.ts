@@ -1,6 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { formatItemKey, isOverrideVoid, type StatusOverride, type WorkItem } from '@top-right/model';
+import {
+  formatItemKey,
+  isOverrideVoid,
+  resolveAbbreviations,
+  type StatusOverride,
+  type WorkItem,
+} from '@top-right/model';
 import type { Store } from '@top-right/store';
 import type { z } from 'zod';
 
@@ -23,7 +29,6 @@ const MAX_BODY_BYTES = 16_384;
 
 export interface ApiOptions {
   loadItems: () => Promise<WorkItem[]>;
-  abbreviations: Readonly<Record<string, string>>;
   /** The repositories (`owner/name`) whose open issues `loadItems` returns in full. */
   repos: readonly string[];
   store: Store;
@@ -33,14 +38,7 @@ export interface ApiOptions {
 }
 
 /** Returns a handler that answers the host's `/api/` routes and passes every other request to `next`. */
-export function createApiHandler({
-  loadItems,
-  abbreviations,
-  repos,
-  store,
-  userId,
-  now = () => new Date(),
-}: ApiOptions) {
+export function createApiHandler({ loadItems, repos, store, userId, now = () => new Date() }: ApiOptions) {
   const loadedRepos = new Set(repos);
 
   type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
@@ -60,7 +58,7 @@ export function createApiHandler({
         const overrides = await dropVoidOverrides(items, state.overrides);
         const body: ItemsResponse = {
           items,
-          abbreviations: { ...abbreviations },
+          abbreviations: resolveAbbreviations(repos, state.abbreviations),
           scores: state.scores,
           overrides,
           ...(state.lastVisitAt !== undefined && { lastVisitAt: state.lastVisitAt }),
