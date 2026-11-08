@@ -248,16 +248,14 @@ What it would change: The token comes from `GITHUB_TOKEN` or `gh auth token`; th
 
 Questions for the round, answered: A recently closed item is reached through the Done filter or through the ghost at the end of an edge; the pane shows the source's state beside the status control, as a read-only Done.
 
-## Rough structure
+## Structure
 
-The package split below follows the baseline and is settled when the MVP starts.
+The package split is settled for the MVP, whose epic is #10. It follows the baseline, and the chart is built as a component from the start rather than trimmed from the baseline page, because the page is a reference and a trimmed copy would be rewritten in the second iteration.
 
 - `packages/model`: work items, scores keyed by user, status categories and the override, relationships, the work-type classifier and its mapping, the next pick, and the review queues
-- `packages/layout`: cell packing with the gutters, as pure code
-- `packages/chart`: the browser chart and its detail pane, which take props only
+- `packages/chart`: the browser chart and its detail pane, which take props only, with the cell packing and the gutters inside it
 - `packages/adapter-github`: the GitHub adapter
-- `packages/adapter-jira`: the Jira adapter
 - `packages/store`: the store interface, including settings (the type mapping, repo abbreviations) and the last visit per user
 - `apps/local`: the local host, which implements the store on SQLite and serves the page with the toolbar and the table
 
-Every package under `packages/` is part of the published core. `apps/local` stays in this repository and is not published.
+The Jira adapter, `packages/adapter-jira`, is added after the MVP, when its iteration starts. Every package under `packages/` is part of the published core. `apps/local` stays in this repository and is not published.
