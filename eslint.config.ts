@@ -1,4 +1,4 @@
-import baseConfig, { commonIgnores, toolIgnores } from '@williamthorsen/eslint-config-typescript';
+import baseConfig, { commonIgnores, createConfig, toolIgnores } from '@williamthorsen/eslint-config-typescript';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 const config = defineConfig(
@@ -22,6 +22,15 @@ const config = defineConfig(
         },
       ],
     },
+  },
+  {
+    files: ['**/*.tsx'],
+    extends: [await createConfig.react(), await createConfig.jsxA11y()],
+    settings: { react: { version: '19.3' } },
+  },
+  {
+    files: ['**/__tests__/**/*.test.tsx'],
+    extends: [await createConfig.reactTestingLibrary()],
   },
   {
     files: ['**/*.test.ts', '**/*.test.tsx'],
