@@ -1,4 +1,13 @@
 export { abbreviate, formatIdLabel } from './id-label.ts';
+export {
+  type BlockerChain,
+  buildRelationGraph,
+  type Edge,
+  type EdgeKind,
+  isBlocked,
+  listBlockedKeys,
+  type RelationGraph,
+} from './relations.ts';
 export { type Cell, findTrailOrigin, isAgentScored, listReviewQueue, type ReviewQueueKind } from './review.ts';
 export {
   applyScoreWrite,

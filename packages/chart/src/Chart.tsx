@@ -5,6 +5,7 @@ import {
   formatItemKey,
   isAgentScored,
   type ItemScores,
+  listBlockedKeys,
   type Scores,
   type StatusOverride,
   type WorkItem,
@@ -73,7 +74,7 @@ export function Chart({
   const [previewKey, setPreviewKey] = useState<string>();
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
-  const blockedKeys = useMemo(() => findBlockedKeys(items), [items]);
+  const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
   const cells = useMemo(
     () =>
       layoutCells(
@@ -216,18 +217,6 @@ export function Chart({
 }
 
 // region | Helpers
-/** Returns the keys of the items that an open item blocks. */
-function findBlockedKeys(items: readonly WorkItem[]): Set<string> {
-  const blocked = new Set<string>();
-  for (const item of items) {
-    const isBlocked = item.relations.some(
-      (relation) => relation.kind === 'blocked-by' && relation.ref.state === 'open',
-    );
-    if (isBlocked) blocked.add(formatItemKey(item));
-  }
-  return blocked;
-}
-
 function Grid() {
   const lines = Array.from({ length: GRID_SIZE + 1 }, (_, index) => index);
   const scores = Array.from({ length: GRID_SIZE }, (_, index) => index);
