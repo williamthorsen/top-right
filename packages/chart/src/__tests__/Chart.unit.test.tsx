@@ -270,6 +270,27 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^t\.2:/ })).not.toBePressed();
     });
 
+    it('keeps a corrected item selected during the Agent-scored review, and Enter moves on to the next', async () => {
+      const user = userEvent.setup();
+      renderReview([buildItem({ number: 1 }), buildItem({ number: 2 }), buildItem({ number: 3 })], {
+        [`${REPO}#1`]: FROM_GUTTER,
+        [`${REPO}#2`]: MOVED,
+        [`${REPO}#3`]: { urgency: { value: 1, by: 'agent', at }, impact: { value: 1, by: 'agent', at } },
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Review agent scores (3)' }));
+      await user.click(within(getGroup('Urgency')).getByRole('radio', { name: '3' }));
+      await user.click(within(getGroup('Impact')).getByRole('radio', { name: '2' }));
+
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(within(getGroup('Impact')).getByRole('radio', { name: '2' })).toBeChecked();
+      expect(hasHalo(screen.getByRole('button', { name: /^t\.2:/ }))).toBe(false);
+      expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · – of 2');
+
+      await user.keyboard('{Enter}');
+      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
+    });
+
     it('moves an Unscored review on once the selected item has both urgency and impact', async () => {
       const user = userEvent.setup();
       renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {});
@@ -284,8 +305,10 @@ describe(Chart, () => {
         within(within(getPane()).getByRole('radiogroup', { name: 'Impact' })).getByRole('radio', { name: '4' }),
       );
 
+      // The placed item stays selected for a moment, so that the author sees it move, then the review moves on.
+      expect(within(getPane()).getByText('Issue 1')).toBeInTheDocument();
+      expect(await within(getPane()).findByText('Issue 2')).toBeInTheDocument();
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 1');
-      expect(within(getPane()).getByText('Issue 2')).toBeInTheDocument();
     });
   });
 });
@@ -312,6 +335,10 @@ function countTrails(): number {
 /** Returns whether the item wears the agent's halo, which is decorative SVG without a role to query. */
 function hasHalo(element: HTMLElement): boolean {
   return element.querySelector('.tr-node-halo, .tr-circle-halo') !== null;
+}
+
+function getGroup(name: string): HTMLElement {
+  return within(getPane()).getByRole('radiogroup', { name });
 }
 
 function getPane(): HTMLElement {

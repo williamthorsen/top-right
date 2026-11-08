@@ -7,13 +7,13 @@ import {
   type Scores,
   type WorkItem,
 } from '@top-right/model';
-import { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 export interface ReviewOptions {
   items: readonly WorkItem[];
   scores: Readonly<Record<string, ItemScores>>;
   selectedKey: string | undefined;
-  setSelectedKey: (key: string | undefined) => void;
+  setSelectedKey: Dispatch<SetStateAction<string | undefined>>;
   setPreviewKey: (key: string | undefined) => void;
   onKeep: ((itemKey: string) => void) | undefined;
   onScoresChange: ((itemKey: string, scores: Scores) => void) | undefined;
@@ -35,10 +35,14 @@ export interface Review {
   changeScores: (itemKey: string, scores: Scores) => void;
 }
 
+/** How long a placed item stays selected before the Unscored review moves on, so that the author sees it move. */
+const PLACED_ADVANCE_DELAY_MS = 650;
+
 /**
- * Runs the review queues over the chart's selection: Starting a queue selects its first item, an item that leaves the
- * queue gives way to the next, Enter keeps the selected item and advances, and Escape ends the review before it clears
- * the selection.
+ * Runs the review queues over the chart's selection: Starting a queue selects its first item, Keep and Enter keep the
+ * selected item and advance, an item placed during the Unscored review gives way to the next after a pause, and Escape
+ * ends the review before it clears the selection. A correction during the Agent-scored review leaves the item selected,
+ * so that a second correction lands on the same item.
  */
 export function useReview({
   items,
@@ -57,19 +61,29 @@ export function useReview({
   const queue = kind === undefined ? undefined : queues[kind];
   const queueKeys = useMemo(() => new Set(queue), [queue]);
   const index = queue === undefined || selectedKey === undefined ? -1 : queue.indexOf(selectedKey);
+  // The queue position of the item that the review last moved to, from which it continues once that item leaves.
+  const anchor = useRef(0);
+  const pendingAdvance = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  /** Selects the queue item after `key`, or, when `key` leaves the queue, the one that takes its place. */
-  function advance(key: string | undefined, isLeaving: boolean): void {
-    if (!queue) return;
+  useEffect(() => () => clearTimeout(pendingAdvance.current), []);
+
+  /** Returns the queue item after `key`, or, when `key` leaves the queue, the one that takes its place. */
+  function findNext(key: string | undefined, isLeaving: boolean): string | undefined {
+    if (!queue) return undefined;
     const from = key === undefined ? -1 : queue.indexOf(key);
     const remaining = isLeaving ? queue.filter((candidate) => candidate !== key) : queue;
-    if (remaining.length === 0) {
-      setKind(undefined);
-      setSelectedKey(undefined);
-      return;
-    }
-    const next = from < 0 ? 0 : (isLeaving ? from : from + 1) % remaining.length;
-    setSelectedKey(remaining[next]);
+    if (remaining.length === 0) return undefined;
+    const next = (from < 0 ? anchor.current : isLeaving ? from : from + 1) % remaining.length;
+    anchor.current = next;
+    return remaining[next];
+  }
+
+  /** Selects the next queue item, or ends the review and clears the selection when none is left. */
+  function advance(key: string | undefined, isLeaving: boolean): void {
+    if (!queue) return;
+    const next = findNext(key, isLeaving);
+    if (next === undefined) setKind(undefined);
+    setSelectedKey(next);
   }
 
   function keep(itemKey: string): void {
@@ -82,15 +96,27 @@ export function useReview({
     // Editing a previewed item selects it, so that the pane stays on it once the pointer leaves.
     setSelectedKey(itemKey);
     onScoresChange?.(itemKey, changed);
-    if (kind === undefined || itemKey !== selectedKey || !queueKeys.has(itemKey)) return;
+    if (kind !== 'unscored' || itemKey !== selectedKey || !queueKeys.has(itemKey)) return;
     const after = applyScoreWrite(scores[itemKey], changed, 'author', '');
-    if (kind === 'agent' || (after.urgency !== undefined && after.impact !== undefined)) advance(itemKey, true);
+    if (after.urgency === undefined || after.impact === undefined) return;
+    const next = findNext(itemKey, true);
+    clearTimeout(pendingAdvance.current);
+    pendingAdvance.current = setTimeout(() => {
+      if (next === undefined) setKind(undefined);
+      // Move on only if the author is still on the placed item.
+      setSelectedKey((current) => (current === itemKey ? next : current));
+    }, PLACED_ADVANCE_DELAY_MS);
+  }
+
+  function endReview(): void {
+    clearTimeout(pendingAdvance.current);
+    setKind(undefined);
   }
 
   const handleKey = useEffectEvent((event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       if (kind !== undefined) {
-        setKind(undefined);
+        endReview();
         return;
       }
       setSelectedKey(undefined);
@@ -119,23 +145,26 @@ export function useReview({
     start: (startKind) => {
       const [first] = queues[startKind];
       if (first === undefined) return;
+      anchor.current = 0;
       setKind(startKind);
       setSelectedKey(first);
       setPreviewKey(undefined);
     },
     skip: () => advance(selectedKey, false),
-    end: () => setKind(undefined),
+    end: endReview,
     keep,
     changeScores,
   };
 }
 
 // region | Helpers
-/** Returns whether a key press on `target` belongs to a control, which handles Enter itself. */
+/** Returns whether `target` handles Enter itself; a radio and a range take no action on Enter, so the review does. */
 function isControl(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   return (
-    target.closest('button, input, select, textarea, a, [role="button"], [role="radio"], [role="slider"]') !== null
+    target.closest(
+      'button:not([role="radio"]), select, textarea, a, [role="button"], input:not([type="radio"], [type="range"])',
+    ) !== null
   );
 }
 // endregion | Helpers
