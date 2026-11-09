@@ -2,6 +2,7 @@ import type { StatusCategory, WorkType } from '@top-right/model';
 import type { KeyboardEvent, ReactElement } from 'react';
 
 import type { PlacedCircle, ScopeMode } from './layout.ts';
+import type { DragHandlers } from './useItemDrag.ts';
 
 export interface ScoredCircleProps {
   circle: PlacedCircle;
@@ -17,6 +18,10 @@ export interface ScoredCircleProps {
   /** At remaining scope, an in-progress circle is wholly solid, because its size already shows the remainder. */
   scopeMode: ScopeMode;
   isSelected: boolean;
+  /** The handlers that let the circle be dragged, passed while it is selected. */
+  dragHandlers?: DragHandlers | undefined;
+  /** Whether a drag of the circle is in progress, which dims it in place. */
+  isDragging: boolean;
   /** Whether the item carries an agent's score that the author has not kept, which its halo marks. */
   isAgentScored: boolean;
   /** Whether a review or a focus fades the circle; it stays selectable. */
@@ -53,6 +58,8 @@ export function ScoredCircle({
   progress,
   scopeMode,
   isSelected,
+  dragHandlers,
+  isDragging,
   isAgentScored,
   isFaded,
   isBlocked,
@@ -75,6 +82,7 @@ export function ScoredCircle({
       aria-pressed={isSelected}
       className="tr-node"
       data-item-key={id}
+      data-dragging={isDragging}
       data-faded={isFaded && !isSelected}
       data-highlighted={isHighlighted}
       data-status={status}
@@ -88,6 +96,7 @@ export function ScoredCircle({
       role="button"
       tabIndex={0}
       transform={`translate(${cellX + circle.cx} ${cellY + circle.cy})`}
+      {...dragHandlers}
     >
       <title>{name}</title>
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />

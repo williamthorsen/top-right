@@ -474,6 +474,35 @@
   opacity: 0.25;
 }
 
+/* Only the selected item drags, so only it gives up touch scrolling. */
+.tr-node[aria-pressed='true'],
+.tr-item[aria-pressed='true'] {
+  cursor: grab;
+  touch-action: none;
+}
+
+.tr-node[data-dragging='true'],
+.tr-item[data-dragging='true'] {
+  cursor: grabbing;
+  opacity: 0.4;
+}
+
+.tr-drop-target {
+  fill: var(--tr-accent);
+  fill-opacity: 0.12;
+  stroke: var(--tr-accent);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.tr-drag-proxy {
+  fill: var(--tr-accent);
+  fill-opacity: 0.35;
+  stroke: var(--tr-accent);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
 .tr-strip {
   display: flex;
   flex-wrap: wrap;

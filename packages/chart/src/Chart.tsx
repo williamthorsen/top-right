@@ -19,6 +19,7 @@ import { Fragment, type ReactElement, useEffect, useMemo, useRef, useState } fro
 
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
+import { DragProxy, DropTarget } from './DragMarks.tsx';
 import { Edges, focusItem } from './Edges.tsx';
 import { FilterBar } from './FilterBar.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
@@ -33,6 +34,7 @@ import { ReviewStrip } from './ReviewStrip.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
 import { Toggle } from './Toggle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
+import { type DragHandlers, useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
@@ -149,6 +151,13 @@ export function Chart({
     onScoresChange,
   });
   if (isRevealing && review.kind !== undefined) review.end();
+  const svgRef = useRef<SVGSVGElement>(null);
+  const itemDrag = useItemDrag({
+    svgRef,
+    cellOf: (key) => ({ u: scores[key]?.urgency?.value ?? 0, i: scores[key]?.impact?.value ?? 0 }),
+    onDrop: (key, cell) => review.changeScores(key, { urgency: cell.u, impact: cell.i }),
+  });
+  const drag = itemDrag.drag;
   const scrollRef = useRef<HTMLDivElement>(null);
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
@@ -172,6 +181,17 @@ export function Chart({
     const element = scrollRef.current?.querySelector(`[data-item-key="${CSS.escape(selectedKey)}"]`);
     element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [review.kind, selectedKey]);
+
+  /** Selects an item, unless the click ends a drag of it. */
+  function selectItem(key: string): void {
+    if (!itemDrag.wasDragged()) selection.push(key);
+  }
+
+  /** Returns the drag handlers of the selected item, the only one that drags. */
+  function dragHandlersFor(key: string, r?: number): DragHandlers | undefined {
+    if (key !== selectedKey) return undefined;
+    return itemDrag.bindDrag(key, r ?? sizeItem(scores[key], scopeMode).r);
+  }
 
   const focusKey = previewKey ?? selectedKey;
   const focus = focusItem(graph, focusKey, showAllEdges);
@@ -226,12 +246,14 @@ export function Chart({
                   aria-label="Items by urgency and impact"
                   className="tr-chart"
                   height={HEIGHT}
+                  ref={svgRef}
                   role="group"
                   viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
                   width={WIDTH}
                 >
                   <Grid />
                   <g transform={`translate(${MARGIN_LEFT} ${MARGIN_TOP})`}>
+                    <DropTarget drag={drag} />
                     {trails.map((trail) => (
                       <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                     ))}
@@ -253,13 +275,15 @@ export function Chart({
                                 isPick={circle.id === pickKey}
                                 isFaded={isFaded(circle.id)}
                                 isSelected={circle.id === selectedKey}
+                                dragHandlers={dragHandlersFor(circle.id, circle.r)}
+                                isDragging={circle.id === drag?.key}
                                 key={circle.id}
                                 name={nameCircle(labelOf(item), item.title, {
                                   isBlocked: blockedKeys.has(circle.id),
                                   isPick: circle.id === pickKey,
                                 })}
                                 onPreview={setPreviewKey}
-                                onSelect={selection.push}
+                                onSelect={selectItem}
                                 progress={scores[circle.id]?.progress?.value ?? 0}
                                 scopeMode={scopeMode}
                                 status={deriveStatus(item, overrides[circle.id])}
@@ -282,19 +306,22 @@ export function Chart({
                         <GutterCell
                           blockedKeys={blockedKeys}
                           cell={cell}
+                          dragHandlersFor={dragHandlersFor}
+                          draggingKey={drag?.key}
                           highlightedKey={highlightedKey}
                           isFaded={isFaded}
                           itemsByKey={itemsByKey}
                           key={`${cell.u},${cell.i}`}
                           labelOf={labelOf}
                           onPreview={setPreviewKey}
-                          onSelect={selection.push}
+                          onSelect={selectItem}
                           scores={scores}
                           selectedKey={selectedKey}
                           workTypeMapping={workTypeMapping}
                         />
                       ) : null,
                     )}
+                    <DragProxy drag={drag} />
                   </g>
                 </svg>
               </div>
