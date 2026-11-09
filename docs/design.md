@@ -98,6 +98,8 @@ An agent's score places an item for the pick as the author's does, because it is
 
 The GitHub adapter comes first, because using the tool on real data on the development machine is what keeps it from staying an idea. The local host reads its GitHub token from `GITHUB_TOKEN` or from `gh auth token`, so that the first run needs nothing beyond `gh auth login`. The Jira adapter comes second. It is built against a personal Atlassian site seeded by a script, and it depends on `@williamthorsen/atlassian-tools` for auth and transport.
 
+The local host reads closed issues only within a window, `closedWindowDays` in its config file, measured back from each refresh by the date each issue was closed, because Done is hidden by default and an unbounded read would fetch years of closed issues on every refresh. The window is in the config file rather than in Settings, because it bounds the adapter's read as the repository list does, rather than being the user's state. The adapter narrows the read with the API's `since` filter, which compares the update time, and drops the issues closed before the window. Decided at the closed-items iteration (#16).
+
 Revised after the developer evaluation: The decision did not say where the local host gets its GitHub token, and whether it is a pasted personal access token or the one that `gh` already holds decides the first hour.
 
 ### Status is a derived category with an override, and Done is read-only
@@ -125,6 +127,8 @@ An item that an open item blocks wears a red ring, and the arrow into it is red;
 Edges never move circles, because a circle's position states the item's urgency and impact, and moving it would misstate them.
 
 An edge joins two circles in the matrix only. A gutter cell's list scrolls within the cell, so an edge cannot anchor on its rows, and the pane's relation list covers an item that the gutter holds or that the chart does not load. A sub-issue edge has no arrowhead, as the decision above states. While a review runs, the review's fade governs and the focus fade is off, so that the queue stays legible as the review steps; the edges still follow the hovered or selected item. The longest chain is #22. Decided at the fourth MVP iteration (#14).
+
+A ghost is the dashed outline of a hidden, scored done item at the end of a shown edge. It is packed in the item's cell after the visible circles, so that a ghost that appears on hover never moves a circle; an unscored done item has none, because its edge would end in a gutter. Activating a ghost selects the item and reveals it alone, rather than turning on Done, which would bring back every closed item; the item stays revealed until the next change in the Filter group or a reload, and the reveal ends a running review, as a filter change does. Decided at the closed-items iteration (#16).
 
 Revised after the developer and interaction designer evaluations: The decision did not name which source relations are blockers, and it used hover and selection interchangeably. Revised at the prototype round: 4.1 Blocker edges won the round on these edges (rows 19, 21, 22); the red ring replaces red on both ends, which the developer found confusing.
 
