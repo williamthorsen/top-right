@@ -43,6 +43,8 @@ export interface ChartProps {
   /** Repository abbreviations keyed by `owner/name`; a repository without one takes its first letter. */
   abbreviations: Abbreviations;
   workTypeMapping?: WorkTypeMapping;
+  /** Where the host's Settings page is; without it, the chart does not link to Settings. */
+  settingsHref?: string | undefined;
   /** The user's scores by item key; an item without an entry is unscored. */
   scores?: Readonly<Record<string, ItemScores>>;
   /** The user's status overrides by item key. */
@@ -79,6 +81,7 @@ export function Chart({
   items,
   abbreviations,
   workTypeMapping = DEFAULT_WORK_TYPE_MAPPING,
+  settingsHref,
   scores = NO_SCORES,
   overrides = NO_OVERRIDES,
   onScoresChange,
@@ -194,6 +197,11 @@ export function Chart({
             >
               All edges
             </button>
+            {settingsHref === undefined ? null : (
+              <a className="tr-strip-link" href={settingsHref}>
+                Settings
+              </a>
+            )}
           </div>
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
@@ -266,7 +274,7 @@ export function Chart({
                   </g>
                 </svg>
               </div>
-              <Legend />
+              <Legend settingsHref={settingsHref} workTypeMapping={workTypeMapping} />
             </div>
             <Divider containerRef={splitRef} label="Chart and table" onChange={setSplit} value={split} />
             <div className="tr-table-pane">

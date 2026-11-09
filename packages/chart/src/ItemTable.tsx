@@ -6,6 +6,7 @@ import {
   type ItemScores,
   type StatusCategory,
   type StatusOverride,
+  WORK_TYPE_NAMES,
   type WorkItem,
   type WorkType,
   type WorkTypeMapping,
@@ -14,7 +15,7 @@ import { type Dispatch, type ReactElement, type SetStateAction, useEffect, useRe
 
 import { CircleIcon } from './CircleIcon.tsx';
 import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
-import { StatusSwatch, WORK_TYPE_NAMES } from './Legend.tsx';
+import { StatusSwatch } from './Legend.tsx';
 import { type ItemSort, type SortColumn, sortItems } from './sort-items.ts';
 import { STATUS_NAMES } from './status-names.ts';
 

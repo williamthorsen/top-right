@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { classifyWorkType, DEFAULT_WORK_TYPE_MAPPING, MAPPED_WORK_TYPES, type WorkTypeMapping } from '../work-type.ts';
+import {
+  classifyWorkType,
+  DEFAULT_WORK_TYPE_MAPPING,
+  describeDuplicateLabel,
+  findDuplicateLabels,
+  MAPPED_WORK_TYPES,
+  normalizeWorkTypeMapping,
+  type WorkTypeMapping,
+} from '../work-type.ts';
 
 const mappedLabels = MAPPED_WORK_TYPES.flatMap((workType) =>
   DEFAULT_WORK_TYPE_MAPPING[workType].map((label) => ({ label, workType })),
@@ -28,5 +36,40 @@ describe(classifyWorkType, () => {
     const mapping: WorkTypeMapping = { bug: [], feature: [], ops: [], task: ['question'] };
     expect(classifyWorkType(['question'], mapping)).toBe('task');
     expect(classifyWorkType(['bug'], mapping)).toBe('none');
+  });
+});
+
+describe(findDuplicateLabels, () => {
+  it('reports a label that two work types list, compared case-insensitively', () => {
+    const mapping: WorkTypeMapping = { bug: ['Fix'], feature: [], ops: [], task: ['fix', 'chore'] };
+
+    expect(findDuplicateLabels(mapping)).toStrictEqual([{ label: 'fix', workTypes: ['bug', 'task'] }]);
+  });
+
+  it('reports nothing for the default mapping', () => {
+    expect(findDuplicateLabels(DEFAULT_WORK_TYPE_MAPPING)).toStrictEqual([]);
+  });
+
+  it('does not count a label that one work type lists twice', () => {
+    expect(findDuplicateLabels({ bug: ['bug', 'BUG'], feature: [], ops: [], task: [] })).toStrictEqual([]);
+  });
+});
+
+describe(describeDuplicateLabel, () => {
+  it('names the label, its work types, and the fix', () => {
+    expect(describeDuplicateLabel({ label: 'fix', workTypes: ['bug', 'task'] })).toBe(
+      '"fix" is in Bug and Task. Keep it in one type.',
+    );
+  });
+});
+
+describe(normalizeWorkTypeMapping, () => {
+  it('trims each label and drops the empty ones', () => {
+    expect(normalizeWorkTypeMapping({ bug: [' bug ', ''], feature: ['  '], ops: [], task: ['chore'] })).toStrictEqual({
+      bug: ['bug'],
+      feature: [],
+      ops: [],
+      task: ['chore'],
+    });
   });
 });

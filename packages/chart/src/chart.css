@@ -620,6 +620,65 @@
   gap: 6px;
 }
 
+/* A toolbar button in the legend strip: borderless text that underlines on hover and stays pressed while open. */
+.tr-legend-button {
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--tr-accent);
+  font: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.tr-legend-button:hover {
+  text-decoration-style: solid;
+}
+.tr-legend-button[aria-expanded='true'] {
+  background: var(--tr-surface-2);
+  color: var(--tr-ink);
+  text-decoration-style: solid;
+}
+
+.tr-mapping-popover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border: 1px solid var(--tr-control-line);
+  border-radius: 8px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: 14px/1.45 var(--tr-font);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+.tr-mapping-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.tr-mapping-list dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.tr-mapping-list dd {
+  margin: 0 0 0 22px;
+  color: var(--tr-ink-2);
+}
+
+.tr-strip-link {
+  padding: 4px 2px;
+  text-underline-offset: 3px;
+  text-decoration: none;
+}
+.tr-strip-link:hover {
+  text-decoration: underline;
+}
+
 /* -- Table: the items as rows, sharing the chart's selection -- */
 
 .tr-table {
@@ -848,8 +907,12 @@
   cursor: pointer;
 }
 
-.tr-button:hover {
+.tr-button:hover:not(:disabled) {
   background: var(--tr-surface-2);
+}
+.tr-button:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .tr-kbd {
@@ -1077,5 +1140,92 @@
   /* Leave room to scroll the chart above the sheet. */
   .tr-work:has(.tr-pane[data-empty='false']) {
     padding-bottom: 50vh;
+  }
+}
+
+/* -- Settings page -- */
+.tr-settings {
+  overflow: auto;
+}
+.tr-settings > * {
+  max-width: 640px;
+}
+.tr-settings-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.tr-settings-header h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.tr-settings-section {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 12px 16px 16px;
+  border: 1px solid var(--tr-line);
+  border-radius: 8px;
+  background: var(--tr-surface);
+}
+.tr-settings-section h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.tr-settings-hint {
+  margin: 0;
+  color: var(--tr-ink-2);
+  font-size: 12px;
+}
+.tr-settings-field {
+  display: grid;
+  grid-template-columns: minmax(120px, 14em) 1fr;
+  align-items: center;
+  gap: 4px 12px;
+}
+.tr-settings-field > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.tr-input {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--tr-ink-2);
+  border-radius: 7px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: inherit;
+}
+.tr-input::placeholder {
+  color: var(--tr-ink-2);
+  font-style: italic;
+}
+.tr-input:hover {
+  background: var(--tr-surface-2);
+}
+.tr-input:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: 2px;
+}
+.tr-settings-actions {
+  display: flex;
+  gap: 8px;
+}
+.tr-settings-error,
+.tr-settings-saved {
+  margin: 0;
+}
+.tr-settings-error {
+  color: var(--tr-block);
+}
+.tr-settings-error::before {
+  content: '⚠ ';
+}
+@media (max-width: 520px) {
+  .tr-settings-field {
+    grid-template-columns: 1fr;
   }
 }

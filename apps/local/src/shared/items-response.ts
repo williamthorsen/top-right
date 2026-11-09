@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { abbreviationClashSchema, workTypeMappingSchema } from './settings.ts';
+
 const itemRefSchema = z.object({
   repo: z.string(),
   number: z.number(),
@@ -42,6 +44,10 @@ export const itemsResponseSchema = z.object({
     }),
   ),
   abbreviations: z.record(z.string(), z.string()),
+  /** The configured repositories that share an abbreviation. */
+  abbreviationClashes: z.array(abbreviationClashSchema),
+  /** The user's work-type mapping, or the default. */
+  workTypeMapping: workTypeMappingSchema,
   /** The user's scores by item key. */
   scores: z.record(z.string(), itemScoresSchema),
   /** The user's status overrides that still apply, by item key. */

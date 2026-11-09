@@ -8,6 +8,7 @@ import {
   type RelationKind,
   type Scores,
   type StatusOverride,
+  WORK_TYPE_NAMES,
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
@@ -15,7 +16,6 @@ import type { ReactElement } from 'react';
 
 import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
-import { WORK_TYPE_NAMES } from './Legend.tsx';
 import { PaneScores, type SettableStatus } from './PaneScores.tsx';
 
 /** Why the pane shows its item: a hover or focus, a selection, or the next pick while nothing is selected. */

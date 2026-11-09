@@ -1,10 +1,29 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { formatItemKey, isOverrideVoid, type StatusOverride, type WorkItem } from '@top-right/model';
+import {
+  DEFAULT_WORK_TYPE_MAPPING,
+  describeAbbreviationClash,
+  describeDuplicateLabel,
+  describeInvalidAbbreviation,
+  findAbbreviationClashes,
+  findDuplicateLabels,
+  formatItemKey,
+  isOverrideVoid,
+  isValidAbbreviation,
+  normalizeWorkTypeMapping,
+  resolveAbbreviations,
+  type StatusOverride,
+  type WorkItem,
+} from '@top-right/model';
 import type { Store } from '@top-right/store';
 import type { z } from 'zod';
 
 import type { ItemsResponse } from '#src/shared/items-response.ts';
+import {
+  abbreviationsRequestSchema,
+  type SettingsResponse,
+  workTypeMappingRequestSchema,
+} from '#src/shared/settings.ts';
 import {
   compactScores,
   keepRequestSchema,
@@ -12,18 +31,20 @@ import {
   statusRequestSchema,
 } from '#src/shared/write-requests.ts';
 
+export const ABBREVIATIONS_PATH = '/api/abbreviations';
 export const ITEMS_PATH = '/api/items';
 export const KEEP_PATH = '/api/keep';
 export const SCORES_PATH = '/api/scores';
+export const SETTINGS_PATH = '/api/settings';
 export const STATUS_PATH = '/api/status';
 export const VISIT_PATH = '/api/visit';
+export const WORK_TYPE_MAPPING_PATH = '/api/work-type-mapping';
 
 /** The largest request body that the host reads; a scores or status request is far smaller. */
 const MAX_BODY_BYTES = 16_384;
 
 export interface ApiOptions {
   loadItems: () => Promise<WorkItem[]>;
-  abbreviations: Readonly<Record<string, string>>;
   /** The repositories (`owner/name`) whose open issues `loadItems` returns in full. */
   repos: readonly string[];
   store: Store;
@@ -33,19 +54,45 @@ export interface ApiOptions {
 }
 
 /** Returns a handler that answers the host's `/api/` routes and passes every other request to `next`. */
-export function createApiHandler({
-  loadItems,
-  abbreviations,
-  repos,
-  store,
-  userId,
-  now = () => new Date(),
-}: ApiOptions) {
-  const loadedRepos = new Set(repos);
+export function createApiHandler({ loadItems, repos, store, userId, now = () => new Date() }: ApiOptions) {
+  const configuredRepos = new Set(repos);
 
   type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
 
   const routes: Record<string, { method: string; handle: Route }> = {
+    [ABBREVIATIONS_PATH]: {
+      method: 'POST',
+      handle: async (request, response) => {
+        const body = await readRequest(request, response, abbreviationsRequestSchema);
+        if (!body) return;
+        const entries = Object.entries(body.abbreviations).map(([repo, value]): [string, string] => [
+          repo,
+          value.trim(),
+        ]);
+        const unknownRepo = entries.find(([repo]) => !configuredRepos.has(repo));
+        if (unknownRepo) {
+          sendJson(response, 400, { error: `${unknownRepo[0]} is not a configured repository. Reload Settings.` });
+          return;
+        }
+        const invalid = entries.find(([, value]) => value !== '' && !isValidAbbreviation(value));
+        if (invalid) {
+          sendJson(response, 400, { error: describeInvalidAbbreviation(...invalid) });
+          return;
+        }
+        const { abbreviations: stored } = await store.readUserState(userId);
+        const next = Object.fromEntries([
+          ...Object.entries(stored).filter(([repo]) => !configuredRepos.has(repo)),
+          ...entries.filter(([, value]) => value !== ''),
+        ]);
+        const [clash] = findAbbreviationClashes(resolveAbbreviations(repos, next));
+        if (clash) {
+          sendJson(response, 400, { error: describeAbbreviationClash(clash) });
+          return;
+        }
+        await store.writeAbbreviations(userId, next);
+        sendJson(response, 200, { abbreviations: next });
+      },
+    },
     [ITEMS_PATH]: {
       method: 'GET',
       handle: async (_request, response) => {
@@ -58,9 +105,12 @@ export function createApiHandler({
         }
         const state = await store.readUserState(userId);
         const overrides = await dropVoidOverrides(items, state.overrides);
+        const abbreviations = resolveAbbreviations(repos, state.abbreviations);
         const body: ItemsResponse = {
           items,
-          abbreviations: { ...abbreviations },
+          abbreviations,
+          abbreviationClashes: findAbbreviationClashes(abbreviations),
+          workTypeMapping: state.workTypeMapping ?? DEFAULT_WORK_TYPE_MAPPING,
           scores: state.scores,
           overrides,
           ...(state.lastVisitAt !== undefined && { lastVisitAt: state.lastVisitAt }),
@@ -90,6 +140,18 @@ export function createApiHandler({
           now().toISOString(),
         );
         sendJson(response, 200, { itemKey: body.itemKey, scores });
+      },
+    },
+    [SETTINGS_PATH]: {
+      method: 'GET',
+      handle: async (_request, response) => {
+        const state = await store.readUserState(userId);
+        const body: SettingsResponse = {
+          repos: [...repos],
+          abbreviations: state.abbreviations,
+          workTypeMapping: state.workTypeMapping ?? null,
+        };
+        sendJson(response, 200, body);
       },
     },
     [STATUS_PATH]: {
@@ -122,6 +184,21 @@ export function createApiHandler({
         response.writeHead(204).end();
       },
     },
+    [WORK_TYPE_MAPPING_PATH]: {
+      method: 'POST',
+      handle: async (request, response) => {
+        const body = await readRequest(request, response, workTypeMappingRequestSchema);
+        if (!body) return;
+        const mapping = body.mapping === null ? undefined : normalizeWorkTypeMapping(body.mapping);
+        const [duplicate] = mapping ? findDuplicateLabels(mapping) : [];
+        if (duplicate) {
+          sendJson(response, 400, { error: describeDuplicateLabel(duplicate) });
+          return;
+        }
+        await store.writeWorkTypeMapping(userId, mapping);
+        sendJson(response, 200, { mapping: mapping ?? null });
+      },
+    },
   };
 
   /**
@@ -137,7 +214,7 @@ export function createApiHandler({
     const applying: Record<string, StatusOverride> = {};
     for (const [itemKey, override] of Object.entries(overrides)) {
       const item = itemsByKey.get(itemKey);
-      const isVoid = item ? isOverrideVoid(item, override) : loadedRepos.has(readRepo(itemKey));
+      const isVoid = item ? isOverrideVoid(item, override) : configuredRepos.has(readRepo(itemKey));
       if (isVoid) await store.writeStatusOverride(userId, itemKey, undefined);
       else applying[itemKey] = override;
     }

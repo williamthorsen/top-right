@@ -1,4 +1,4 @@
-import type { StatusOverride } from '@top-right/model';
+import type { StatusOverride, WorkTypeMapping } from '@top-right/model';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { Store } from '#src/store.ts';
@@ -35,6 +35,8 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
         scores: {},
         overrides: {},
         lastVisitAt: undefined,
+        workTypeMapping: undefined,
+        abbreviations: {},
       });
     });
 
@@ -129,6 +131,31 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
 
       expect((await opened.store.readUserState(USER)).lastVisitAt).toBe(LATER);
       expect((await opened.store.readUserState(OTHER_USER)).lastVisitAt).toBeUndefined();
+    });
+
+    it('sets a work-type mapping per user and restores the default', async () => {
+      const mapping: WorkTypeMapping = { bug: ['defect'], feature: ['feat'], ops: [], task: ['chore'] };
+      await opened.store.writeWorkTypeMapping(USER, mapping);
+      expect((await opened.store.readUserState(USER)).workTypeMapping).toEqual(mapping);
+      expect((await opened.store.readUserState(OTHER_USER)).workTypeMapping).toBeUndefined();
+
+      await opened.store.writeWorkTypeMapping(USER, undefined);
+      expect((await opened.store.readUserState(USER)).workTypeMapping).toBeUndefined();
+    });
+
+    it('tells a saved mapping whose types are all empty from no saved mapping', async () => {
+      const empty: WorkTypeMapping = { bug: [], feature: [], ops: [], task: [] };
+      await opened.store.writeWorkTypeMapping(USER, empty);
+
+      expect((await opened.store.readUserState(USER)).workTypeMapping).toEqual(empty);
+    });
+
+    it('replaces the abbreviations per user', async () => {
+      await opened.store.writeAbbreviations(USER, { 'owner/repo': 'r', 'owner/other': 'o' });
+      await opened.store.writeAbbreviations(USER, { 'owner/repo': 'rp' });
+
+      expect((await opened.store.readUserState(USER)).abbreviations).toEqual({ 'owner/repo': 'rp' });
+      expect((await opened.store.readUserState(OTHER_USER)).abbreviations).toEqual({});
     });
   });
 }

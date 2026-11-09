@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { StatusOverride, WorkItem } from '@top-right/model';
+import { DEFAULT_WORK_TYPE_MAPPING, type StatusOverride, type WorkItem, type WorkTypeMapping } from '@top-right/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createMemoryStore } from '#src/test-utils/memory-store.ts';
@@ -21,6 +21,7 @@ const ITEM: WorkItem = {
 const ITEM_KEY = 'williamthorsen/top-right#11';
 const NOW = new Date('2026-11-08T12:00:00.000Z');
 const EARLIER = '2026-11-01T09:00:00.000Z';
+const MAPPING: WorkTypeMapping = { bug: ['defect'], feature: ['feat'], ops: [], task: ['chore'] };
 const IN_PROGRESS: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
 
 const servers: Server[] = [];
@@ -47,9 +48,32 @@ describe(createApiHandler, () => {
       expect(await response.json()).toStrictEqual({
         items: [ITEM],
         abbreviations: { [ITEM.repo]: 't' },
+        abbreviationClashes: [],
+        workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
         scores,
         overrides: { [ITEM_KEY]: IN_PROGRESS },
         lastVisitAt: EARLIER,
+      });
+    });
+
+    it("resolves each configured repository's abbreviation from the user's stored ones", async () => {
+      const store = createMemoryStore({ abbreviations: { [ITEM.repo]: 'tr', 'w/gone': 'g' } });
+      const baseUrl = await startServer({ store, repos: [ITEM.repo, 'w/codeassembly'] });
+
+      const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
+
+      expect(body).toMatchObject({ abbreviations: { [ITEM.repo]: 'tr', 'w/codeassembly': 'c' } });
+    });
+
+    it("answers with the user's mapping and the repositories that share an abbreviation", async () => {
+      const store = createMemoryStore({ workTypeMapping: MAPPING });
+      const baseUrl = await startServer({ store, repos: [ITEM.repo, 'w/tools'] });
+
+      const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
+
+      expect(body).toMatchObject({
+        workTypeMapping: MAPPING,
+        abbreviationClashes: [{ abbreviation: 't', repos: [ITEM.repo, 'w/tools'] }],
       });
     });
 
@@ -251,6 +275,106 @@ describe(createApiHandler, () => {
 
     expect(await response.text()).toBe('next');
   });
+
+  describe('GET /api/settings', () => {
+    it("answers with the configured repositories and the user's stored settings", async () => {
+      const store = createMemoryStore({ abbreviations: { [ITEM.repo]: 'tr' }, workTypeMapping: MAPPING });
+      const baseUrl = await startServer({ store });
+
+      expect(await (await fetch(`${baseUrl}/api/settings`)).json()).toStrictEqual({
+        repos: [ITEM.repo],
+        abbreviations: { [ITEM.repo]: 'tr' },
+        workTypeMapping: MAPPING,
+      });
+    });
+
+    it('answers a null mapping when the user keeps the default', async () => {
+      const baseUrl = await startServer({});
+
+      expect(await (await fetch(`${baseUrl}/api/settings`)).json()).toMatchObject({ workTypeMapping: null });
+    });
+  });
+
+  describe('POST /api/work-type-mapping', () => {
+    it('saves the mapping with its labels trimmed and empty ones dropped', async () => {
+      const store = createMemoryStore();
+      const baseUrl = await startServer({ store });
+
+      const response = await post(`${baseUrl}/api/work-type-mapping`, {
+        mapping: { ...MAPPING, bug: [' defect ', ''] },
+      });
+
+      expect(response.status).toBe(200);
+      expect(store.state.workTypeMapping).toStrictEqual({ ...MAPPING, bug: ['defect'] });
+    });
+
+    it('restores the default on a null mapping', async () => {
+      const store = createMemoryStore({ workTypeMapping: MAPPING });
+      const baseUrl = await startServer({ store });
+
+      await post(`${baseUrl}/api/work-type-mapping`, { mapping: null });
+
+      expect(store.state.workTypeMapping).toBeUndefined();
+    });
+
+    it('refuses a label in two work types and saves nothing', async () => {
+      const store = createMemoryStore();
+      const baseUrl = await startServer({ store });
+
+      const response = await post(`${baseUrl}/api/work-type-mapping`, { mapping: { ...MAPPING, task: ['Defect'] } });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toStrictEqual({ error: '"defect" is in Bug and Task. Keep it in one type.' });
+      expect(store.state.workTypeMapping).toBeUndefined();
+    });
+  });
+
+  describe('POST /api/abbreviations', () => {
+    const repos = [ITEM.repo, 'w/codeassembly', 'w/configs.macos'];
+
+    it("replaces the configured repositories' abbreviations, keeping those of other repositories", async () => {
+      const store = createMemoryStore({ abbreviations: { [ITEM.repo]: 'tr', 'w/gone': 'g' } });
+      const baseUrl = await startServer({ store, repos });
+
+      const response = await post(`${baseUrl}/api/abbreviations`, {
+        abbreviations: { [ITEM.repo]: '', 'w/codeassembly': ' ca ', 'w/configs.macos': 'cm' },
+      });
+
+      expect(response.status).toBe(200);
+      expect(store.state.abbreviations).toStrictEqual({
+        'w/gone': 'g',
+        'w/codeassembly': 'ca',
+        'w/configs.macos': 'cm',
+      });
+    });
+
+    it.each([
+      {
+        case: 'leaves two repositories sharing an abbreviation',
+        abbreviations: { 'w/codeassembly': 'C' },
+        error: '"c" is used by w/codeassembly and w/configs.macos. Give each its own abbreviation.',
+      },
+      {
+        case: 'sets an abbreviation that contains a dot',
+        abbreviations: { 'w/codeassembly': 'c.a' },
+        error: '"c.a" is not a valid abbreviation for w/codeassembly. Leave out spaces and dots.',
+      },
+      {
+        case: 'names a repository that is not configured',
+        abbreviations: { 'w/gone': 'g' },
+        error: 'w/gone is not a configured repository. Reload Settings.',
+      },
+    ])('refuses a body that $case and saves nothing', async ({ abbreviations, error }) => {
+      const store = createMemoryStore();
+      const baseUrl = await startServer({ store, repos });
+
+      const response = await post(`${baseUrl}/api/abbreviations`, { abbreviations });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toStrictEqual({ error });
+      expect(store.state.abbreviations).toStrictEqual({});
+    });
+  });
 });
 
 // region | Helpers
@@ -261,7 +385,6 @@ function post(url: string, body: unknown): Promise<Response> {
 async function startServer(overrides: Partial<ApiOptions>): Promise<string> {
   const handle = createApiHandler({
     loadItems: () => Promise.resolve([ITEM]),
-    abbreviations: { [ITEM.repo]: 't' },
     repos: [ITEM.repo],
     store: createMemoryStore(),
     userId: 'github:author',

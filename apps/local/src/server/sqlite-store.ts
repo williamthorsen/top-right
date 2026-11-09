@@ -9,6 +9,7 @@ import {
   type Scorer,
   type Scores,
   type StatusOverride,
+  type WorkTypeMapping,
 } from '@top-right/model';
 import type { Store, UserState } from '@top-right/store';
 import { z } from 'zod';
@@ -44,7 +45,19 @@ const MIGRATIONS: readonly string[] = [
   ) STRICT;
   `,
   'ALTER TABLE scores ADD COLUMN previous_value REAL;',
+  `
+  CREATE TABLE settings (
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    value TEXT NOT NULL,
+    PRIMARY KEY (user_id, name)
+  ) STRICT;
+  `,
 ];
+
+/** The name of each setting in the `settings` table, whose `value` holds the setting as JSON. */
+const ABBREVIATIONS_SETTING = 'abbreviations';
+const WORK_TYPE_MAPPING_SETTING = 'work-type-mapping';
 
 /** How long a statement waits for another process's lock on the file before it fails. */
 const BUSY_TIMEOUT_MS = 5000;
@@ -68,6 +81,19 @@ const overrideRowSchema = z.object({
 const visitRowSchema = z.object({ last_visit_at: z.string() });
 
 const userVersionSchema = z.object({ user_version: z.number() });
+
+const settingRowSchema = z.object({ value: z.string() });
+
+const labelsSchema = z.array(z.string());
+
+const workTypeMappingSchema = z.object({
+  bug: labelsSchema,
+  feature: labelsSchema,
+  ops: labelsSchema,
+  task: labelsSchema,
+});
+
+const abbreviationsSchema = z.record(z.string(), z.string());
 
 /** Opens the SQLite store at `path` (`:memory:` for a store that lives as long as the process), migrating it. */
 export function openSqliteStore(path: string): SqliteStore {
@@ -115,6 +141,28 @@ export function openSqliteStore(path: string): SqliteStore {
     `INSERT INTO visits (user_id, last_visit_at) VALUES (?, ?)
      ON CONFLICT (user_id) DO UPDATE SET last_visit_at = excluded.last_visit_at`,
   );
+  const selectSetting = db.prepare('SELECT value FROM settings WHERE user_id = ? AND name = ?');
+  const upsertSetting = db.prepare(
+    `INSERT INTO settings (user_id, name, value) VALUES (?, ?, ?)
+     ON CONFLICT (user_id, name) DO UPDATE SET value = excluded.value`,
+  );
+  const deleteSetting = db.prepare('DELETE FROM settings WHERE user_id = ? AND name = ?');
+
+  /** Reads a setting, treating a value that fails `schema` as absent so that a corrupt row cannot stop a read. */
+  function readSetting<T>(userId: string, name: string, schema: z.ZodType<T>): T | undefined {
+    const row = settingRowSchema.optional().parse(selectSetting.get(userId, name));
+    if (!row) return undefined;
+    let json: unknown;
+    try {
+      json = JSON.parse(row.value);
+    } catch {
+      json = undefined;
+    }
+    const parsed = schema.safeParse(json);
+    if (parsed.success) return parsed.data;
+    console.warn(`top-right: the stored "${name}" setting of ${userId} is invalid and is ignored.`);
+    return undefined;
+  }
 
   return {
     keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores> {
@@ -134,7 +182,18 @@ export function openSqliteStore(path: string): SqliteStore {
         overrides[row.item_key] = { status: row.status, sourceState: row.source_state, at: row.set_at };
       }
       const visit = visitRowSchema.optional().parse(selectVisit.get(userId));
-      return Promise.resolve({ scores, overrides, lastVisitAt: visit?.last_visit_at });
+      return Promise.resolve({
+        scores,
+        overrides,
+        lastVisitAt: visit?.last_visit_at,
+        workTypeMapping: readSetting(userId, WORK_TYPE_MAPPING_SETTING, workTypeMappingSchema),
+        abbreviations: readSetting(userId, ABBREVIATIONS_SETTING, abbreviationsSchema) ?? {},
+      });
+    },
+
+    writeAbbreviations(userId: string, abbreviations: Readonly<Record<string, string>>): Promise<void> {
+      upsertSetting.run(userId, ABBREVIATIONS_SETTING, JSON.stringify(abbreviations));
+      return Promise.resolve();
     },
 
     writeScores(userId: string, itemKey: string, values: Scores, by: Scorer, at: string): Promise<ItemScores> {
@@ -151,6 +210,12 @@ export function openSqliteStore(path: string): SqliteStore {
 
     writeLastVisit(userId: string, at: string): Promise<void> {
       upsertVisit.run(userId, at);
+      return Promise.resolve();
+    },
+
+    writeWorkTypeMapping(userId: string, mapping: WorkTypeMapping | undefined): Promise<void> {
+      if (mapping) upsertSetting.run(userId, WORK_TYPE_MAPPING_SETTING, JSON.stringify(mapping));
+      else deleteSetting.run(userId, WORK_TYPE_MAPPING_SETTING);
       return Promise.resolve();
     },
 
