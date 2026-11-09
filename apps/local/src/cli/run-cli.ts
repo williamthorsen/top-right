@@ -138,6 +138,11 @@ class UsageError extends Error {
   override name = 'UsageError';
 }
 
+/** Reads the items and keeps the open ones, since the CLI scores only items open at their source. */
+async function loadOpenItems(context: CliContext): Promise<WorkItem[]> {
+  return (await context.loadItems()).filter((item) => item.state === 'open');
+}
+
 /** Returns the number of single-character edits that turn `a` into `b`, comparing UTF-16 code units. */
 function measureEditDistance(a: string, b: string): number {
   let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
@@ -184,7 +189,7 @@ async function runListItems(args: readonly string[], io: CliIo): Promise<number>
   const { values, positionals } = parseCommandArgs(args, { json: { type: 'boolean' } });
   if (positionals.length > 0) throw new UsageError(`takes no arguments, got ${positionals.join(' ')}`);
   await withContext(io, async (context) => {
-    const items = await context.loadItems();
+    const items = await loadOpenItems(context);
     const { scores } = await context.store.readUserState(context.userId);
     const listed = listItems(items, scores);
     io.stdout(values.json ? `${JSON.stringify({ items: listed }, undefined, 2)}\n` : renderItemsText(listed));
@@ -200,7 +205,7 @@ async function runWriteScores(args: readonly string[], io: CliIo): Promise<numbe
   const json = await readBatchInput(path, io);
   const isDryRun = values['dry-run'] === true;
   return withContext(io, async (context) => {
-    const items = await context.loadItems();
+    const items = await loadOpenItems(context);
     const batch = parseScoreBatch(json, new Set(items.map((item) => formatItemKey(item))));
     if (batch.kind === 'invalid') {
       io.stderr(`top-right write-scores: the batch is refused, and nothing was written:\n`);
