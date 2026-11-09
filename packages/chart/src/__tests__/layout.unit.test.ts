@@ -1,8 +1,10 @@
+import type { ItemScores } from '@top-right/model';
 import { describe, expect, it } from 'vitest';
 
 import {
   CELL_PADDING,
   CELL_SIZE,
+  findScoredCellAt,
   FLOOR_RADIUS,
   GRID_SIZE,
   GUTTER_ROW_PITCH,
@@ -10,10 +12,33 @@ import {
   placeGhosts,
   RADIUS_PER_POINT,
   sizeCircle,
+  sizeItem,
 } from '../layout.ts';
 
 /** The most rows that fit a gutter cell, derived from the geometry. */
 const ROWS_THAT_FIT = Math.floor((CELL_SIZE - 2 * CELL_PADDING) / GUTTER_ROW_PITCH);
+
+describe(findScoredCellAt, () => {
+  it('returns the scored cell that contains an interior point', () => {
+    expect(findScoredCellAt(CELL_SIZE * 2.5, CELL_SIZE * 0.5)).toStrictEqual({ u: 2, i: 5 });
+    expect(findScoredCellAt(CELL_SIZE * 5.5, CELL_SIZE * 4.5)).toStrictEqual({ u: 5, i: 1 });
+  });
+
+  it('gives a point on a shared edge to the cell to its right or below it', () => {
+    expect(findScoredCellAt(CELL_SIZE * 3, CELL_SIZE * 2)).toStrictEqual({ u: 3, i: 3 });
+  });
+
+  it.each([
+    { case: 'the unscored-urgency column', x: CELL_SIZE * 0.5, y: CELL_SIZE * 2.5 },
+    { case: 'the unscored-impact row', x: CELL_SIZE * 2.5, y: CELL_SIZE * 5.5 },
+    { case: 'left of the matrix', x: -1, y: CELL_SIZE * 2.5 },
+    { case: 'above the matrix', x: CELL_SIZE * 2.5, y: -1 },
+    { case: 'on the far right edge', x: CELL_SIZE * GRID_SIZE, y: CELL_SIZE * 2.5 },
+    { case: 'on the far bottom edge', x: CELL_SIZE * 2.5, y: CELL_SIZE * GRID_SIZE },
+  ])('returns undefined for a point in $case', ({ x, y }) => {
+    expect(findScoredCellAt(x, y)).toBeUndefined();
+  });
+});
 
 describe(layoutCells, () => {
   it('places unscored items in the corner cell at the bottom left of the matrix', () => {
@@ -128,5 +153,32 @@ describe(sizeCircle, () => {
 
   it('raises a circle smaller than the floor to the floor', () => {
     expect(sizeCircle(0.5)).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
+  });
+});
+
+describe(sizeItem, () => {
+  const at = '2026-11-01T09:00:00.000Z';
+  const halfDone: ItemScores = { effort: { value: 8, by: 'author', at }, progress: { value: 0.5, by: 'author', at } };
+
+  it('sizes original scope from the effort', () => {
+    expect(sizeItem(halfDone, 'original')).toStrictEqual(sizeCircle(8));
+  });
+
+  it('sizes remaining scope on the same area scale', () => {
+    expect(sizeItem(halfDone, 'remaining')).toStrictEqual(sizeCircle(4));
+  });
+
+  it('draws finished work at the floor at remaining scope', () => {
+    const done: ItemScores = { ...halfDone, progress: { value: 1, by: 'author', at } };
+
+    expect(sizeItem(done, 'remaining')).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
+  });
+
+  it('draws an item without effort at the floor in both modes', () => {
+    expect(sizeItem(undefined, 'original')).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
+    expect(sizeItem({ progress: { value: 0.5, by: 'author', at } }, 'remaining')).toStrictEqual({
+      r: FLOOR_RADIUS,
+      floored: true,
+    });
   });
 });

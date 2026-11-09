@@ -1,3 +1,5 @@
+import { computeRemainingScope, type ItemScores } from '@top-right/model';
+
 // -- Geometry, in chart units at 1× --
 
 export const CELL_SIZE = 120;
@@ -25,6 +27,9 @@ export interface CircleSize {
 }
 
 const FLOOR_SIZE: CircleSize = { r: FLOOR_RADIUS, floored: true };
+
+/** Which scope a circle's area shows. */
+export type ScopeMode = 'original' | 'remaining';
 
 /** An item's cell: `u` is its urgency column and `i` its impact row, each 0 (unscored) to 5. */
 export interface Placement {
@@ -59,6 +64,17 @@ export interface CellLayout {
   overflow: boolean;
   /** The circles of a scored cell; a gutter cell lists its items instead. */
   circles: PlacedCircle[];
+}
+
+/**
+ * Returns the scored cell that contains a point in matrix units, or undefined for a point in a gutter or off the matrix.
+ * A point on a shared edge belongs to the cell to its right or below it.
+ */
+export function findScoredCellAt(x: number, y: number): { u: number; i: number } | undefined {
+  const u = Math.floor(x / CELL_SIZE);
+  const i = GRID_SIZE - 1 - Math.floor(y / CELL_SIZE);
+  if (u < 1 || u >= GRID_SIZE || i < 1 || i >= GRID_SIZE) return undefined;
+  return { u, i };
 }
 
 /** Groups placements into the cells that they occupy and lays out each cell's contents, in matrix order. */
@@ -133,6 +149,11 @@ export function sizeCircle(points: number | undefined): CircleSize {
   if (points === undefined) return FLOOR_SIZE;
   const r = RADIUS_PER_POINT * Math.sqrt(points);
   return r < FLOOR_RADIUS ? FLOOR_SIZE : { r, floored: false };
+}
+
+/** Returns the radius of an item's circle for the scope that `mode` shows, on the one area scale of `sizeCircle`. */
+export function sizeItem(scores: ItemScores | undefined, mode: ScopeMode): CircleSize {
+  return sizeCircle(mode === 'remaining' ? computeRemainingScope(scores) : scores?.effort?.value);
 }
 
 // region | Helpers
