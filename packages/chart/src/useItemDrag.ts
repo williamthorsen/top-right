@@ -13,8 +13,9 @@ export interface ItemDrag {
   target: { u: number; i: number } | undefined;
 }
 
-/** The pointer handlers that make an element the handle of an item's drag. */
+/** The pointer handlers that make an element the handle of an item's drag, with the ref that keeps touch from scrolling. */
 export interface DragHandlers {
+  ref: (element: Element | null) => (() => void) | undefined;
   onPointerDown: (event: PointerEvent) => void;
   onPointerMove: (event: PointerEvent) => void;
   onPointerUp: (event: PointerEvent) => void;
@@ -53,6 +54,7 @@ export function useItemDrag({ svgRef, cellOf, onDrop }: ItemDragOptions): ItemDr
 
   function bindDrag(key: string, r: number): DragHandlers {
     return {
+      ref: holdTouch,
       onPointerDown(event) {
         justDragged.current = false;
         if (event.button !== 0) return;
@@ -99,6 +101,16 @@ export function useItemDrag({ svgRef, cellOf, onDrop }: ItemDragOptions): ItemDr
 }
 
 // region | Helpers
+/**
+ * Keeps a touch on the element from scrolling the chart, so that the browser does not cancel the pointer. `touch-action`
+ * does not reach an SVG shape, so the handle cancels the touch's moves instead, which leaves a tap a click.
+ */
+function holdTouch(element: Element | null): (() => void) | undefined {
+  if (!element) return undefined;
+  element.addEventListener('touchmove', preventDefault, { passive: false });
+  return () => element.removeEventListener('touchmove', preventDefault);
+}
+
 /** Returns the scored cell under `point`, unless it is the item's own cell. */
 function findTarget(
   point: { x: number; y: number },
@@ -106,6 +118,10 @@ function findTarget(
 ): { u: number; i: number } | undefined {
   const cell = findScoredCellAt(point.x, point.y);
   return cell && (cell.u !== own.u || cell.i !== own.i) ? cell : undefined;
+}
+
+function preventDefault(event: Event): void {
+  event.preventDefault();
 }
 
 /** Converts a pointer's client position to matrix units, whose origin is the top-left of the impact-5 row. */

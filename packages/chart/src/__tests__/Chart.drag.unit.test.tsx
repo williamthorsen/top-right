@@ -94,6 +94,18 @@ describe('Chart drag', () => {
     expect(onScoresChange).not.toHaveBeenCalled();
   });
 
+  it('keeps a touch on the selected circle from scrolling, and a touch elsewhere free to', async () => {
+    renderDragHost([buildItem({ number: 1 }), buildItem({ number: 2 })], {
+      [FIRST]: place(2, 2),
+      [`${REPO}#2`]: place(3, 3),
+    });
+    const circle = getCircle(1);
+    await userEvent.setup().click(circle);
+
+    expect(fireEvent.touchMove(circle)).toBe(false);
+    expect(fireEvent.touchMove(getCircle(2))).toBe(true);
+  });
+
   it('treats a press that barely moves as a click', async () => {
     const { onScoresChange } = renderDragHost([buildItem({ number: 1 })], { [FIRST]: place(2, 2) });
     const circle = getCircle(1);
