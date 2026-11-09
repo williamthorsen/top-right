@@ -25,6 +25,8 @@ export interface GutterCellProps {
   highlightedKey: string | undefined;
   onPreview: (key: string | undefined) => void;
   onSelect: (key: string) => void;
+  /** Where the matrix's origin sits in the SVG; the cell's coordinates are relative to it. */
+  origin: { x: number; y: number };
   /** Returns the handlers that let an item's row be dragged, which only the selected item has. */
   dragHandlersFor: (key: string) => DragHandlers | undefined;
   /** The item whose drag is in progress. */
@@ -44,11 +46,13 @@ export function GutterCell({
   highlightedKey,
   onPreview,
   onSelect,
+  origin,
   dragHandlersFor,
   draggingKey,
 }: GutterCellProps): ReactElement {
+  // A transformed ancestor would offset WebKit's painting and hit testing of the scrolling list from its layout.
   return (
-    <foreignObject height={CELL_SIZE} width={CELL_SIZE} x={cell.x} y={cell.y}>
+    <foreignObject height={CELL_SIZE} width={CELL_SIZE} x={origin.x + cell.x} y={origin.y + cell.y}>
       <ul aria-label="Unscored items" className="tr-gutter-list" data-overflow={cell.overflow}>
         {cell.ids.map((key) => {
           const item = itemsByKey.get(key);

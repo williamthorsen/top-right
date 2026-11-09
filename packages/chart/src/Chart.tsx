@@ -74,6 +74,9 @@ export interface ChartProps {
 const INITIAL_SPLIT = 60;
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
 const NO_OVERRIDES: Readonly<Record<string, StatusOverride>> = {};
+/** Where the matrix's origin sits in the SVG, past the axis margins. */
+const MATRIX_ORIGIN = { x: MARGIN_LEFT, y: MARGIN_TOP };
+const MATRIX_TRANSFORM = `translate(${MATRIX_ORIGIN.x} ${MATRIX_ORIGIN.y})`;
 
 /**
  * The Top Right chart: items by urgency and impact, with the legend, the table, and the detail pane. It fills its
@@ -214,7 +217,7 @@ export function Chart({
                   width={WIDTH}
                 >
                   <Grid />
-                  <g transform={`translate(${MARGIN_LEFT} ${MARGIN_TOP})`}>
+                  <g transform={MATRIX_TRANSFORM}>
                     <DropTarget drag={drag} />
                     {trails.map((trail) => (
                       <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
@@ -263,26 +266,30 @@ export function Chart({
                       ),
                     )}
                     {ghostOwner === undefined ? ghostElements : null}
-                    {cells.map((cell) =>
-                      cell.isGutter ? (
-                        <GutterCell
-                          blockedKeys={blockedKeys}
-                          cell={cell}
-                          dragHandlersFor={dragHandlersFor}
-                          draggingKey={drag?.key}
-                          highlightedKey={highlightedKey}
-                          isFaded={isFaded}
-                          itemsByKey={itemsByKey}
-                          key={`${cell.u},${cell.i}`}
-                          labelOf={labelOf}
-                          onPreview={setPreviewKey}
-                          onSelect={selectItem}
-                          scores={scores}
-                          selectedKey={selectedKey}
-                          workTypeMapping={workTypeMapping}
-                        />
-                      ) : null,
-                    )}
+                  </g>
+                  {/* WebKit paints and hit-tests a gutter's scrolling list without a transformed group's offset. */}
+                  {cells.map((cell) =>
+                    cell.isGutter ? (
+                      <GutterCell
+                        blockedKeys={blockedKeys}
+                        cell={cell}
+                        dragHandlersFor={dragHandlersFor}
+                        draggingKey={drag?.key}
+                        highlightedKey={highlightedKey}
+                        isFaded={isFaded}
+                        itemsByKey={itemsByKey}
+                        key={`${cell.u},${cell.i}`}
+                        labelOf={labelOf}
+                        onPreview={setPreviewKey}
+                        onSelect={selectItem}
+                        origin={MATRIX_ORIGIN}
+                        scores={scores}
+                        selectedKey={selectedKey}
+                        workTypeMapping={workTypeMapping}
+                      />
+                    ) : null,
+                  )}
+                  <g transform={MATRIX_TRANSFORM}>
                     <DragProxy drag={drag} />
                   </g>
                 </svg>
