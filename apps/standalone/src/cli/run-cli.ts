@@ -82,7 +82,7 @@ Options:
   -h, --help  Print this help
 
 Example:
-  pnpm --filter @top-right/local top-right list-items --json > items.json
+  pnpm --filter @top-right/standalone top-right list-items --json > items.json
 `;
 
 const WRITE_SCORES_HELP = `Write an agent's scores for open issues to the user's store, marked as the agent's for review.
@@ -101,7 +101,7 @@ The whole batch is refused when any entry names an item that is not an open issu
 repeats an item, or holds a value off its scale.
 
 Example:
-  pnpm --filter @top-right/local top-right write-scores --dry-run scores.json
+  pnpm --filter @top-right/standalone top-right write-scores --dry-run scores.json
 `;
 
 const PROGRAM_HELP = `Read the backlog and write an agent's scores to the Top Right store.
@@ -119,7 +119,7 @@ Options:
 The store is TOP_RIGHT_DB when set, else $XDG_DATA_HOME/top-right/top-right.sqlite.
 
 Example:
-  pnpm --filter @top-right/local top-right list-items
+  pnpm --filter @top-right/standalone top-right list-items
 `;
 
 interface Command {

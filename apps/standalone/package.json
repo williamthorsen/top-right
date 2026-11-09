@@ -1,11 +1,11 @@
 {
-  "name": "@top-right/local",
+  "name": "@top-right/standalone",
   "version": "0.0.0",
   "private": true,
   "description": "Serves the Top Right chart for the author's GitHub issues from a local process",
   "keywords": [
     "top-right",
-    "local"
+    "standalone"
   ],
   "license": "UNLICENSED",
   "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",

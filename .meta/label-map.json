@@ -21,8 +21,8 @@
     "_workspace": "scope:_workspace",
     "adapter-github": "scope:adapter-github",
     "chart": "scope:chart",
-    "local": "scope:local",
     "model": "scope:model",
+    "standalone": "scope:standalone",
     "store": "scope:store",
     "root": "scope:root"
   }
