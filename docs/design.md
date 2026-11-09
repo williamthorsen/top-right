@@ -34,7 +34,7 @@ The product has passed the idea, opinions, and prototype stages of the product-d
 
 The baseline is prototype 4.2 Blocker edges, in the set under `prototypes/`, published at the index <https://claude.ai/artifact/NYmN2qYakPcnFduu8Upuzz>. It is the floor on quality and feel against which the finished product is judged, and the reference for what the product does, not its specification: The MVP improves on it.
 
-This document is the end vision. The next stage is the MVP.
+This document is the end vision. The MVP, epic #10, is complete, and the next stage is increments.
 
 The project declares its maturity, sensitivity, and audience in [`.agents/preferences.yaml`](../.agents/preferences.yaml). The values settle these decisions:
 
