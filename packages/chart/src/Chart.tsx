@@ -3,7 +3,6 @@ import {
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
   deriveStatus,
-  findLongestBlockerChain,
   findNextPick,
   formatItemKey,
   isAgentScored,
@@ -16,7 +15,7 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { Fragment, type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, type ReactElement, useMemo, useRef, useState } from 'react';
 
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
@@ -26,16 +25,17 @@ import { Edges, focusItem, mergeChainEdges } from './Edges.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
-import type { Abbreviations } from './item-label.ts';
+import { type Abbreviations, nameCircle } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
 import { layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
+import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
-import { type Review, useReview } from './useReview.ts';
+import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
 
@@ -100,7 +100,6 @@ export function Chart({
   const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
   const [scopeMode, setScopeMode] = useState<ScopeMode>('original');
-  const [isChainShown, setIsChainShown] = useState(false);
   const [highlightedKey, setHighlightedKey] = useState<string>();
   const [highlightOwner, setHighlightOwner] = useState<string>();
 
@@ -123,11 +122,6 @@ export function Chart({
     [visibleItems, scores, scopeMode],
   );
 
-  const chain = useMemo(() => findLongestBlockerChain(visibleItems), [visibleItems]);
-  const chainKeys = useMemo(() => new Set(chain), [chain]);
-  // A filter that leaves no chain turns the view off, so that widening it again does not bring back an unasked view.
-  if (isChainShown && chain.length === 0) setIsChainShown(false);
-
   const pickKey = useMemo(() => findNextPick(visibleItems, scores, overrides), [visibleItems, scores, overrides]);
   const shownKey = previewKey ?? selectedKey ?? pickKey;
   // A relation row unmounts without a pointer-leave or blur when the pane changes item, so the highlight ends with it.
@@ -136,6 +130,7 @@ export function Chart({
     setHighlightedKey(undefined);
   }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const review = useReview({
     items: visibleItems,
     scores,
@@ -145,7 +140,9 @@ export function Chart({
     setPreviewKey,
     onKeep,
     onScoresChange,
+    scrollRef,
   });
+  const chainView = useChainView(visibleItems, review);
   if (isRevealing && review.kind !== undefined) review.end();
   const svgRef = useRef<SVGSVGElement>(null);
   const { drag, dragHandlersFor, selectItem } = useItemDrag({
@@ -156,7 +153,6 @@ export function Chart({
     onDrop: (key, cell) => review.changeScores(key, { urgency: cell.u, impact: cell.i }),
     onSelect: selection.push,
   });
-  const scrollRef = useRef<HTMLDivElement>(null);
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 
@@ -166,12 +162,6 @@ export function Chart({
     if (review.kind !== undefined) review.end();
   }
 
-  /** Shows or hides the longest chain, ending a running review, whose fade would compete with the chain's. */
-  function changeChainShown(next: boolean): void {
-    if (next && review.kind !== undefined) review.end();
-    setIsChainShown(next);
-  }
-
   /** Reveals one hidden item and selects it, ending a running review, whose queue the reveal would change. */
   function revealGhost(key: string): void {
     setFilter({ ...filter, revealedKeys: new Set([...filter.revealedKeys, key]) });
@@ -179,17 +169,10 @@ export function Chart({
     selection.push(key);
   }
 
-  // Bring each item that a review moves to into view, since the chart scrolls on a narrow screen.
-  useEffect(() => {
-    if (review.kind === undefined || selectedKey === undefined) return;
-    const element = scrollRef.current?.querySelector(`[data-item-key="${CSS.escape(selectedKey)}"]`);
-    element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [review.kind, selectedKey]);
-
   const focusKey = previewKey ?? selectedKey;
   const focus = focusItem(graph, focusKey, showAllEdges);
   const board = { itemsByKey, overrides, scopeMode, scores, visibleKeys };
-  const shownEdges = isChainShown ? mergeChainEdges(focus.edges, chain) : focus.edges;
+  const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board);
   const ghostElements = (
     <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
@@ -197,16 +180,9 @@ export function Chart({
   // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
   function isFaded(key: string): boolean {
     if (review.kind !== undefined) return review.isFaded(key);
-    if (isChainShown) return !chainKeys.has(key);
+    if (chainView.isShown) return chainView.isFaded(key);
     return focus.related !== undefined && !focus.related.has(key);
   }
-  const stripReview: Review = {
-    ...review,
-    start: (kind) => {
-      setIsChainShown(false);
-      review.start(kind);
-    },
-  };
 
   const trails = listTrails(
     cells,
@@ -219,11 +195,11 @@ export function Chart({
       <div className="tr-work">
         <div className="tr-chart-area">
           <ChartStrip
-            chain={{ isShown: isChainShown, length: chain.length, onShownChange: changeChainShown }}
+            chainView={chainView}
             filterBar={{ abbreviations, counts: statusCounts, filter, onChange: changeFilter }}
             onScopeModeChange={setScopeMode}
             onShowAllEdgesChange={setShowAllEdges}
-            review={stripReview}
+            review={chainView.review}
             scopeMode={scopeMode}
             settingsHref={settingsHref}
             showAllEdges={showAllEdges}
@@ -359,10 +335,3 @@ export function Chart({
     </div>
   );
 }
-
-// region | Helpers
-/** Returns a circle's accessible name: its id label and title, with the marks that it wears. */
-function nameCircle(label: string, title: string, marks: { isBlocked: boolean; isPick: boolean }): string {
-  return `${label}: ${title}${marks.isBlocked ? ', blocked' : ''}${marks.isPick ? ', next pick' : ''}`;
-}
-// endregion | Helpers

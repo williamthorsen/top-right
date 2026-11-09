@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react';
-import { userEvent, type UserEvent } from '@testing-library/user-event';
+import { type UserEvent, userEvent } from '@testing-library/user-event';
 import type { ItemScores, Relation, RelationKind } from '@top-right/model';
 import { describe, expect, it } from 'vitest';
 
@@ -40,7 +40,7 @@ describe('Chart longest chain', () => {
     expect(listEdges()).toStrictEqual([`blocker:${REPO}#1>${REPO}#2:direct`]);
   });
 
-  it('keeps a faded circle selectable and never fades the selected one, whose fade hover does not change', async () => {
+  it('keeps a faded circle selectable, never fades the selected one, and keeps its neighbours faded', async () => {
     const user = userEvent.setup();
     renderChart(ITEMS, ABBREVIATIONS, SCORES);
     await showChain(user);
