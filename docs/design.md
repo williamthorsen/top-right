@@ -280,6 +280,6 @@ The package split is settled for the MVP, whose epic is #10. It follows the base
 - `packages/chart`: the browser chart, its detail pane, the table, and the Settings forms, which take props only, with the cell packing and the gutters inside it, and the selection that the chart and the table share
 - `packages/adapter-github`: the GitHub adapter
 - `packages/store`: the store interface, with scores, status overrides, the last visit, and the settings that Settings edits (the type mapping and the repo abbreviations), each per user, and the conformance tests that every store runs
-- `apps/local`: the local host, which implements the store on SQLite, serves the page, and keeps the selection in the page's URL
+- `apps/standalone`: the local host, which implements the store on SQLite, serves the page, and keeps the selection in the page's URL
 
-The Jira adapter, `packages/adapter-jira`, is added after the MVP, when its iteration starts. Every package under `packages/` is part of the published core. `apps/local` stays in this repository and is not published.
+The Jira adapter, `packages/adapter-jira`, is added after the MVP, when its iteration starts. Every package under `packages/` is part of the published core. `apps/standalone` stays in this repository and is not published.

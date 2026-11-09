@@ -9,8 +9,8 @@ Serves the Top Right chart of the open and recently closed issues of a configure
 ## Run it
 
 ```shell
-cp apps/local/config.example.json apps/local/config.local.json   # then list the repositories
-pnpm --filter @top-right/local start
+cp apps/standalone/config.example.json apps/standalone/config.local.json   # then list the repositories
+pnpm --filter @top-right/standalone start
 ```
 
 Open <http://localhost:4310/>. Set `PORT` to serve on another port. Each page load reads the issues afresh from GitHub.
@@ -39,9 +39,9 @@ The GitHub token comes from `GITHUB_TOKEN` or, when it is unset, from `gh auth t
 An agent writes scores through the `top-right` CLI, and the chart marks each one for the author to keep or correct. [`docs/scoring.md`](docs/scoring.md) states what each score means.
 
 ```shell
-pnpm --filter @top-right/local top-right list-items --json > items.json             # read the open issues and their scores
-pnpm --filter @top-right/local top-right write-scores --dry-run scores.json         # report what would change
-pnpm --filter @top-right/local top-right write-scores scores.json                   # write the scores as the agent's
+pnpm --filter @top-right/standalone top-right list-items --json > items.json             # read the open issues and their scores
+pnpm --filter @top-right/standalone top-right write-scores --dry-run scores.json         # report what would change
+pnpm --filter @top-right/standalone top-right write-scores scores.json                   # write the scores as the agent's
 ```
 
 `scores.json` is a JSON array of `{ "itemKey": "owner/name#number", "scores": { "urgency": 4, "impact": 3 } }`. `top-right write-scores --help` lists the accepted values. Set `TOP_RIGHT_DB` to trial a run on a copy of the store.

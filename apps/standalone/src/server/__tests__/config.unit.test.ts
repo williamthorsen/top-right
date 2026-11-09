@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { computeClosedSince, formatAbbreviationNotice, parseConfig, readConfig } from '../config.ts';
 import { StartupError } from '../startup-error.ts';
 
-const PATH = '/repo/apps/local/config.local.json';
+const PATH = '/repo/apps/standalone/config.local.json';
 
 describe(parseConfig, () => {
   it('returns the configured repositories', () => {
