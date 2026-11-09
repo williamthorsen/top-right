@@ -4,6 +4,11 @@ import { z } from 'zod';
 
 import { StartupError } from './startup-error.ts';
 
+/** How many days back the host reads closed issues when the config file does not say. */
+const DEFAULT_CLOSED_WINDOW_DAYS = 30;
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 const configSchema = z.object({
   repos: z
     .array(
@@ -13,13 +18,21 @@ const configSchema = z.object({
       }),
     )
     .min(1),
+  closedWindowDays: z.number().int().min(0).default(DEFAULT_CLOSED_WINDOW_DAYS),
 });
 
-/** The host's config: the repositories to read, as `owner/name`. */
+/** The host's config: the repositories to read, as `owner/name`, and how far back to read closed issues. */
 export interface HostConfig {
+  /** The number of days back from each refresh within which a closed issue is read; 0 reads none. */
+  closedWindowDays: number;
   repos: string[];
   /** The repositories whose entry still sets `abbreviation`, which the host ignores. */
   reposWithAbbreviation: string[];
+}
+
+/** Returns the moment from which a refresh at `now` reads closed issues, or undefined when it reads none. */
+export function computeClosedSince(now: Date, closedWindowDays: number): Date | undefined {
+  return closedWindowDays === 0 ? undefined : new Date(now.getTime() - closedWindowDays * MS_PER_DAY);
 }
 
 /** Reads and validates the host's config file. */
@@ -55,6 +68,7 @@ export function parseConfig(text: string, path: string): HostConfig {
     throw new StartupError(`Config file is invalid: ${path}. ${issues}.`);
   }
   return {
+    closedWindowDays: parsed.data.closedWindowDays,
     repos: parsed.data.repos.map((entry) => entry.repo),
     reposWithAbbreviation: parsed.data.repos
       .filter((entry) => entry.abbreviation !== undefined)

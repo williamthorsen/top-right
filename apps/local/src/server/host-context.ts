@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { fetchIssuesOfRepos, fetchViewerLogin, type GraphqlRequest } from '@top-right/adapter-github';
 import type { WorkItem } from '@top-right/model';
 
-import { formatAbbreviationNotice, readConfig } from './config.ts';
+import { computeClosedSince, formatAbbreviationNotice, readConfig } from './config.ts';
 import { resolveDatabasePath } from './database-path.ts';
 import { createGithubRequest } from './github-request.ts';
 import { openSqliteStore, type SqliteStore } from './sqlite-store.ts';
@@ -18,7 +18,7 @@ import { resolveToken } from './token.ts';
 /** What the host and the CLI read and write: the configured repositories, the user, and the user's store. */
 export interface HostContext {
   databasePath: string;
-  /** Reads the open issues of the configured repositories. */
+  /** Reads the open issues of the configured repositories and those closed within the configured window. */
   loadItems: () => Promise<WorkItem[]>;
   /** The configured repositories, as `owner/name`. */
   repos: string[];
@@ -42,7 +42,8 @@ export async function openHostContext(): Promise<HostContext> {
   const store = openStore(databasePath);
   return {
     databasePath,
-    loadItems: () => fetchIssuesOfRepos(request, repos),
+    loadItems: () =>
+      fetchIssuesOfRepos(request, repos, { closedSince: computeClosedSince(new Date(), config.closedWindowDays) }),
     repos,
     store,
     userId,
