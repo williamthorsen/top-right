@@ -61,7 +61,8 @@ export function describeDuplicateLabel({ label, workTypes }: DuplicateLabel): st
 export function findDuplicateLabels(mapping: WorkTypeMapping): DuplicateLabel[] {
   const typesByLabel = new Map<string, MappedWorkType[]>();
   for (const workType of MAPPED_WORK_TYPES) {
-    for (const label of new Set(mapping[workType].map((entry) => entry.toLowerCase()))) {
+    const labels = new Set(mapping[workType].map((entry) => entry.toLowerCase()));
+    for (const label of labels) {
       typesByLabel.set(label, [...(typesByLabel.get(label) ?? []), workType]);
     }
   }
@@ -72,12 +73,11 @@ export function findDuplicateLabels(mapping: WorkTypeMapping): DuplicateLabel[] 
 
 /** Returns `mapping` with each label trimmed and each empty label dropped. */
 export function normalizeWorkTypeMapping(mapping: WorkTypeMapping): WorkTypeMapping {
-  const normalize = (labels: readonly string[]) => labels.map((label) => label.trim()).filter((label) => label !== '');
   return {
-    bug: normalize(mapping.bug),
-    feature: normalize(mapping.feature),
-    ops: normalize(mapping.ops),
-    task: normalize(mapping.task),
+    bug: normalizeLabels(mapping.bug),
+    feature: normalizeLabels(mapping.feature),
+    ops: normalizeLabels(mapping.ops),
+    task: normalizeLabels(mapping.task),
   };
 }
 
@@ -95,3 +95,9 @@ export function classifyWorkType(
   }
   return 'none';
 }
+
+// region | Helpers
+function normalizeLabels(labels: readonly string[]): string[] {
+  return labels.map((label) => label.trim()).filter((label) => label !== '');
+}
+// endregion | Helpers

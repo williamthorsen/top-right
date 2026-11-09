@@ -47,7 +47,7 @@ describe(SettingsPage, () => {
 
   it('links back to the chart with the item that was selected', async () => {
     globalThis.history.replaceState(null, '', '/settings?item=w%2Ftop-right%2312');
-    stubFetch(() => Promise.resolve(Response.json(SETTINGS)));
+    void stubFetch(() => Promise.resolve(Response.json(SETTINGS)));
 
     render(<SettingsPage />);
 

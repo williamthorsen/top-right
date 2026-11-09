@@ -39,16 +39,6 @@ export function SettingsPage(): ReactElement {
     );
   }
 
-  async function saveWorkTypeMapping(mapping: WorkTypeMapping | undefined): Promise<string | undefined> {
-    return await refuseOnFailure(() =>
-      postJson('/api/work-type-mapping', { mapping: mapping ?? null }, workTypeMappingResponseSchema),
-    );
-  }
-
-  async function saveAbbreviations(abbreviations: Record<string, string>): Promise<string | undefined> {
-    return await refuseOnFailure(() => postJson('/api/abbreviations', { abbreviations }, abbreviationsResponseSchema));
-  }
-
   const { data } = state;
   return (
     <Settings
@@ -78,5 +68,16 @@ async function refuseOnFailure(save: () => Promise<unknown>): Promise<string | u
     const reason = describeError(error);
     return `Not saved: ${reason}${reason.endsWith('.') ? '' : '. Try again.'}`;
   }
+}
+/** Saves the abbreviations, and returns the reason that the host refused them, if it did. */
+async function saveAbbreviations(abbreviations: Record<string, string>): Promise<string | undefined> {
+  return await refuseOnFailure(() => postJson('/api/abbreviations', { abbreviations }, abbreviationsResponseSchema));
+}
+
+/** Saves the mapping, or restores the default, and returns the reason that the host refused it, if it did. */
+async function saveWorkTypeMapping(mapping: WorkTypeMapping | undefined): Promise<string | undefined> {
+  return await refuseOnFailure(() =>
+    postJson('/api/work-type-mapping', { mapping: mapping ?? null }, workTypeMappingResponseSchema),
+  );
 }
 // endregion | Helpers
