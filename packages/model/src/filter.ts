@@ -1,16 +1,19 @@
 import { deriveStatus, type StatusCategory, type StatusOverride } from './status.ts';
 import { formatItemKey, type WorkItem } from './work-item.ts';
 
-/** Which items the board shows: one repo or all, and the statuses that stay. */
+/** Which items the board shows: one repo or all, the statuses that stay, and the items shown whatever the rest says. */
 export interface ItemFilter {
   /** The repository as `owner/name`, or undefined for every repository. */
   repo: string | undefined;
+  /** The keys of items that the board shows whatever their repo or status. */
+  revealedKeys: ReadonlySet<string>;
   statuses: ReadonlySet<StatusCategory>;
 }
 
 /** Shows every repo's items that are to do or in progress. */
 export const DEFAULT_ITEM_FILTER: ItemFilter = {
   repo: undefined,
+  revealedKeys: new Set<string>(),
   statuses: new Set<StatusCategory>(['in-progress', 'to-do']),
 };
 
@@ -34,9 +37,13 @@ export function filterItems(
   overrides: Readonly<Record<string, StatusOverride>>,
   filter: ItemFilter,
 ): WorkItem[] {
-  return items.filter(
-    (item) => isInRepo(item, filter.repo) && filter.statuses.has(deriveStatus(item, overrides[formatItemKey(item)])),
-  );
+  return items.filter((item) => {
+    const key = formatItemKey(item);
+    return (
+      filter.revealedKeys.has(key) ||
+      (isInRepo(item, filter.repo) && filter.statuses.has(deriveStatus(item, overrides[key])))
+    );
+  });
 }
 
 /**
@@ -48,6 +55,7 @@ export function revealItem(filter: ItemFilter, item: WorkItem, override: StatusO
   const isRepoKept = isInRepo(item, filter.repo);
   if (isRepoKept && filter.statuses.has(status)) return filter;
   return {
+    ...filter,
     repo: isRepoKept ? filter.repo : undefined,
     statuses: new Set([...filter.statuses, status]),
   };
