@@ -1201,6 +1201,7 @@
 }
 .tr-input::placeholder {
   color: var(--tr-ink-2);
+  font-style: italic;
 }
 .tr-input:hover {
   background: var(--tr-surface-2);
