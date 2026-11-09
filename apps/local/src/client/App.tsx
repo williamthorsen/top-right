@@ -1,6 +1,7 @@
 import { Chart, type SettableStatus } from '@top-right/chart';
 import {
   applyScoreWrite,
+  describeAbbreviationClash,
   formatItemKey,
   type ItemScores,
   keepItemScores,
@@ -8,11 +9,12 @@ import {
   type StatusOverride,
 } from '@top-right/model';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
-import type { z } from 'zod';
 
-import { errorResponseSchema, type ItemsResponse, itemsResponseSchema } from '#src/shared/items-response.ts';
+import { type ItemsResponse, itemsResponseSchema } from '#src/shared/items-response.ts';
 import { scoresResponseSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
 
+import { describeError, getJson, postJson } from './host-requests.ts';
+import { SETTINGS_PATH } from './SettingsPage.tsx';
 import { useUrlSelection } from './useUrlSelection.ts';
 
 /**
@@ -32,7 +34,7 @@ export function App(): ReactElement {
   useEffect(() => {
     void (async () => {
       try {
-        const data = await loadItems();
+        const data = await getJson('/api/items', itemsResponseSchema);
         setScores(data.scores);
         setOverrides(data.overrides);
         setState({ kind: 'loaded', data });
@@ -117,6 +119,12 @@ export function App(): ReactElement {
   const { data } = state;
   return (
     <>
+      {data.abbreviationClashes.map((clash) => (
+        <div className="host-alert" key={clash.abbreviation} role="alert">
+          <span>{describeAbbreviationClash(clash)}</span>
+          <a href={buildSettingsHref(selectedKey)}>Settings</a>
+        </div>
+      ))}
       {failure === undefined ? null : (
         <div className="host-alert" role="alert">
           <span>{failure}</span>
@@ -138,49 +146,17 @@ export function App(): ReactElement {
         overrides={overrides}
         scores={scores}
         selectedKey={selectedKey}
+        settingsHref={buildSettingsHref(selectedKey)}
+        workTypeMapping={data.workTypeMapping}
       />
     </>
   );
 }
 
 // region | Helpers
-/** Returns the reason for a failed request as a phrase: the host's message, or what the client observed. */
-function describeError(error: unknown): string {
-  if (error instanceof TypeError) return 'the host did not respond';
-  return error instanceof Error ? error.message : String(error);
-}
-
-async function loadItems(): Promise<ItemsResponse> {
-  const response = await fetch('/api/items');
-  const body: unknown = await response.json();
-  if (!response.ok) throw new Error(readErrorMessage(body, response.status));
-  return itemsResponseSchema.parse(body);
-}
-
-async function postJson<T>(path: string, payload: unknown, schema: z.ZodType<T>): Promise<T> {
-  const response = await fetch(path, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const body = await readJsonBody(response);
-  if (!response.ok) throw new Error(readErrorMessage(body, response.status));
-  return schema.parse(body);
-}
-
-/** Returns the response's JSON body, or `undefined` when the body is not JSON. */
-async function readJsonBody(response: Response): Promise<unknown> {
-  try {
-    const body: unknown = await response.json();
-    return body;
-  } catch {
-    return undefined;
-  }
-}
-
-function readErrorMessage(body: unknown, status: number): string {
-  const parsed = errorResponseSchema.safeParse(body);
-  return parsed.success ? parsed.data.error : `the host responded ${status}`;
+/** Returns the Settings page's URL, carrying the selected item so that the page's link back restores it. */
+function buildSettingsHref(selectedKey: string | undefined): string {
+  return selectedKey === undefined ? SETTINGS_PATH : `${SETTINGS_PATH}?${new URLSearchParams({ item: selectedKey })}`;
 }
 
 /** Returns `record` with `key` set to `value`, or without `key` when `value` is undefined. */

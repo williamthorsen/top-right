@@ -1145,8 +1145,7 @@
 
 /* -- Settings page -- */
 .tr-settings {
-  height: auto;
-  min-height: 100%;
+  overflow: auto;
 }
 .tr-settings > * {
   max-width: 640px;

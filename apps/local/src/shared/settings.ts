@@ -30,3 +30,9 @@ export const workTypeMappingRequestSchema = z.object({ mapping: workTypeMappingS
 export const abbreviationsRequestSchema = z.object({ abbreviations: z.record(z.string(), z.string()) });
 
 export type SettingsResponse = z.infer<typeof settingsResponseSchema>;
+
+/** The body of a successful `POST /api/work-type-mapping`: the saved mapping, or `null` for the default. */
+export const workTypeMappingResponseSchema = workTypeMappingRequestSchema;
+
+/** The body of a successful `POST /api/abbreviations`: the user's stored abbreviations. */
+export const abbreviationsResponseSchema = abbreviationsRequestSchema;

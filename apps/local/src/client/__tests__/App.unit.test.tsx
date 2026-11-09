@@ -61,6 +61,33 @@ describe(App, () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(`Issues did not load: ${expected}`);
   });
 
+  it('names each abbreviation clash and links to Settings with the selected item', async () => {
+    globalThis.history.replaceState(null, '', `/?item=${encodeURIComponent(ITEM_KEY)}`);
+    const clashing: ItemsResponse = {
+      ...ITEMS,
+      abbreviationClashes: [{ abbreviation: 'c', repos: ['w/codeassembly', 'w/configs.macos'] }],
+    };
+    stubFetch(() => Promise.resolve(Response.json(clashing)));
+
+    render(<App />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('"c" is used by w/codeassembly and w/configs.macos.');
+    expect(within(alert).getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      `/settings?item=${encodeURIComponent(ITEM_KEY)}`,
+    );
+  });
+
+  it('shows no clash alert while every abbreviation is distinct, and links the chart to Settings', async () => {
+    stubFetch(() => Promise.resolve(Response.json(ITEMS)));
+
+    render(<App />);
+
+    expect(await screen.findByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('while the items load, shows a loading line', () => {
     vi.stubGlobal(
       'fetch',
