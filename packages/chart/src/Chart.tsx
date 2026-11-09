@@ -17,22 +17,22 @@ import {
 } from '@top-right/model';
 import { Fragment, type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
+import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
+import { DragProxy, DropTarget } from './DragMarks.tsx';
 import { Edges, focusItem } from './Edges.tsx';
-import { FilterBar } from './FilterBar.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { layoutCells, sizeCircle } from './layout.ts';
+import { layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
-import { ReviewStrip } from './ReviewStrip.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
-import { Toggle } from './Toggle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
+import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
@@ -95,6 +95,7 @@ export function Chart({
   const selection = useSelection({ selectedKey: hostSelectedKey, onSelectedKeyChange });
   const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
+  const [scopeMode, setScopeMode] = useState<ScopeMode>('original');
   const [highlightedKey, setHighlightedKey] = useState<string>();
   const [highlightOwner, setHighlightOwner] = useState<string>();
 
@@ -113,20 +114,8 @@ export function Chart({
   });
   if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
   const cells = useMemo(
-    () =>
-      layoutCells(
-        visibleItems.map((item) => {
-          const id = formatItemKey(item);
-          const itemScores = scores[id];
-          return {
-            id,
-            u: itemScores?.urgency?.value ?? 0,
-            i: itemScores?.impact?.value ?? 0,
-            ...sizeCircle(itemScores?.effort?.value),
-          };
-        }),
-      ),
-    [visibleItems, scores],
+    () => layoutCells(placeItems(visibleItems, scores, scopeMode)),
+    [visibleItems, scores, scopeMode],
   );
 
   const pickKey = useMemo(() => findNextPick(visibleItems, scores, overrides), [visibleItems, scores, overrides]);
@@ -148,6 +137,15 @@ export function Chart({
     onScoresChange,
   });
   if (isRevealing && review.kind !== undefined) review.end();
+  const svgRef = useRef<SVGSVGElement>(null);
+  const { drag, dragHandlersFor, selectItem } = useItemDrag({
+    svgRef,
+    scores,
+    scopeMode,
+    selectedKey,
+    onDrop: (key, cell) => review.changeScores(key, { urgency: cell.u, impact: cell.i }),
+    onSelect: selection.push,
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
@@ -174,7 +172,7 @@ export function Chart({
 
   const focusKey = previewKey ?? selectedKey;
   const focus = focusItem(graph, focusKey, showAllEdges);
-  const board = { itemsByKey, overrides, scores, visibleKeys };
+  const board = { itemsByKey, overrides, scopeMode, scores, visibleKeys };
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, focus.edges, focusKey, board);
   const ghostElements = (
     <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
@@ -194,24 +192,15 @@ export function Chart({
     <div className="tr-root">
       <div className="tr-work">
         <div className="tr-chart-area">
-          <div className="tr-strip">
-            <FilterBar abbreviations={abbreviations} counts={statusCounts} filter={filter} onChange={changeFilter} />
-            <ReviewStrip
-              counts={{ agent: review.queues.agent.length, unscored: review.queues.unscored.length }}
-              onEnd={review.end}
-              onSkip={review.skip}
-              onStart={review.start}
-              running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
-            />
-            <Toggle isPressed={showAllEdges} onToggle={() => setShowAllEdges((current) => !current)}>
-              All edges
-            </Toggle>
-            {settingsHref === undefined ? null : (
-              <a className="tr-strip-link" href={settingsHref}>
-                Settings
-              </a>
-            )}
-          </div>
+          <ChartStrip
+            filterBar={{ abbreviations, counts: statusCounts, filter, onChange: changeFilter }}
+            onScopeModeChange={setScopeMode}
+            onShowAllEdgesChange={setShowAllEdges}
+            review={review}
+            scopeMode={scopeMode}
+            settingsHref={settingsHref}
+            showAllEdges={showAllEdges}
+          />
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
               <div className="tr-chart-scroll" ref={scrollRef}>
@@ -219,12 +208,14 @@ export function Chart({
                   aria-label="Items by urgency and impact"
                   className="tr-chart"
                   height={HEIGHT}
+                  ref={svgRef}
                   role="group"
                   viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
                   width={WIDTH}
                 >
                   <Grid />
                   <g transform={`translate(${MARGIN_LEFT} ${MARGIN_TOP})`}>
+                    <DropTarget drag={drag} />
                     {trails.map((trail) => (
                       <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                     ))}
@@ -246,14 +237,17 @@ export function Chart({
                                 isPick={circle.id === pickKey}
                                 isFaded={isFaded(circle.id)}
                                 isSelected={circle.id === selectedKey}
+                                dragHandlers={dragHandlersFor(circle.id, circle.r)}
+                                isDragging={circle.id === drag?.key}
                                 key={circle.id}
                                 name={nameCircle(labelOf(item), item.title, {
                                   isBlocked: blockedKeys.has(circle.id),
                                   isPick: circle.id === pickKey,
                                 })}
                                 onPreview={setPreviewKey}
-                                onSelect={selection.push}
+                                onSelect={selectItem}
                                 progress={scores[circle.id]?.progress?.value ?? 0}
+                                scopeMode={scopeMode}
                                 status={deriveStatus(item, overrides[circle.id])}
                                 workType={classifyWorkType(item.labels, workTypeMapping)}
                               />
@@ -274,19 +268,22 @@ export function Chart({
                         <GutterCell
                           blockedKeys={blockedKeys}
                           cell={cell}
+                          dragHandlersFor={dragHandlersFor}
+                          draggingKey={drag?.key}
                           highlightedKey={highlightedKey}
                           isFaded={isFaded}
                           itemsByKey={itemsByKey}
                           key={`${cell.u},${cell.i}`}
                           labelOf={labelOf}
                           onPreview={setPreviewKey}
-                          onSelect={selection.push}
+                          onSelect={selectItem}
                           scores={scores}
                           selectedKey={selectedKey}
                           workTypeMapping={workTypeMapping}
                         />
                       ) : null,
                     )}
+                    <DragProxy drag={drag} />
                   </g>
                 </svg>
               </div>

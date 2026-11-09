@@ -1,5 +1,5 @@
 import { isBlocked } from './relations.ts';
-import type { ItemScores } from './scores.ts';
+import { computeRemainingScope, type ItemScores } from './scores.ts';
 import { deriveStatus, type StatusOverride } from './status.ts';
 import { formatItemKey, type WorkItem } from './work-item.ts';
 
@@ -21,13 +21,12 @@ export function findNextPick(
     const urgency = itemScores?.urgency?.value;
     const impact = itemScores?.impact?.value;
     if (item.state !== 'open' || urgency === undefined || impact === undefined || isBlocked(item)) continue;
-    const effort = itemScores?.effort?.value;
     candidates.push({
       key,
       urgency,
       impact,
       isInProgress: deriveStatus(item, overrides[key]) === 'in-progress',
-      remaining: effort === undefined ? undefined : effort * (1 - (itemScores?.progress?.value ?? 0)),
+      remaining: computeRemainingScope(itemScores),
       createdAt: item.createdAt,
     });
   }

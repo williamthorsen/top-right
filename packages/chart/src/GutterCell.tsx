@@ -9,6 +9,7 @@ import type { ReactElement } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
 import { CELL_SIZE, type CellLayout } from './layout.ts';
+import type { DragHandlers } from './useItemDrag.ts';
 
 export interface GutterCellProps {
   cell: CellLayout;
@@ -24,6 +25,10 @@ export interface GutterCellProps {
   highlightedKey: string | undefined;
   onPreview: (key: string | undefined) => void;
   onSelect: (key: string) => void;
+  /** Returns the handlers that let an item's row be dragged, which only the selected item has. */
+  dragHandlersFor: (key: string) => DragHandlers | undefined;
+  /** The item whose drag is in progress. */
+  draggingKey: string | undefined;
 }
 
 /** A gutter cell's list of items, which scrolls within the cell when it is taller than the cell. */
@@ -39,6 +44,8 @@ export function GutterCell({
   highlightedKey,
   onPreview,
   onSelect,
+  dragHandlersFor,
+  draggingKey,
 }: GutterCellProps): ReactElement {
   return (
     <foreignObject height={CELL_SIZE} width={CELL_SIZE} x={cell.x} y={cell.y}>
@@ -59,6 +66,7 @@ export function GutterCell({
                 aria-pressed={key === selectedKey}
                 data-item-key={key}
                 className="tr-item"
+                data-dragging={key === draggingKey}
                 data-highlighted={key === highlightedKey}
                 onBlur={() => onPreview(undefined)}
                 onClick={() => onSelect(key)}
@@ -66,6 +74,7 @@ export function GutterCell({
                 onPointerEnter={() => onPreview(key)}
                 onPointerLeave={() => onPreview(undefined)}
                 type="button"
+                {...dragHandlersFor(key)}
               >
                 <CircleIcon hasHalo={isAgentScored(scores[key])} isBlocked={isBlocked} />
                 {label}

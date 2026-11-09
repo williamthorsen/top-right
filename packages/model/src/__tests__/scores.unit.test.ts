@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyScoreWrite, isValidScore, type ItemScores, keepItemScores, readScoreValues } from '../scores.ts';
+import {
+  applyScoreWrite,
+  computeRemainingScope,
+  isValidScore,
+  type ItemScores,
+  keepItemScores,
+  readScoreValues,
+} from '../scores.ts';
 
 describe(isValidScore, () => {
   it.each([
@@ -102,6 +109,28 @@ describe(applyScoreWrite, () => {
       urgency: { value: 4, by: 'author', at: EARLIER },
       impact: { value: 1, by: 'author', at: LATER },
     });
+  });
+});
+
+describe(computeRemainingScope, () => {
+  const at = '2026-11-01T09:00:00.000Z';
+
+  it.each([
+    { name: 'the effort when progress is missing', progress: undefined, expected: 8 },
+    { name: 'the part not done', progress: 0.25, expected: 6 },
+    { name: 'zero when the work is done', progress: 1, expected: 0 },
+  ])('returns $name', ({ progress, expected }) => {
+    const scores: ItemScores = {
+      effort: { value: 8, by: 'author', at },
+      ...(progress !== undefined && { progress: { value: progress, by: 'author', at } }),
+    };
+
+    expect(computeRemainingScope(scores)).toBe(expected);
+  });
+
+  it('returns undefined when the effort is unknown', () => {
+    expect(computeRemainingScope({ progress: { value: 0.5, by: 'author', at } })).toBeUndefined();
+    expect(computeRemainingScope(undefined)).toBeUndefined();
   });
 });
 

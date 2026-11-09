@@ -14,7 +14,7 @@ import { type ReactElement, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
-import { CELL_PADDING, CELL_SIZE, GUTTER_ROW_PITCH } from '../layout.ts';
+import { CELL_PADDING, CELL_SIZE, GUTTER_ROW_PITCH, sizeCircle } from '../layout.ts';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getGroup, getPane } from '../test-utils/chart-queries.ts';
 
@@ -151,6 +151,40 @@ describe(Chart, () => {
       expect(second).toHaveAttribute('data-status', 'to-do');
       // eslint-disable-next-line testing-library/no-node-access -- the pie is decorative SVG, which has no role to query.
       expect(second.querySelector('.tr-node-pie')).toBeNull();
+    });
+
+    it('switches circle area to remaining scope and fills an in-progress circle solid', async () => {
+      const user = userEvent.setup();
+      const halfDone: ItemScores = {
+        urgency: { value: 2, by: author, at },
+        impact: { value: 2, by: author, at },
+        effort: { value: 8, by: author, at },
+        progress: { value: 0.5, by: author, at },
+      };
+      renderChart(
+        [buildItem({ number: 1 })],
+        {},
+        { [`${REPO}#1`]: halfDone },
+        { [`${REPO}#1`]: { status: 'in-progress', sourceState: 'open', at } },
+      );
+      const circle = screen.getByRole('button', { name: /^t\.1:/ });
+      const toggle = screen.getByRole('button', { name: 'Remaining scope' });
+      // eslint-disable-next-line testing-library/no-node-access -- the circle's shapes are decorative SVG, which has no role to query.
+      const readRadius = () => Number(circle.querySelector('.tr-node-main')?.getAttribute('r') ?? NaN);
+      // eslint-disable-next-line testing-library/no-node-access -- the pie is decorative SVG, which has no role to query.
+      const readPieTag = () => circle.querySelector('.tr-node-pie')?.tagName;
+
+      expect(toggle).not.toBePressed();
+      expect(readRadius()).toBeCloseTo(sizeCircle(8).r);
+      expect(readPieTag()).toBe('path');
+
+      await user.click(toggle);
+      expect(toggle).toBePressed();
+      expect(readRadius()).toBeCloseTo(sizeCircle(4).r);
+      expect(readPieTag()).toBe('circle');
+
+      await user.click(toggle);
+      expect(readRadius()).toBeCloseTo(sizeCircle(8).r);
     });
 
     it('selects a scored circle by click and by Enter', async () => {

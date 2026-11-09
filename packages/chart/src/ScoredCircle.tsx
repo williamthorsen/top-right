@@ -1,7 +1,8 @@
 import type { StatusCategory, WorkType } from '@top-right/model';
 import type { KeyboardEvent, ReactElement } from 'react';
 
-import type { PlacedCircle } from './layout.ts';
+import type { PlacedCircle, ScopeMode } from './layout.ts';
+import type { DragHandlers } from './useItemDrag.ts';
 
 export interface ScoredCircleProps {
   circle: PlacedCircle;
@@ -14,7 +15,13 @@ export interface ScoredCircleProps {
   status: StatusCategory;
   /** The fraction of the work done, 0 when unscored. */
   progress: number;
+  /** At remaining scope, an in-progress circle is wholly solid, because its size already shows the remainder. */
+  scopeMode: ScopeMode;
   isSelected: boolean;
+  /** The handlers that let the circle be dragged, passed while it is selected. */
+  dragHandlers?: DragHandlers | undefined;
+  /** Whether a drag of the circle is in progress, which dims it in place. */
+  isDragging: boolean;
   /** Whether the item carries an agent's score that the author has not kept, which its halo marks. */
   isAgentScored: boolean;
   /** Whether a review or a focus fades the circle; it stays selectable. */
@@ -49,7 +56,10 @@ export function ScoredCircle({
   workType,
   status,
   progress,
+  scopeMode,
   isSelected,
+  dragHandlers,
+  isDragging,
   isAgentScored,
   isFaded,
   isBlocked,
@@ -72,6 +82,7 @@ export function ScoredCircle({
       aria-pressed={isSelected}
       className="tr-node"
       data-item-key={id}
+      data-dragging={isDragging}
       data-faded={isFaded && !isSelected}
       data-highlighted={isHighlighted}
       data-status={status}
@@ -85,13 +96,14 @@ export function ScoredCircle({
       role="button"
       tabIndex={0}
       transform={`translate(${cellX + circle.cx} ${cellY + circle.cy})`}
+      {...dragHandlers}
     >
       <title>{name}</title>
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
       {isPick ? <circle className="tr-node-pick" r={r + PICK_GAP} /> : null}
       {isAgentScored ? <circle className="tr-node-halo" r={r + HALO_GAP} /> : null}
       <circle className="tr-node-main" r={r} />
-      {status === 'in-progress' ? <Pie r={r} remaining={1 - progress} /> : null}
+      {status === 'in-progress' ? <Pie r={r} remaining={scopeMode === 'remaining' ? 1 : 1 - progress} /> : null}
       <circle className="tr-node-border" r={r} />
       {circle.floored ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
       {isBlocked ? <circle className="tr-node-blocked" r={r + BLOCKED_GAP} /> : null}
