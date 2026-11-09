@@ -20,6 +20,7 @@ describe(Chart, () => {
   it('places the corner gutter cell at the matrix margins', () => {
     renderChart([buildItem({ number: 1 })]);
 
+    // eslint-disable-next-line testing-library/no-node-access -- a foreignObject has no role to query.
     const foreignObject = screen.getByRole('list', { name: 'Unscored items' }).closest('foreignObject');
     expect(foreignObject).toHaveAttribute('x', String(MARGIN_LEFT));
     expect(foreignObject).toHaveAttribute('y', String((GRID_SIZE - 1) * CELL_SIZE + MARGIN_TOP));
@@ -31,6 +32,7 @@ describe(Chart, () => {
 /** Returns the `transform` attributes of the element's ancestors below its `<svg>`. */
 function listTransformedAncestors(element: Element): string[] {
   const transforms: string[] = [];
+  // eslint-disable-next-line testing-library/no-node-access -- the SVG groups above the list have no role to query.
   for (let node = element.parentElement; node && node.tagName.toLowerCase() !== 'svg'; node = node.parentElement) {
     const transform = node.getAttribute('transform');
     if (transform !== null) transforms.push(transform);

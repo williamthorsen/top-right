@@ -267,7 +267,6 @@ export function Chart({
                     )}
                     {ghostOwner === undefined ? ghostElements : null}
                   </g>
-                  {/* WebKit paints and hit-tests a gutter's scrolling list without a transformed group's offset. */}
                   {cells.map((cell) =>
                     cell.isGutter ? (
                       <GutterCell

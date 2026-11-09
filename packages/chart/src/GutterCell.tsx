@@ -50,7 +50,7 @@ export function GutterCell({
   dragHandlersFor,
   draggingKey,
 }: GutterCellProps): ReactElement {
-  // A transformed ancestor would offset WebKit's painting and hit testing of the scrolling list from its layout.
+  // Position by `origin` rather than a transformed ancestor, whose offset WebKit drops from the scrolling list.
   return (
     <foreignObject height={CELL_SIZE} width={CELL_SIZE} x={origin.x + cell.x} y={origin.y + cell.y}>
       <ul aria-label="Unscored items" className="tr-gutter-list" data-overflow={cell.overflow}>
