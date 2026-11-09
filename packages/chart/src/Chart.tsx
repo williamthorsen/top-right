@@ -224,15 +224,17 @@ export function Chart({
               onStart={review.start}
               running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
             />
-            <Toggle isPressed={showAllEdges} onToggle={() => setShowAllEdges((current) => !current)}>
-              All edges
-            </Toggle>
-            <Toggle
-              isPressed={scopeMode === 'remaining'}
-              onToggle={() => setScopeMode((current) => (current === 'remaining' ? 'original' : 'remaining'))}
-            >
-              Remaining scope
-            </Toggle>
+            <div className="tr-view-toggles">
+              <Toggle isPressed={showAllEdges} onToggle={() => setShowAllEdges((current) => !current)}>
+                All edges
+              </Toggle>
+              <Toggle
+                isPressed={scopeMode === 'remaining'}
+                onToggle={() => setScopeMode((current) => (current === 'remaining' ? 'original' : 'remaining'))}
+              >
+                Remaining scope
+              </Toggle>
+            </div>
             {settingsHref === undefined ? null : (
               <a className="tr-strip-link" href={settingsHref}>
                 Settings

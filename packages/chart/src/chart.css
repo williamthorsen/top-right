@@ -548,6 +548,13 @@
   outline-offset: 2px;
 }
 
+/* The view toggles stay together when the strip wraps. */
+.tr-view-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
 .tr-review {
   display: flex;
   flex-wrap: wrap;
