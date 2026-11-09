@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { GitHubAdapterError, type GraphqlRequest } from './fetch-open-issues.ts';
+import { GitHubAdapterError, type GraphqlRequest } from './fetch-issues.ts';
 
 const VIEWER_QUERY = 'query Viewer { viewer { login } }';
 

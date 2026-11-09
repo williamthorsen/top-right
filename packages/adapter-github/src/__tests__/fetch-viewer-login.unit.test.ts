@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { GitHubAdapterError } from '../fetch-open-issues.ts';
+import { GitHubAdapterError } from '../fetch-issues.ts';
 import { fetchViewerLogin } from '../fetch-viewer-login.ts';
 
 describe(fetchViewerLogin, () => {

@@ -2,7 +2,7 @@
 
 # GitHub adapter
 
-Reads the open issues of GitHub repositories as Top Right work items, through a GraphQL request function that the host supplies. [`docs/design.md`](../../docs/design.md) records the decisions behind it.
+Reads the open issues of GitHub repositories, and those closed since a cutoff that the host passes, as Top Right work items, through a GraphQL request function that the host supplies. [`docs/design.md`](../../docs/design.md) records the decisions behind it.
 
 <!-- section:release-notes --><!-- /section:release-notes -->
 

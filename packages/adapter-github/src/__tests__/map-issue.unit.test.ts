@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mapIssue, openIssuesResponseSchema } from '../map-issue.ts';
+import { issuesResponseSchema, mapIssue } from '../map-issue.ts';
 import pageOne from './fixtures/open-issues.page-1.json' with { type: 'json' };
 
 const REPO = 'williamthorsen/top-right';
@@ -45,7 +45,7 @@ describe(mapIssue, () => {
 
 // region | Helpers
 function findIssue(number: number) {
-  const issue = openIssuesResponseSchema
+  const issue = issuesResponseSchema
     .parse(pageOne)
     .data?.repository?.issues.nodes.find((node) => node.number === number);
   if (!issue) throw new Error(`fixture lacks #${number}`);

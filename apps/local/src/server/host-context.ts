@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
-import { fetchOpenIssuesOfRepos, fetchViewerLogin, type GraphqlRequest } from '@top-right/adapter-github';
+import { fetchIssuesOfRepos, fetchViewerLogin, type GraphqlRequest } from '@top-right/adapter-github';
 import type { WorkItem } from '@top-right/model';
 
 import { formatAbbreviationNotice, readConfig } from './config.ts';
@@ -42,7 +42,7 @@ export async function openHostContext(): Promise<HostContext> {
   const store = openStore(databasePath);
   return {
     databasePath,
-    loadItems: () => fetchOpenIssuesOfRepos(request, repos),
+    loadItems: () => fetchIssuesOfRepos(request, repos),
     repos,
     store,
     userId,

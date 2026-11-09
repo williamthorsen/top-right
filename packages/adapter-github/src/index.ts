@@ -1,7 +1,8 @@
 export {
-  fetchOpenIssues,
-  fetchOpenIssuesOfRepos,
+  fetchIssues,
+  fetchIssuesOfRepos,
+  type FetchIssuesOptions,
   GitHubAdapterError,
   type GraphqlRequest,
-} from './fetch-open-issues.ts';
+} from './fetch-issues.ts';
 export { fetchViewerLogin } from './fetch-viewer-login.ts';
