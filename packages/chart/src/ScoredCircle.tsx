@@ -1,7 +1,7 @@
 import type { StatusCategory, WorkType } from '@top-right/model';
 import type { KeyboardEvent, ReactElement } from 'react';
 
-import type { PlacedCircle } from './layout.ts';
+import type { PlacedCircle, ScopeMode } from './layout.ts';
 
 export interface ScoredCircleProps {
   circle: PlacedCircle;
@@ -14,6 +14,8 @@ export interface ScoredCircleProps {
   status: StatusCategory;
   /** The fraction of the work done, 0 when unscored. */
   progress: number;
+  /** At remaining scope, an in-progress circle is wholly solid, because its size already shows the remainder. */
+  scopeMode: ScopeMode;
   isSelected: boolean;
   /** Whether the item carries an agent's score that the author has not kept, which its halo marks. */
   isAgentScored: boolean;
@@ -49,6 +51,7 @@ export function ScoredCircle({
   workType,
   status,
   progress,
+  scopeMode,
   isSelected,
   isAgentScored,
   isFaded,
@@ -91,7 +94,7 @@ export function ScoredCircle({
       {isPick ? <circle className="tr-node-pick" r={r + PICK_GAP} /> : null}
       {isAgentScored ? <circle className="tr-node-halo" r={r + HALO_GAP} /> : null}
       <circle className="tr-node-main" r={r} />
-      {status === 'in-progress' ? <Pie r={r} remaining={1 - progress} /> : null}
+      {status === 'in-progress' ? <Pie r={r} remaining={scopeMode === 'remaining' ? 1 : 1 - progress} /> : null}
       <circle className="tr-node-border" r={r} />
       {circle.floored ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
       {isBlocked ? <circle className="tr-node-blocked" r={r + BLOCKED_GAP} /> : null}

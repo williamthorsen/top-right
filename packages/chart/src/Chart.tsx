@@ -26,7 +26,7 @@ import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { layoutCells, sizeCircle } from './layout.ts';
+import { layoutCells, type ScopeMode, sizeItem } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
@@ -95,6 +95,7 @@ export function Chart({
   const selection = useSelection({ selectedKey: hostSelectedKey, onSelectedKeyChange });
   const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
+  const [scopeMode, setScopeMode] = useState<ScopeMode>('original');
   const [highlightedKey, setHighlightedKey] = useState<string>();
   const [highlightOwner, setHighlightOwner] = useState<string>();
 
@@ -122,11 +123,11 @@ export function Chart({
             id,
             u: itemScores?.urgency?.value ?? 0,
             i: itemScores?.impact?.value ?? 0,
-            ...sizeCircle(itemScores?.effort?.value),
+            ...sizeItem(itemScores, scopeMode),
           };
         }),
       ),
-    [visibleItems, scores],
+    [visibleItems, scores, scopeMode],
   );
 
   const pickKey = useMemo(() => findNextPick(visibleItems, scores, overrides), [visibleItems, scores, overrides]);
@@ -174,7 +175,7 @@ export function Chart({
 
   const focusKey = previewKey ?? selectedKey;
   const focus = focusItem(graph, focusKey, showAllEdges);
-  const board = { itemsByKey, overrides, scores, visibleKeys };
+  const board = { itemsByKey, overrides, scopeMode, scores, visibleKeys };
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, focus.edges, focusKey, board);
   const ghostElements = (
     <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
@@ -205,6 +206,12 @@ export function Chart({
             />
             <Toggle isPressed={showAllEdges} onToggle={() => setShowAllEdges((current) => !current)}>
               All edges
+            </Toggle>
+            <Toggle
+              isPressed={scopeMode === 'remaining'}
+              onToggle={() => setScopeMode((current) => (current === 'remaining' ? 'original' : 'remaining'))}
+            >
+              Remaining scope
             </Toggle>
             {settingsHref === undefined ? null : (
               <a className="tr-strip-link" href={settingsHref}>
@@ -254,6 +261,7 @@ export function Chart({
                                 onPreview={setPreviewKey}
                                 onSelect={selection.push}
                                 progress={scores[circle.id]?.progress?.value ?? 0}
+                                scopeMode={scopeMode}
                                 status={deriveStatus(item, overrides[circle.id])}
                                 workType={classifyWorkType(item.labels, workTypeMapping)}
                               />

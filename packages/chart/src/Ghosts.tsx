@@ -11,7 +11,14 @@ import type { ReactElement } from 'react';
 import type { EdgeEnd } from './edge-path.ts';
 import { listEdgeEnds } from './Edges.tsx';
 import { GhostCircle } from './GhostCircle.tsx';
-import { type CellLayout, type GhostPlacement, placeGhosts, type Placement, sizeCircle } from './layout.ts';
+import {
+  type CellLayout,
+  type GhostPlacement,
+  placeGhosts,
+  type Placement,
+  type ScopeMode,
+  sizeItem,
+} from './layout.ts';
 
 export interface GhostsProps {
   ghosts: readonly GhostPlacement[];
@@ -26,6 +33,8 @@ interface GhostBoard {
   itemsByKey: ReadonlyMap<string, WorkItem>;
   overrides: Readonly<Record<string, StatusOverride>>;
   scores: Readonly<Record<string, ItemScores>>;
+  /** The scope that circle areas show, which a ghost's area follows. */
+  scopeMode: ScopeMode;
   visibleKeys: ReadonlySet<string>;
 }
 
@@ -78,7 +87,7 @@ export function listGhostPlacements(
     matrixKeys: ReadonlySet<string> | ReadonlyMap<string, unknown>;
   },
 ): Placement[] {
-  const { itemsByKey, matrixKeys, overrides, scores, visibleKeys } = board;
+  const { itemsByKey, matrixKeys, overrides, scopeMode, scores, visibleKeys } = board;
   const farEnds = edges.flatMap((edge) => [
     ...(matrixKeys.has(edge.from) ? [edge.to] : []),
     ...(matrixKeys.has(edge.to) ? [edge.from] : []),
@@ -92,7 +101,7 @@ export function listGhostPlacements(
       const i = itemScores?.impact?.value;
       if (!item || visibleKeys.has(key) || u === undefined || i === undefined) return [];
       if (deriveStatus(item, overrides[key]) !== 'done') return [];
-      return [{ id: key, u, i, ...sizeCircle(itemScores?.effort?.value) }];
+      return [{ id: key, u, i, ...sizeItem(itemScores, scopeMode) }];
     })
     .toArray();
 }
