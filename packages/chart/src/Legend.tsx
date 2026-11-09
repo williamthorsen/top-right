@@ -1,17 +1,15 @@
-import { MAPPED_WORK_TYPES, type StatusCategory, type WorkType } from '@top-right/model';
-import type { ReactElement } from 'react';
+import {
+  MAPPED_WORK_TYPES,
+  type StatusCategory,
+  WORK_TYPE_NAMES,
+  type WorkType,
+  type WorkTypeMapping,
+} from '@top-right/model';
+import { type CSSProperties, type ReactElement, type ToggleEvent, useId, useRef, useState } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
 import { FLOOR_RADIUS } from './layout.ts';
 import { STATUS_NAMES } from './status-names.ts';
-
-export const WORK_TYPE_NAMES: Record<WorkType, string> = {
-  bug: 'Bug',
-  feature: 'Feature',
-  none: 'Unmapped',
-  ops: 'Ops',
-  task: 'Task',
-};
 
 const LEGEND_TYPES: readonly WorkType[] = [...MAPPED_WORK_TYPES, 'none'];
 
@@ -20,9 +18,20 @@ const SWATCH_RADIUS = FLOOR_RADIUS + 1.5;
 const SWATCH_SIZE = 2 * SWATCH_RADIUS + 3;
 /** The pick ring's gap in the legend, tighter than on the chart so that the swatch keeps the strip's height. */
 const PICK_SWATCH_GAP = 4.5;
+/** The space between the Mapping button and the popover above it, in pixels. */
+const POPOVER_GAP = 6;
 
-/** The strip under the chart that names each status fill, the floor mark, each work type's border, and each relation mark. */
-export function Legend(): ReactElement {
+export interface LegendProps {
+  workTypeMapping: WorkTypeMapping;
+  /** Where the Settings page is; without it, the mapping popover does not link to Settings. */
+  settingsHref?: string | undefined;
+}
+
+/**
+ * The strip under the chart that names each status fill, the floor mark, each work type's border, and each relation
+ * mark, with a popover that lists the labels of each work type.
+ */
+export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactElement {
   return (
     <div className="tr-legends">
       <ul aria-label="Status" className="tr-legend">
@@ -46,6 +55,9 @@ export function Legend(): ReactElement {
             {WORK_TYPE_NAMES[workType]}
           </li>
         ))}
+        <li>
+          <MappingPopover settingsHref={settingsHref} workTypeMapping={workTypeMapping} />
+        </li>
       </ul>
       <ul aria-label="Relations" className="tr-legend">
         <li>
@@ -96,6 +108,59 @@ export function StatusSwatch({
 }
 
 // region | Helpers
+/** The Mapping button and the popover that it opens above itself, listing each work type's labels. */
+function MappingPopover({ workTypeMapping, settingsHref }: LegendProps) {
+  const popoverId = useId();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState<CSSProperties>({});
+
+  function followToggle(event: ToggleEvent<HTMLDivElement>): void {
+    const opening = event.newState === 'open';
+    setIsOpen(opening);
+    const button = buttonRef.current;
+    if (!opening || !button) return;
+    const rect = button.getBoundingClientRect();
+    setPosition({ left: rect.left, bottom: window.innerHeight - rect.top + POPOVER_GAP });
+  }
+
+  return (
+    <>
+      <button
+        aria-expanded={isOpen}
+        className="tr-legend-button"
+        popoverTarget={popoverId}
+        ref={buttonRef}
+        type="button"
+      >
+        Mapping
+      </button>
+      <div
+        aria-label="Work type mapping"
+        className="tr-mapping-popover"
+        id={popoverId}
+        onToggle={followToggle}
+        popover="auto"
+        role="dialog"
+        style={position}
+      >
+        <dl className="tr-mapping-list">
+          {MAPPED_WORK_TYPES.map((workType) => (
+            <div key={workType}>
+              <dt data-work-type={workType}>
+                <CircleIcon />
+                {WORK_TYPE_NAMES[workType]}
+              </dt>
+              <dd>{workTypeMapping[workType].length > 0 ? workTypeMapping[workType].join(', ') : 'No labels'}</dd>
+            </div>
+          ))}
+        </dl>
+        {settingsHref === undefined ? null : <a href={settingsHref}>Edit in Settings</a>}
+      </div>
+    </>
+  );
+}
+
 /** A short edge as the chart draws it: a blocker with its arrowhead, or a sub-issue line without one. */
 function EdgeSwatch({ kind }: { kind: 'blocker' | 'sub-issue' }) {
   const width = 26;
