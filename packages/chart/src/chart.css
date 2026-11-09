@@ -519,10 +519,6 @@
   color: var(--tr-surface);
 }
 
-.tr-toggle[aria-pressed='true']::before {
-  content: '✓';
-}
-
 /* -- Edges: blocker arrows and sub-issue lines, weighted by focus -- */
 
 .tr-edges {
