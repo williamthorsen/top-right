@@ -48,6 +48,12 @@ export function applyScoreWrite(existing: ItemScores | undefined, values: Scores
   return result;
 }
 
+/** Returns effort × (1 − progress), with a missing progress as none done, or undefined when the effort is unknown. */
+export function computeRemainingScope(scores: ItemScores | undefined): number | undefined {
+  const effort = scores?.effort?.value;
+  return effort === undefined ? undefined : effort * (1 - (scores?.progress?.value ?? 0));
+}
+
 /** Returns whether `value` lies on the scale of `field`; progress is a fraction from 0 to 1 in steps of 0.05. */
 export function isValidScore(field: ScoreField, value: number): boolean {
   switch (field) {

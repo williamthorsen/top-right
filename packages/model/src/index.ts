@@ -22,6 +22,7 @@ export { type Cell, findTrailOrigin, isAgentScored, listReviewQueue, type Review
 export {
   applyScoreWrite,
   AXIS_SCALE,
+  computeRemainingScope,
   EFFORT_SCALE,
   isValidScore,
   type ItemScores,
