@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildRelationGraph, isBlocked, listBlockedKeys } from '../relations.ts';
+import { buildRelationGraph, findLongestBlockerChain, isBlocked, listBlockedKeys } from '../relations.ts';
 import type { ItemRef, Relation, RelationKind, WorkItem } from '../work-item.ts';
 
 const REPO = 'o/r';
@@ -55,6 +55,73 @@ describe(buildRelationGraph, () => {
   });
 });
 
+describe(findLongestBlockerChain, () => {
+  it('returns a linear chain from the first blocker to the last blocked item', () => {
+    const items = [buildItem(3, [relate('blocked-by', 2)]), buildItem(2, [relate('blocked-by', 1)]), buildItem(1)];
+
+    expect(findLongestBlockerChain(items)).toStrictEqual(['o/r#1', 'o/r#2', 'o/r#3']);
+  });
+
+  it('takes the longer branch, ignoring sub-issue edges', () => {
+    const items = [
+      buildItem(1, [relate('blocking', 2), relate('blocking', 5)]),
+      buildItem(2, [relate('blocking', 3)]),
+      buildItem(3, [relate('blocking', 4)]),
+      buildItem(4),
+      buildItem(5, [relate('sub-issue', 6)]),
+      buildItem(6, [relate('sub-issue', 7)]),
+      buildItem(7),
+    ];
+
+    expect(findLongestBlockerChain(items)).toStrictEqual(['o/r#1', 'o/r#2', 'o/r#3', 'o/r#4']);
+  });
+
+  it('breaks a tie by the keys that sort first, whatever the input order', () => {
+    const items = [
+      buildItem(7, [relate('blocking', 8)]),
+      buildItem(8),
+      buildItem(1, [relate('blocking', 3)]),
+      buildItem(3),
+      buildItem(2, [relate('blocking', 9)]),
+      buildItem(9),
+    ];
+
+    expect(findLongestBlockerChain(items)).toStrictEqual(['o/r#1', 'o/r#3']);
+    expect(findLongestBlockerChain(items.toReversed())).toStrictEqual(['o/r#1', 'o/r#3']);
+  });
+
+  it('ends on a blocker cycle and names each item once', () => {
+    const items = [
+      buildItem(1, [relate('blocking', 2)]),
+      buildItem(2, [relate('blocking', 3)]),
+      buildItem(3, [relate('blocking', 1)]),
+      buildItem(4, [relate('blocking', 1)]),
+    ];
+
+    const chain = findLongestBlockerChain(items);
+
+    expect(chain).toHaveLength(4);
+    expect(new Set(chain).size).toBe(4);
+  });
+
+  it('breaks a chain at a closed item', () => {
+    const items = [
+      buildItem(1, [relate('blocking', 2)]),
+      buildItem(2, [relate('blocking', 3)], 'closed'),
+      buildItem(3, [relate('blocking', 4)]),
+      buildItem(4),
+    ];
+
+    expect(findLongestBlockerChain(items)).toStrictEqual(['o/r#3', 'o/r#4']);
+  });
+
+  it('returns no chain without a blocker edge between loaded items', () => {
+    const items = [buildItem(1, [relate('blocked-by', 9)]), buildItem(2, [relate('parent', 1)])];
+
+    expect(findLongestBlockerChain(items)).toStrictEqual([]);
+  });
+});
+
 describe(isBlocked, () => {
   it('holds for an open blocker, loaded or not, and not for a closed one', () => {
     expect(isBlocked(buildItem(1, [relate('blocked-by', 9)]))).toBe(true);
@@ -72,8 +139,8 @@ describe(listBlockedKeys, () => {
 });
 
 // region | Helpers
-function buildItem(number: number, relations: Relation[] = []): WorkItem {
-  return { ...buildRef(number), createdAt: '2026-11-01T09:00:00Z', labels: [], relations };
+function buildItem(number: number, relations: Relation[] = [], state: ItemRef['state'] = 'open'): WorkItem {
+  return { ...buildRef(number, state), createdAt: '2026-11-01T09:00:00Z', labels: [], relations };
 }
 
 function buildRef(number: number, state: ItemRef['state'] = 'open'): ItemRef {

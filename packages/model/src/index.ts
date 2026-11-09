@@ -14,6 +14,7 @@ export {
   buildRelationGraph,
   type Edge,
   type EdgeKind,
+  findLongestBlockerChain,
   isBlocked,
   listBlockedKeys,
   type RelationGraph,

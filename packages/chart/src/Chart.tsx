@@ -15,23 +15,24 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { Fragment, type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, type ReactElement, useMemo, useRef, useState } from 'react';
 
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
 import { DragProxy, DropTarget } from './DragMarks.tsx';
-import { Edges, focusItem } from './Edges.tsx';
+import { Edges, focusItem, mergeChainEdges } from './Edges.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
-import type { Abbreviations } from './item-label.ts';
+import { type Abbreviations, nameCircle } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
 import { layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
+import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
 import { useReview } from './useReview.ts';
@@ -129,6 +130,7 @@ export function Chart({
     setHighlightedKey(undefined);
   }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const review = useReview({
     items: visibleItems,
     scores,
@@ -138,7 +140,9 @@ export function Chart({
     setPreviewKey,
     onKeep,
     onScoresChange,
+    scrollRef,
   });
+  const chainView = useChainView(visibleItems, review);
   if (isRevealing && review.kind !== undefined) review.end();
   const svgRef = useRef<SVGSVGElement>(null);
   const { drag, dragHandlersFor, selectItem } = useItemDrag({
@@ -149,7 +153,6 @@ export function Chart({
     onDrop: (key, cell) => review.changeScores(key, { urgency: cell.u, impact: cell.i }),
     onSelect: selection.push,
   });
-  const scrollRef = useRef<HTMLDivElement>(null);
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 
@@ -166,23 +169,19 @@ export function Chart({
     selection.push(key);
   }
 
-  // Bring each item that a review moves to into view, since the chart scrolls on a narrow screen.
-  useEffect(() => {
-    if (review.kind === undefined || selectedKey === undefined) return;
-    const element = scrollRef.current?.querySelector(`[data-item-key="${CSS.escape(selectedKey)}"]`);
-    element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [review.kind, selectedKey]);
-
   const focusKey = previewKey ?? selectedKey;
   const focus = focusItem(graph, focusKey, showAllEdges);
   const board = { itemsByKey, overrides, scopeMode, scores, visibleKeys };
-  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, focus.edges, focusKey, board);
+  const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
+  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board);
   const ghostElements = (
     <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
   );
-  // A running review's fade governs, so that the queue stays legible as the review steps.
+  // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
   function isFaded(key: string): boolean {
-    return review.kind === undefined ? focus.related !== undefined && !focus.related.has(key) : review.isFaded(key);
+    if (review.kind !== undefined) return review.isFaded(key);
+    if (chainView.isShown) return chainView.isFaded(key);
+    return focus.related !== undefined && !focus.related.has(key);
   }
 
   const trails = listTrails(
@@ -196,10 +195,11 @@ export function Chart({
       <div className="tr-work">
         <div className="tr-chart-area">
           <ChartStrip
+            chainView={chainView}
             filterBar={{ abbreviations, counts: statusCounts, filter, onChange: changeFilter }}
             onScopeModeChange={setScopeMode}
             onShowAllEdgesChange={setShowAllEdges}
-            review={review}
+            review={chainView.review}
             scopeMode={scopeMode}
             settingsHref={settingsHref}
             showAllEdges={showAllEdges}
@@ -222,7 +222,7 @@ export function Chart({
                     {trails.map((trail) => (
                       <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                     ))}
-                    <Edges edges={focus.edges} ends={ends} />
+                    <Edges edges={shownEdges} ends={ends} />
                     {cells.map((cell) =>
                       cell.isGutter ? null : (
                         <g key={`${cell.u},${cell.i}`}>
@@ -335,10 +335,3 @@ export function Chart({
     </div>
   );
 }
-
-// region | Helpers
-/** Returns a circle's accessible name: its id label and title, with the marks that it wears. */
-function nameCircle(label: string, title: string, marks: { isBlocked: boolean; isPick: boolean }): string {
-  return `${label}: ${title}${marks.isBlocked ? ', blocked' : ''}${marks.isPick ? ', next pick' : ''}`;
-}
-// endregion | Helpers

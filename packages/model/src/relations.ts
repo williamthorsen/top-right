@@ -51,6 +51,46 @@ export function buildRelationGraph(items: readonly WorkItem[]): RelationGraph {
   };
 }
 
+/**
+ * Returns the keys of the longest blocker chain among the open items, from the first blocker to the last blocked item,
+ * or an empty list when no chain has two items. A tie goes to the chain whose keys sort first, and an edge that would
+ * close a cycle is ignored.
+ */
+export function findLongestBlockerChain(items: readonly WorkItem[]): string[] {
+  const graph = buildRelationGraph(items.filter((item) => item.state === 'open'));
+  const blocked = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    if (edge.kind === 'blocker') appendTo(blocked, edge.from, edge.to);
+  }
+
+  const longestFrom = new Map<string, string[]>();
+  const onPath = new Set<string>();
+  function visit(key: string): string[] {
+    const known = longestFrom.get(key);
+    if (known) return known;
+    onPath.add(key);
+    let best: string[] = [];
+    const successors = (blocked.get(key) ?? []).toSorted(compareKeys);
+    for (const next of successors) {
+      if (onPath.has(next)) continue;
+      const path = visit(next);
+      if (isLonger(path, best)) best = path;
+    }
+    onPath.delete(key);
+    const path = [key, ...best];
+    longestFrom.set(key, path);
+    return path;
+  }
+
+  const starts = blocked.keys().toArray().toSorted(compareKeys);
+  let chain: string[] = [];
+  for (const key of starts) {
+    const path = visit(key);
+    if (isLonger(path, chain)) chain = path;
+  }
+  return chain.length >= 2 ? chain : [];
+}
+
 /** Returns whether an open item blocks the item, whether or not the blocker is loaded. */
 export function isBlocked(item: Pick<WorkItem, 'relations'>): boolean {
   return item.relations.some((relation) => relation.kind === 'blocked-by' && relation.ref.state === 'open');
@@ -66,6 +106,20 @@ function appendTo(map: Map<string, string[]>, key: string, value: string): void 
   const list = map.get(key);
   if (list) list.push(value);
   else map.set(key, [value]);
+}
+
+function compareKeys(a: string, b: string): number {
+  return a.localeCompare(b);
+}
+
+/** Returns whether path `a` beats path `b`: more items, or as many items with keys that sort first. */
+function isLonger(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return a.length > b.length;
+  for (const [index, key] of a.entries()) {
+    const order = compareKeys(key, b[index] ?? '');
+    if (order !== 0) return order < 0;
+  }
+  return false;
 }
 
 function toEdge(key: string, relation: Relation): Edge {

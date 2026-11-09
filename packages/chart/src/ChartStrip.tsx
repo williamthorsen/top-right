@@ -2,11 +2,14 @@ import type { ReactElement } from 'react';
 
 import { FilterBar, type FilterBarProps } from './FilterBar.tsx';
 import type { ScopeMode } from './layout.ts';
+import { MoreMenu } from './MoreMenu.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
 import { Toggle } from './Toggle.tsx';
+import type { ChainView } from './useChainView.ts';
 import type { Review } from './useReview.ts';
 
 export interface ChartStripProps {
+  chainView: ChainView;
   filterBar: FilterBarProps;
   review: Review;
   showAllEdges: boolean;
@@ -17,8 +20,12 @@ export interface ChartStripProps {
   settingsHref: string | undefined;
 }
 
-/** The strip above the chart: the filter, the review controls, the view toggles, and the link to Settings. */
+/**
+ * The strip above the chart: the filter, the review controls, the view toggles and the More menu, the shown chain's
+ * status, and the link to Settings.
+ */
 export function ChartStrip({
+  chainView,
   filterBar,
   review,
   showAllEdges,
@@ -47,7 +54,22 @@ export function ChartStrip({
         >
           Remaining scope
         </Toggle>
+        <MoreMenu
+          hasChain={chainView.chain.length > 0}
+          isChainShown={chainView.isShown}
+          onChainShownChange={chainView.setShown}
+        />
       </div>
+      {chainView.isShown ? (
+        <div aria-label="Longest chain" className="tr-chain" role="toolbar">
+          <span aria-live="polite" className="tr-review-position">
+            Longest chain · {chainView.chain.length} items
+          </span>
+          <button className="tr-review-button" onClick={() => chainView.setShown(false)} type="button">
+            End chain view
+          </button>
+        </div>
+      ) : null}
       {settingsHref === undefined ? null : (
         <a className="tr-strip-link" href={settingsHref}>
           Settings

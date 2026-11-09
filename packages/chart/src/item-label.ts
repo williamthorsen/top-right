@@ -10,3 +10,8 @@ export type Abbreviations = Readonly<Record<string, string>>;
 export function labelItem(ref: Pick<ItemRef, 'number' | 'repo'>, abbreviations: Abbreviations): string {
   return formatIdLabel(ref, abbreviations[ref.repo] ?? abbreviate(ref.repo));
 }
+
+/** Returns a circle's accessible name: its id label and title, with the marks that it wears. */
+export function nameCircle(label: string, title: string, marks: { isBlocked: boolean; isPick: boolean }): string {
+  return `${label}: ${title}${marks.isBlocked ? ', blocked' : ''}${marks.isPick ? ', next pick' : ''}`;
+}

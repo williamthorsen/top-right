@@ -555,7 +555,8 @@
   gap: 4px 8px;
 }
 
-.tr-review {
+.tr-review,
+.tr-chain {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -563,8 +564,9 @@
   min-height: 36px;
 }
 
-/* A toggle outside a toolbar: bordered at rest; pressed shows a check and an inverted fill. */
-.tr-toggle {
+/* A toggle or menu button outside a toolbar: bordered at rest; pressed or open shows an inverted fill. */
+.tr-toggle,
+.tr-menu-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -578,19 +580,74 @@
   cursor: pointer;
 }
 
-.tr-toggle:hover {
+.tr-toggle:hover,
+.tr-menu-button:hover {
   background: var(--tr-surface-2);
 }
 
-.tr-toggle[aria-pressed='true'] {
+.tr-toggle[aria-pressed='true'],
+.tr-menu-button[aria-expanded='true'] {
   border-color: var(--tr-ink);
   background: var(--tr-ink);
   color: var(--tr-surface);
 }
 
-.tr-toggle[aria-pressed='true']:hover {
+.tr-toggle[aria-pressed='true']:hover,
+.tr-menu-button[aria-expanded='true']:hover {
   border-color: var(--tr-ink-2);
   background: var(--tr-ink-2);
+}
+
+/* The More menu opens below its button, over the chart. */
+.tr-more {
+  position: relative;
+}
+
+.tr-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 10;
+  min-width: max-content;
+  padding: 4px;
+  border: 1px solid var(--tr-control-line);
+  border-radius: 8px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: 14px/1.45 var(--tr-font);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+
+.tr-menu[hidden] {
+  display: none;
+}
+
+.tr-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px 0 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tr-menu-item:is(:hover, :focus-visible):not([aria-disabled='true']) {
+  background: var(--tr-surface-2);
+}
+
+.tr-menu-item:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: -1px;
+}
+
+.tr-menu-item[aria-disabled='true'] {
+  color: var(--tr-ink-2);
+  cursor: default;
+}
+
+.tr-menu-check {
+  width: 1em;
+  text-align: center;
 }
 
 /* -- Edges: blocker arrows and sub-issue lines, weighted by focus -- */
