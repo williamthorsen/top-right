@@ -99,7 +99,12 @@ function AbbreviationsForm({
     setIsSaving(true);
     const refusal = await onSave(trimmed);
     setIsSaving(false);
-    setOutcome(refusal === undefined ? { kind: 'saved' } : { kind: 'error', message: refusal });
+    if (refusal !== undefined) {
+      setOutcome({ kind: 'error', message: refusal });
+      return;
+    }
+    setOutcome({ kind: 'saved' });
+    setValues(trimmed);
   }
 
   return (

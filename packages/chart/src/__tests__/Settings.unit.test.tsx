@@ -101,6 +101,7 @@ describe(Settings, () => {
         'w/configs.macos': '',
         'w/top-right': '',
       });
+      expect(getField('Repo abbreviations', 'w/codeassembly')).toHaveValue('ca');
     });
 
     it.each([
