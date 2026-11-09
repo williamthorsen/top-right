@@ -30,7 +30,7 @@ export interface ScoredCircleProps {
 }
 
 /** The smallest radius that a circle's hit target takes: 12 units is 24 px at 1×, the WCAG 2.2 target size. */
-const HIT_RADIUS = 12;
+export const HIT_RADIUS = 12;
 /** How far the agent's halo sits outside the circle, clear of the selection and focus rings. */
 const HALO_GAP = 9;
 /** How far outside the circle the blocked ring sits: inside the selection ring, hugging the border. */

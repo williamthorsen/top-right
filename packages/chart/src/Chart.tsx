@@ -21,11 +21,12 @@ import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
 import { Edges, focusItem, listEdgeEnds } from './Edges.tsx';
 import { FilterBar } from './FilterBar.tsx';
+import { Ghosts, listGhostPlacements } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { layoutCells, sizeCircle } from './layout.ts';
+import { layoutCells, placeGhosts, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
@@ -153,8 +154,15 @@ export function Chart({
 
   /** Applies a filter, ending a running review, whose queue the filter would change under it. */
   function changeFilter(next: ItemFilter): void {
-    setFilter(next);
+    setFilter({ ...next, revealedKeys: new Set() });
     if (review.kind !== undefined) review.end();
+  }
+
+  /** Reveals one hidden item and selects it, ending a running review, whose queue the reveal would change. */
+  function revealGhost(key: string): void {
+    setFilter({ ...filter, revealedKeys: new Set([...filter.revealedKeys, key]) });
+    if (review.kind !== undefined) review.end();
+    selection.push(key);
   }
 
   // Bring each item that a review moves to into view, since the chart scrolls on a narrow screen.
@@ -165,7 +173,9 @@ export function Chart({
   }, [review.kind, selectedKey]);
 
   const focus = focusItem(graph, previewKey ?? selectedKey, showAllEdges);
+  const ghosts = placeGhosts(cells, listGhostPlacements(focus.edges, { itemsByKey, overrides, scores, visibleKeys }));
   const ends = listEdgeEnds(cells);
+  for (const ghost of ghosts) ends.set(ghost.id, ghost);
   // A running review's fade governs, so that the queue stays legible as the review steps.
   function isFaded(key: string): boolean {
     return review.kind === undefined ? focus.related !== undefined && !focus.related.has(key) : review.isFaded(key);
@@ -216,6 +226,13 @@ export function Chart({
                       <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                     ))}
                     <Edges edges={focus.edges} ends={ends} />
+                    <Ghosts
+                      ghosts={ghosts}
+                      isFaded={isFaded}
+                      itemsByKey={itemsByKey}
+                      labelOf={labelOf}
+                      onReveal={revealGhost}
+                    />
                     {cells.map((cell) =>
                       cell.isGutter ? null : (
                         <g key={`${cell.u},${cell.i}`}>

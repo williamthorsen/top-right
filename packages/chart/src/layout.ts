@@ -88,6 +88,46 @@ export function layoutCells(placements: readonly Placement[]): CellLayout[] {
     .toSorted((a, b) => b.i - a.i || a.u - b.u);
 }
 
+/** A ghost's circle in the matrix: its centre, in matrix units, and its radius. */
+export interface GhostPlacement {
+  id: string;
+  x: number;
+  y: number;
+  r: number;
+}
+
+/**
+ * Places a ghost for each placement in its scored cell, after the circles that `cells` already packs there and any
+ * earlier ghost in the same cell, so that a ghost never moves a circle; `cells` is left unchanged.
+ */
+export function placeGhosts(cells: readonly CellLayout[], placements: readonly Placement[]): GhostPlacement[] {
+  const occupants = new Map<string, { cell: CellLayout; placed: PlacedCircle[] }>(
+    cells.map((cell) => [`${cell.u},${cell.i}`, { cell, placed: [...cell.circles] }]),
+  );
+  return placements.map((placement) => {
+    const key = `${placement.u},${placement.i}`;
+    let occupant = occupants.get(key);
+    if (!occupant) {
+      occupant = { cell: createCell(placement.u, placement.i), placed: [] };
+      occupants.set(key, occupant);
+    }
+    const { cell, placed } = occupant;
+    const r = placement.r ?? FLOOR_RADIUS;
+    const limit = Math.max(0, CELL_SIZE / 2 - r - CELL_INSET);
+    const offset =
+      placed.length === 0 ? { x: 0, y: 0 } : (findTangentOffset(r, limit, placed) ?? ringOffset(placed.length, limit));
+    const circle = {
+      id: placement.id,
+      cx: CELL_SIZE / 2 + offset.x,
+      cy: CELL_SIZE / 2 + offset.y,
+      r,
+      floored: placement.floored ?? placement.r === undefined,
+    };
+    placed.push(circle);
+    return { id: circle.id, x: cell.x + circle.cx, y: cell.y + circle.cy, r };
+  });
+}
+
 /** Returns the radius of a circle whose scope is `points`, raised to the floor when it is smaller or absent. */
 export function sizeCircle(points: number | undefined): CircleSize {
   if (points === undefined) return FLOOR_SIZE;

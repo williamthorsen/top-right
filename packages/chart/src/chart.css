@@ -22,6 +22,7 @@
   --tr-on-inprog: #ffffff;
   --tr-block: #c22a2a;
   --tr-relation: #6b6a63;
+  --tr-ghost-line: #6b6a63;
   --tr-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --tr-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
@@ -53,6 +54,7 @@
     --tr-cat-task: #d99a1a;
     --tr-cat-ops: #9c92ee;
     --tr-cat-none: #a8a79f;
+    --tr-ghost-line: #9aa0a8;
     --tr-inprog: #6aa4ee;
     --tr-on-todo: #ffffff;
     --tr-on-inprog: #161616;
@@ -81,6 +83,7 @@
   --tr-cat-task: #d99a1a;
   --tr-cat-ops: #9c92ee;
   --tr-cat-none: #a8a79f;
+  --tr-ghost-line: #9aa0a8;
   --tr-inprog: #6aa4ee;
   --tr-on-todo: #ffffff;
   --tr-on-inprog: #161616;
@@ -419,6 +422,35 @@
   stroke-width: 3;
 }
 
+/* -- Ghosts: hidden done items at the end of a shown edge -- */
+
+.tr-ghost {
+  cursor: pointer;
+  outline: none;
+}
+
+.tr-ghost-border {
+  fill: none;
+  stroke: var(--tr-ghost-line);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+
+.tr-ghost:hover .tr-ghost-border {
+  stroke-dasharray: none;
+}
+
+.tr-ghost-focus {
+  display: none;
+  fill: none;
+}
+
+.tr-ghost:focus-visible .tr-ghost-focus {
+  display: block;
+  stroke: var(--tr-focus);
+  stroke-width: 3;
+}
+
 /* -- Review: the agent's halo, the trail, and the fade -- */
 
 .tr-node-halo,
@@ -437,6 +469,7 @@
 }
 
 .tr-node[data-faded='true'],
+.tr-ghost[data-faded='true'],
 .tr-gutter-list li[data-faded='true'] {
   opacity: 0.25;
 }

@@ -15,7 +15,7 @@ export interface FilterBarProps {
 }
 
 /** The statuses that the filter offers as toggles, in display order. */
-const STATUS_TOGGLES: readonly StatusCategory[] = ['to-do', 'in-progress'];
+const STATUS_TOGGLES: readonly StatusCategory[] = ['to-do', 'in-progress', 'done'];
 
 /** The Filter group at the chart's top edge: a repo select and one toggle per status, each with its count. */
 export function FilterBar({ filter, abbreviations, counts, onChange }: FilterBarProps): ReactElement {
