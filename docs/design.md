@@ -138,6 +138,8 @@ A toggle switches a circle's area between original scope and remaining scope. Re
 
 Revised after the data-visualization evaluation: Remaining scope reaches zero, and a circle without area vanishes or takes an unmarked minimum that breaks the area-to-scope ratio.
 
+The toggle is "Remaining scope" in the strip, a toggle like "All edges", and it resets on reload like the filter. A ghost follows the toggle, so that it and its circle never use two scales. A done item's remaining scope follows the formula, as the pick's does, because its fill already marks it done. Decided at the drag-and-scope iteration (#19).
+
 ### Visual channels
 
 Fill carries status: A to-do circle is translucent, an in-progress circle shows a solid pie for its remaining fraction, with a floor width so that a nearly finished item still reads as in progress, and a done circle is grey. At remaining scope the in-progress circle is wholly solid, because size then carries the remainder and a pie on top would discount it twice. Done circles carry no checkmark.
@@ -181,6 +183,8 @@ Decided at the prototype round: The callouts (row 31), drag to pan (row 35), and
 A drag moves only the already-selected circle; a drag on anything else pans. On touch that is the only way a tap, a pan, and a drag coexist, and on a mouse the one extra click prevents an accidental rescore. Larger circles draw first, so the smallest circle under a tap is the one that takes it. Keyboard navigation between circles, arrow keys that step a score, and Escape that reverts a move are deferred: welcome, but not a premium for the first user, and built after the pointer and touch model is settled.
 
 Decided at the prototype round: From 3.1 Thumb and arrow keys (rows 14, 16); row 15 deferred.
+
+A drag starts once the pointer moves more than 4 px from the press, so that a slightly moving click still clicks, and only from a press on the selected item, so that the press that selects never drags. The item stays dimmed in place while a proxy follows the pointer, and only a scored cell other than the item's own highlights. A drop there writes urgency and impact in one write; a drop on the item's own cell writes nothing, because an author write would turn every agent score on the item into the author's and act as Keep. A drag on the background still scrolls rather than pans, because panning belongs to zoom, which is not built, and the chart does not scroll by itself near its edge during a drag, because on a phone the author scrolls to the target cell first. The pane's segmented controls are the single-pointer alternative to the drag. Decided at the drag-and-scope iteration (#19).
 
 ### The table
 
