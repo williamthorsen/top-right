@@ -7,6 +7,7 @@ import {
   GRID_SIZE,
   GUTTER_ROW_PITCH,
   layoutCells,
+  placeGhosts,
   RADIUS_PER_POINT,
   sizeCircle,
 } from '../layout.ts';
@@ -75,6 +76,43 @@ describe(layoutCells, () => {
 
   it('if a placement is outside the grid, throws a RangeError', () => {
     expect(() => layoutCells([{ id: 'a', u: GRID_SIZE, i: 0 }])).toThrow(RangeError);
+  });
+});
+
+describe(placeGhosts, () => {
+  it('places a ghost clear of the circles in its cell and leaves them where they were', () => {
+    const cells = layoutCells([
+      { id: 'a', u: 3, i: 3, r: 20 },
+      { id: 'b', u: 3, i: 3, r: 10 },
+    ]);
+    const before = structuredClone(cells);
+
+    const [ghost] = placeGhosts(cells, [{ id: 'g', u: 3, i: 3, r: 10 }]);
+
+    expect(cells).toStrictEqual(before);
+    const [cell] = cells;
+    if (!ghost || !cell) throw new Error('expected a ghost and a cell');
+    expect(ghost).toMatchObject({ id: 'g', r: 10 });
+    for (const circle of cell.circles) {
+      const distance = Math.hypot(ghost.x - (cell.x + circle.cx), ghost.y - (cell.y + circle.cy));
+      expect(distance).toBeGreaterThanOrEqual(circle.r + ghost.r);
+    }
+  });
+
+  it('keeps two ghosts in one cell clear of each other', () => {
+    const [first, second] = placeGhosts(layoutCells([{ id: 'a', u: 2, i: 2, r: 20 }]), [
+      { id: 'g', u: 2, i: 2, r: 10 },
+      { id: 'h', u: 2, i: 2, r: 10 },
+    ]);
+
+    if (!first || !second) throw new Error('expected two ghosts');
+    expect(Math.hypot(first.x - second.x, first.y - second.y)).toBeGreaterThanOrEqual(20);
+  });
+
+  it('centres a ghost in a cell that holds no circle, at the floor when it has no radius', () => {
+    expect(placeGhosts([], [{ id: 'g', u: 5, i: 5 }])).toStrictEqual([
+      { id: 'g', x: 5 * CELL_SIZE + CELL_SIZE / 2, y: CELL_SIZE / 2, r: FLOOR_RADIUS },
+    ]);
   });
 });
 

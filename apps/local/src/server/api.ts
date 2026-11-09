@@ -45,7 +45,7 @@ const MAX_BODY_BYTES = 16_384;
 
 export interface ApiOptions {
   loadItems: () => Promise<WorkItem[]>;
-  /** The repositories (`owner/name`) whose open issues `loadItems` returns in full. */
+  /** The repositories (`owner/name`) whose open issues `loadItems` returns in full, with their recently closed ones. */
   repos: readonly string[];
   store: Store;
   /** The user whose scores the host reads and writes. */

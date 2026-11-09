@@ -15,12 +15,13 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
-import { Edges, focusItem, listEdgeEnds } from './Edges.tsx';
+import { Edges, focusItem } from './Edges.tsx';
 import { FilterBar } from './FilterBar.tsx';
+import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
@@ -153,8 +154,15 @@ export function Chart({
 
   /** Applies a filter, ending a running review, whose queue the filter would change under it. */
   function changeFilter(next: ItemFilter): void {
-    setFilter(next);
+    setFilter({ ...next, revealedKeys: new Set() });
     if (review.kind !== undefined) review.end();
+  }
+
+  /** Reveals one hidden item and selects it, ending a running review, whose queue the reveal would change. */
+  function revealGhost(key: string): void {
+    setFilter({ ...filter, revealedKeys: new Set([...filter.revealedKeys, key]) });
+    if (review.kind !== undefined) review.end();
+    selection.push(key);
   }
 
   // Bring each item that a review moves to into view, since the chart scrolls on a narrow screen.
@@ -164,8 +172,13 @@ export function Chart({
     element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [review.kind, selectedKey]);
 
-  const focus = focusItem(graph, previewKey ?? selectedKey, showAllEdges);
-  const ends = listEdgeEnds(cells);
+  const focusKey = previewKey ?? selectedKey;
+  const focus = focusItem(graph, focusKey, showAllEdges);
+  const board = { itemsByKey, overrides, scores, visibleKeys };
+  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, focus.edges, focusKey, board);
+  const ghostElements = (
+    <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
+  );
   // A running review's fade governs, so that the queue stays legible as the review steps.
   function isFaded(key: string): boolean {
     return review.kind === undefined ? focus.related !== undefined && !focus.related.has(key) : review.isFaded(key);
@@ -222,7 +235,7 @@ export function Chart({
                           {cell.circles.map((circle) => {
                             const item = itemsByKey.get(circle.id);
                             if (!item) return null;
-                            return (
+                            const circleElement = (
                               <ScoredCircle
                                 cellX={cell.x}
                                 cellY={cell.y}
@@ -245,10 +258,17 @@ export function Chart({
                                 workType={classifyWorkType(item.labels, workTypeMapping)}
                               />
                             );
+                            return (
+                              <Fragment key={circle.id}>
+                                {circleElement}
+                                {circle.id === ghostOwner ? ghostElements : null}
+                              </Fragment>
+                            );
                           })}
                         </g>
                       ),
                     )}
+                    {ghostOwner === undefined ? ghostElements : null}
                     {cells.map((cell) =>
                       cell.isGutter ? (
                         <GutterCell

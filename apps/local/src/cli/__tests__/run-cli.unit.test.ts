@@ -17,6 +17,7 @@ const ITEM: WorkItem = {
   labels: [],
   relations: [],
 };
+const CLOSED_ITEM: WorkItem = { ...ITEM, number: 2, url: 'https://github.com/o/r/issues/2', state: 'closed' };
 const NOW = new Date('2026-11-08T12:00:00.000Z');
 
 describe(runCli, () => {
@@ -59,11 +60,13 @@ describe(runCli, () => {
     expect(run.stderr).toMatch(/^top-right list-items: .*--yaml/);
   });
 
-  it('lists the items as JSON', async () => {
+  it('lists the open items as JSON, leaving out the closed ones', async () => {
     const run = await runWith(['list-items', '--json']);
 
     expect(run.code).toBe(0);
-    expect(JSON.parse(run.stdout)).toMatchObject({ items: [{ itemKey: 'o/r#1', scores: {} }] });
+    expect(JSON.parse(run.stdout)).toStrictEqual({
+      items: [expect.objectContaining({ itemKey: 'o/r#1', scores: {} })],
+    });
   });
 
   it('writes a batch as the agent’s and reports the changes', async () => {
@@ -88,16 +91,17 @@ describe(runCli, () => {
     expect(run.store.state.scores).toStrictEqual({});
   });
 
-  it('refuses a batch that names a closed or unknown item, writes nothing, and exits 2', async () => {
+  it('refuses a batch that names a loaded closed item or an unknown one, writes nothing, and exits 2', async () => {
     const run = await runWith(['write-scores', 'scores.json'], {
       files: {
         'scores.json':
-          '[{ "itemKey": "o/r#1", "scores": { "urgency": 4 } }, { "itemKey": "o/r#2", "scores": { "impact": 1 } }]',
+          '[{ "itemKey": "o/r#1", "scores": { "urgency": 4 } }, { "itemKey": "o/r#2", "scores": { "impact": 1 } }, { "itemKey": "o/r#3", "scores": { "impact": 1 } }]',
       },
     });
 
     expect(run.code).toBe(2);
     expect(run.stderr).toContain('entry 2: o/r#2 is not an open issue of a configured repository');
+    expect(run.stderr).toContain('entry 3: o/r#3 is not an open issue of a configured repository');
     expect(run.store.state.scores).toStrictEqual({});
   });
 
@@ -132,7 +136,7 @@ interface RunOptions {
   failure?: Error;
 }
 
-/** Runs the CLI against a memory store holding the open item `o/r#1`, and returns its output and exit code. */
+/** Runs the CLI against a memory store, with the open item `o/r#1` and the closed `o/r#2` loaded, and returns its output and exit code. */
 async function runWith(argv: string[], options: RunOptions = {}) {
   const store: MemoryStore = createMemoryStore();
   let stdout = '';
@@ -144,7 +148,7 @@ async function runWith(argv: string[], options: RunOptions = {}) {
     openContext: () => {
       if (options.failure instanceof StartupError) return Promise.reject(options.failure);
       return Promise.resolve({
-        loadItems: () => (options.failure ? Promise.reject(options.failure) : Promise.resolve([ITEM])),
+        loadItems: () => (options.failure ? Promise.reject(options.failure) : Promise.resolve([ITEM, CLOSED_ITEM])),
         store,
         userId: 'github:author',
         close: () => {},

@@ -4,11 +4,19 @@ export const RELATION_LIMIT = 50;
 /** The most labels that the query reads per issue. */
 export const LABEL_LIMIT = 50;
 
-/** Reads one page of a repository's open issues, oldest first, with their labels and relations. */
-export const OPEN_ISSUES_QUERY = `
-query OpenIssues($owner: String!, $name: String!, $pageSize: Int!, $after: String) {
+/** Reads one page of a repository's issues in the given states, order, and filter, with their labels and relations. */
+export const ISSUES_QUERY = `
+query Issues(
+  $owner: String!
+  $name: String!
+  $states: [IssueState!]!
+  $orderBy: IssueOrder!
+  $filterBy: IssueFilters
+  $pageSize: Int!
+  $after: String
+) {
   repository(owner: $owner, name: $name) {
-    issues(states: OPEN, first: $pageSize, after: $after, orderBy: { field: CREATED_AT, direction: ASC }) {
+    issues(states: $states, orderBy: $orderBy, filterBy: $filterBy, first: $pageSize, after: $after) {
       pageInfo { hasNextPage endCursor }
       nodes {
         number
@@ -16,6 +24,7 @@ query OpenIssues($owner: String!, $name: String!, $pageSize: Int!, $after: Strin
         url
         state
         createdAt
+        closedAt
         labels(first: ${LABEL_LIMIT}) { nodes { name } }
         blockedBy(first: ${RELATION_LIMIT}) { nodes { ...IssueRef } }
         blocking(first: ${RELATION_LIMIT}) { nodes { ...IssueRef } }

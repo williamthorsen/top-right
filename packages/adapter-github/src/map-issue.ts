@@ -11,6 +11,7 @@ const issueRefSchema = z.object({
 
 const issueSchema = issueRefSchema.omit({ repository: true }).extend({
   createdAt: z.string(),
+  closedAt: z.string().nullable(),
   labels: z.object({ nodes: z.array(z.object({ name: z.string() })) }),
   blockedBy: z.object({ nodes: z.array(issueRefSchema) }),
   blocking: z.object({ nodes: z.array(issueRefSchema) }),
@@ -18,8 +19,8 @@ const issueSchema = issueRefSchema.omit({ repository: true }).extend({
   parent: issueRefSchema.nullable(),
 });
 
-/** The response to one page of `OPEN_ISSUES_QUERY`. */
-export const openIssuesResponseSchema = z.object({
+/** The response to one page of `ISSUES_QUERY`. */
+export const issuesResponseSchema = z.object({
   data: z
     .object({
       repository: z

@@ -32,6 +32,13 @@ describe(filterItems, () => {
 
     expect(filterItems(items, { 'o/a#1': IN_PROGRESS }, DEFAULT_ITEM_FILTER)).toEqual([]);
   });
+
+  it('keeps a revealed item whatever its status or repo, and only that one', () => {
+    const items = [buildItem('o/a', 1, 'closed'), buildItem('o/a', 2, 'closed'), buildItem('o/b', 3)];
+    const filter: ItemFilter = { ...DEFAULT_ITEM_FILTER, repo: 'o/b', revealedKeys: new Set(['o/a#1']) };
+
+    expect(filterItems(items, {}, filter).map((item) => item.number)).toEqual([1, 3]);
+  });
 });
 
 describe(countByStatus, () => {
@@ -58,25 +65,33 @@ describe(revealItem, () => {
   it("adds the item's status when the filter hides it", () => {
     const revealed = revealItem(DEFAULT_ITEM_FILTER, buildItem('o/a', 1, 'closed'), undefined);
 
-    expect(revealed).toEqual({ repo: undefined, statuses: new Set(['done', 'in-progress', 'to-do']) });
+    expect(revealed).toEqual({
+      repo: undefined,
+      revealedKeys: new Set(),
+      statuses: new Set(['done', 'in-progress', 'to-do']),
+    });
   });
 
   it('clears the repo when another repo is selected', () => {
     const revealed = revealItem({ ...DEFAULT_ITEM_FILTER, repo: 'o/b' }, buildItem('o/a', 1), undefined);
 
-    expect(revealed).toEqual({ repo: undefined, statuses: DEFAULT_ITEM_FILTER.statuses });
+    expect(revealed).toEqual({ repo: undefined, revealedKeys: new Set(), statuses: DEFAULT_ITEM_FILTER.statuses });
   });
 
   it('widens both when both hide the item, reading the status through the override', () => {
-    const revealed = revealItem({ repo: 'o/b', statuses: new Set(['to-do']) }, buildItem('o/a', 1), IN_PROGRESS);
+    const revealed = revealItem(
+      { repo: 'o/b', revealedKeys: new Set(), statuses: new Set(['to-do']) },
+      buildItem('o/a', 1),
+      IN_PROGRESS,
+    );
 
-    expect(revealed).toEqual({ repo: undefined, statuses: new Set(['in-progress', 'to-do']) });
+    expect(revealed).toEqual({ repo: undefined, revealedKeys: new Set(), statuses: new Set(['in-progress', 'to-do']) });
   });
 });
 
 // region | Helpers
 function buildFilter(statuses: StatusCategory[]): ItemFilter {
-  return { repo: undefined, statuses: new Set(statuses) };
+  return { repo: undefined, revealedKeys: new Set(), statuses: new Set(statuses) };
 }
 
 function buildItem(repo: string, number: number, state: ItemState = 'open'): WorkItem {

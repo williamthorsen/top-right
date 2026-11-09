@@ -2,7 +2,10 @@
   "data": {
     "repository": {
       "issues": {
-        "pageInfo": { "hasNextPage": true, "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0xMS0wOFQwODo1OTowMlrPAAAAAXWufIA=" },
+        "pageInfo": {
+          "hasNextPage": true,
+          "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0xMS0wOFQwODo1OTowMlrPAAAAAXWufIA="
+        },
         "nodes": [
           {
             "number": 10,
@@ -10,9 +13,19 @@
             "url": "https://github.com/williamthorsen/top-right/issues/10",
             "state": "OPEN",
             "createdAt": "2026-11-10T09:00:00Z",
-            "labels": { "nodes": [{ "name": "feature" }] },
-            "blockedBy": { "nodes": [] },
-            "blocking": { "nodes": [] },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "feature"
+                }
+              ]
+            },
+            "blockedBy": {
+              "nodes": []
+            },
+            "blocking": {
+              "nodes": []
+            },
             "subIssues": {
               "nodes": [
                 {
@@ -20,46 +33,59 @@
                   "title": "Plot the author's open GitHub issues on the chart from the local host",
                   "url": "https://github.com/williamthorsen/top-right/issues/11",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 },
                 {
                   "number": 12,
                   "title": "Score items on the chart and keep the scores per user across refreshes",
                   "url": "https://github.com/williamthorsen/top-right/issues/12",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 },
                 {
                   "number": 13,
                   "title": "Score the backlog with an agent and review its scores on the chart",
                   "url": "https://github.com/williamthorsen/top-right/issues/13",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 },
                 {
                   "number": 14,
                   "title": "Draw blockers and sub-issues as edges and compute the next pick from them",
                   "url": "https://github.com/williamthorsen/top-right/issues/14",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 },
                 {
                   "number": 15,
                   "title": "Filter by repo and status, sort the table, and edit the mappings in Settings",
                   "url": "https://github.com/williamthorsen/top-right/issues/15",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 },
                 {
                   "number": 16,
                   "title": "Reveal recently closed items and bound how far back closed issues are fetched",
                   "url": "https://github.com/williamthorsen/top-right/issues/16",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
-            "parent": null
+            "parent": null,
+            "closedAt": null
           },
           {
             "number": 11,
@@ -67,8 +93,16 @@
             "url": "https://github.com/williamthorsen/top-right/issues/11",
             "state": "OPEN",
             "createdAt": "2026-11-11T09:00:00Z",
-            "labels": { "nodes": [{ "name": "feature" }] },
-            "blockedBy": { "nodes": [] },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "feature"
+                }
+              ]
+            },
+            "blockedBy": {
+              "nodes": []
+            },
             "blocking": {
               "nodes": [
                 {
@@ -76,18 +110,25 @@
                   "title": "Score items on the chart and keep the scores per user across refreshes",
                   "url": "https://github.com/williamthorsen/top-right/issues/12",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
-            "subIssues": { "nodes": [] },
+            "subIssues": {
+              "nodes": []
+            },
             "parent": {
               "number": 10,
               "title": "Build the Top Right MVP: the local host on the author's GitHub backlog",
               "url": "https://github.com/williamthorsen/top-right/issues/10",
               "state": "OPEN",
-              "repository": { "nameWithOwner": "williamthorsen/top-right" }
-            }
+              "repository": {
+                "nameWithOwner": "williamthorsen/top-right"
+              }
+            },
+            "closedAt": null
           },
           {
             "number": 12,
@@ -95,7 +136,13 @@
             "url": "https://github.com/williamthorsen/top-right/issues/12",
             "state": "OPEN",
             "createdAt": "2026-11-12T09:00:00Z",
-            "labels": { "nodes": [{ "name": "feature" }] },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "feature"
+                }
+              ]
+            },
             "blockedBy": {
               "nodes": [
                 {
@@ -103,7 +150,9 @@
                   "title": "Plot the author's open GitHub issues on the chart from the local host",
                   "url": "https://github.com/williamthorsen/top-right/issues/11",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
@@ -114,18 +163,25 @@
                   "title": "Score the backlog with an agent and review its scores on the chart",
                   "url": "https://github.com/williamthorsen/top-right/issues/13",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
-            "subIssues": { "nodes": [] },
+            "subIssues": {
+              "nodes": []
+            },
             "parent": {
               "number": 10,
               "title": "Build the Top Right MVP: the local host on the author's GitHub backlog",
               "url": "https://github.com/williamthorsen/top-right/issues/10",
               "state": "OPEN",
-              "repository": { "nameWithOwner": "williamthorsen/top-right" }
-            }
+              "repository": {
+                "nameWithOwner": "williamthorsen/top-right"
+              }
+            },
+            "closedAt": null
           },
           {
             "number": 13,
@@ -133,7 +189,13 @@
             "url": "https://github.com/williamthorsen/top-right/issues/13",
             "state": "OPEN",
             "createdAt": "2026-11-13T09:00:00Z",
-            "labels": { "nodes": [{ "name": "feature" }] },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "feature"
+                }
+              ]
+            },
             "blockedBy": {
               "nodes": [
                 {
@@ -141,7 +203,9 @@
                   "title": "Score items on the chart and keep the scores per user across refreshes",
                   "url": "https://github.com/williamthorsen/top-right/issues/12",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
@@ -152,18 +216,25 @@
                   "title": "Draw blockers and sub-issues as edges and compute the next pick from them",
                   "url": "https://github.com/williamthorsen/top-right/issues/14",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
-            "subIssues": { "nodes": [] },
+            "subIssues": {
+              "nodes": []
+            },
             "parent": {
               "number": 10,
               "title": "Build the Top Right MVP: the local host on the author's GitHub backlog",
               "url": "https://github.com/williamthorsen/top-right/issues/10",
               "state": "OPEN",
-              "repository": { "nameWithOwner": "williamthorsen/top-right" }
-            }
+              "repository": {
+                "nameWithOwner": "williamthorsen/top-right"
+              }
+            },
+            "closedAt": null
           }
         ]
       }

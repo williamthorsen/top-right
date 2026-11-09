@@ -2,7 +2,10 @@
   "data": {
     "repository": {
       "issues": {
-        "pageInfo": { "hasNextPage": false, "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0xMS0wOFQwODo1OTowNVrPAAAAAXWufg8=" },
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0xMS0wOFQwODo1OTowNVrPAAAAAXWufg8="
+        },
         "nodes": [
           {
             "number": 14,
@@ -10,7 +13,13 @@
             "url": "https://github.com/williamthorsen/top-right/issues/14",
             "state": "OPEN",
             "createdAt": "2026-11-14T09:00:00Z",
-            "labels": { "nodes": [{ "name": "feature" }] },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "feature"
+                }
+              ]
+            },
             "blockedBy": {
               "nodes": [
                 {
@@ -18,7 +27,9 @@
                   "title": "Score the backlog with an agent and review its scores on the chart",
                   "url": "https://github.com/williamthorsen/top-right/issues/13",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
@@ -29,18 +40,25 @@
                   "title": "Filter by repo and status, sort the table, and edit the mappings in Settings",
                   "url": "https://github.com/williamthorsen/top-right/issues/15",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
-            "subIssues": { "nodes": [] },
+            "subIssues": {
+              "nodes": []
+            },
             "parent": {
               "number": 10,
               "title": "Build the Top Right MVP: the local host on the author's GitHub backlog",
               "url": "https://github.com/williamthorsen/top-right/issues/10",
               "state": "OPEN",
-              "repository": { "nameWithOwner": "williamthorsen/top-right" }
-            }
+              "repository": {
+                "nameWithOwner": "williamthorsen/top-right"
+              }
+            },
+            "closedAt": null
           },
           {
             "number": 15,
@@ -48,7 +66,13 @@
             "url": "https://github.com/williamthorsen/top-right/issues/15",
             "state": "OPEN",
             "createdAt": "2026-11-15T09:00:00Z",
-            "labels": { "nodes": [{ "name": "feature" }] },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "feature"
+                }
+              ]
+            },
             "blockedBy": {
               "nodes": [
                 {
@@ -56,7 +80,9 @@
                   "title": "Draw blockers and sub-issues as edges and compute the next pick from them",
                   "url": "https://github.com/williamthorsen/top-right/issues/14",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
@@ -67,18 +93,25 @@
                   "title": "Reveal recently closed items and bound how far back closed issues are fetched",
                   "url": "https://github.com/williamthorsen/top-right/issues/16",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
-            "subIssues": { "nodes": [] },
+            "subIssues": {
+              "nodes": []
+            },
             "parent": {
               "number": 10,
               "title": "Build the Top Right MVP: the local host on the author's GitHub backlog",
               "url": "https://github.com/williamthorsen/top-right/issues/10",
               "state": "OPEN",
-              "repository": { "nameWithOwner": "williamthorsen/top-right" }
-            }
+              "repository": {
+                "nameWithOwner": "williamthorsen/top-right"
+              }
+            },
+            "closedAt": null
           },
           {
             "number": 16,
@@ -86,7 +119,13 @@
             "url": "https://github.com/williamthorsen/top-right/issues/16",
             "state": "OPEN",
             "createdAt": "2026-11-16T09:00:00Z",
-            "labels": { "nodes": [{ "name": "feature" }] },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "feature"
+                }
+              ]
+            },
             "blockedBy": {
               "nodes": [
                 {
@@ -94,19 +133,28 @@
                   "title": "Filter by repo and status, sort the table, and edit the mappings in Settings",
                   "url": "https://github.com/williamthorsen/top-right/issues/15",
                   "state": "OPEN",
-                  "repository": { "nameWithOwner": "williamthorsen/top-right" }
+                  "repository": {
+                    "nameWithOwner": "williamthorsen/top-right"
+                  }
                 }
               ]
             },
-            "blocking": { "nodes": [] },
-            "subIssues": { "nodes": [] },
+            "blocking": {
+              "nodes": []
+            },
+            "subIssues": {
+              "nodes": []
+            },
             "parent": {
               "number": 10,
               "title": "Build the Top Right MVP: the local host on the author's GitHub backlog",
               "url": "https://github.com/williamthorsen/top-right/issues/10",
               "state": "OPEN",
-              "repository": { "nameWithOwner": "williamthorsen/top-right" }
-            }
+              "repository": {
+                "nameWithOwner": "williamthorsen/top-right"
+              }
+            },
+            "closedAt": null
           }
         ]
       }

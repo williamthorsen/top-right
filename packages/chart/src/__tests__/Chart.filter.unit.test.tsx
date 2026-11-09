@@ -59,6 +59,20 @@ describe(Chart, () => {
       expect(screen.queryByRole('button', { name: /^t\.2:/ })).not.toBeInTheDocument();
     });
 
+    it('hides closed items until Done is turned on, and counts them under Done', async () => {
+      const user = userEvent.setup();
+      renderChart([buildItem({ number: 1 }), buildItem({ number: 2, state: 'closed' })]);
+      const toggle = screen.getByRole('button', { name: /^Done/ });
+      expect(toggle).not.toBePressed();
+      expect(toggle).toHaveAccessibleName('Done 1');
+      expect(screen.queryByRole('button', { name: /^t\.2:/ })).not.toBeInTheDocument();
+
+      await user.click(toggle);
+
+      expect(toggle).toBePressed();
+      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBeInTheDocument();
+    });
+
     it('counts each status within the repo filter', async () => {
       const user = userEvent.setup();
       renderChart(
