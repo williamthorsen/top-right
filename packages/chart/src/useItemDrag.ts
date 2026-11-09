@@ -78,6 +78,10 @@ export function useItemDrag({ svgRef, cellOf, onDrop }: ItemDragOptions): ItemDr
         press.current = undefined;
         if (!current.isDragging) return;
         justDragged.current = true;
+        // A drop that moves the item remounts its element, so the click that follows may never reach `selectItem`.
+        setTimeout(() => {
+          justDragged.current = false;
+        }, 0);
         setDrag(undefined);
         const point = toMatrixPoint(svgRef.current, event.clientX, event.clientY);
         const target = point && findTarget(point, cellOf(key));

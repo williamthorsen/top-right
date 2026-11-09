@@ -14,25 +14,51 @@ const FIRST = `${REPO}#1`;
 
 describe('Chart drag', () => {
   it('moves the selected circle to the scored cell on which it is dropped, with one write of both scores', async () => {
-    const { onScoresChange, onSelectedKeyChange } = renderDragHost([buildItem({ number: 1 })], {
-      [FIRST]: place(2, 2),
-    });
+    const { onScoresChange } = renderDragHost([buildItem({ number: 1 })], { [FIRST]: place(2, 2) });
     const circle = getCircle(1);
     await userEvent.setup().click(circle);
-    onSelectedKeyChange.mockClear();
 
     fireEvent.pointerDown(circle, { pointerId: 1, ...centreOf(2, 2) });
     fireEvent.pointerMove(circle, { pointerId: 1, ...centreOf(4, 5) });
     expect(countMarks('.tr-drop-target')).toBe(1);
     expect(countMarks('.tr-drag-proxy')).toBe(1);
     fireEvent.pointerUp(circle, { pointerId: 1, ...centreOf(4, 5) });
-    fireEvent.click(circle);
 
     expect(onScoresChange).toHaveBeenCalledTimes(1);
     expect(onScoresChange).toHaveBeenCalledWith(FIRST, { urgency: 4, impact: 5 });
     expect(countMarks('.tr-drop-target')).toBe(0);
     expect(countMarks('.tr-drag-proxy')).toBe(0);
-    expect(onSelectedKeyChange).not.toHaveBeenCalledWith(FIRST, { push: true });
+  });
+
+  it('ignores the click that ends a drag, so that a drop pushes no selection', async () => {
+    const { onSelectedKeyChange } = renderDragHost([buildItem({ number: 1 })], { [FIRST]: place(2, 2) });
+    const circle = getCircle(1);
+    await userEvent.setup().click(circle);
+    onSelectedKeyChange.mockClear();
+
+    fireEvent.pointerDown(circle, { pointerId: 1, ...centreOf(2, 2) });
+    fireEvent.pointerMove(circle, { pointerId: 1, ...centreOf(0, 3) });
+    fireEvent.pointerUp(circle, { pointerId: 1, ...centreOf(0, 3) });
+    fireEvent.click(circle);
+
+    expect(onSelectedKeyChange).not.toHaveBeenCalled();
+  });
+
+  it('selects the next item clicked after a drop moves the dragged one', async () => {
+    const user = userEvent.setup();
+    renderDragHost([buildItem({ number: 1 }), buildItem({ number: 2 })], {
+      [FIRST]: place(2, 2),
+      [`${REPO}#2`]: place(3, 3),
+    });
+    const circle = getCircle(1);
+    await user.click(circle);
+
+    fireEvent.pointerDown(circle, { pointerId: 1, ...centreOf(2, 2) });
+    fireEvent.pointerMove(circle, { pointerId: 1, ...centreOf(4, 4) });
+    fireEvent.pointerUp(circle, { pointerId: 1, ...centreOf(4, 4) });
+    await user.click(getCircle(2));
+
+    expect(getCircle(2)).toBePressed();
   });
 
   it('does not highlight the circle’s own cell', async () => {
