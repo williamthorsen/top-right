@@ -15,18 +15,18 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
-import { Edges, focusItem, listEdgeEnds } from './Edges.tsx';
+import { Edges, focusItem } from './Edges.tsx';
 import { FilterBar } from './FilterBar.tsx';
-import { Ghosts, listGhostPlacements } from './Ghosts.tsx';
+import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { layoutCells, placeGhosts, sizeCircle } from './layout.ts';
+import { layoutCells, sizeCircle } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
@@ -172,10 +172,13 @@ export function Chart({
     element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [review.kind, selectedKey]);
 
-  const focus = focusItem(graph, previewKey ?? selectedKey, showAllEdges);
-  const ghosts = placeGhosts(cells, listGhostPlacements(focus.edges, { itemsByKey, overrides, scores, visibleKeys }));
-  const ends = listEdgeEnds(cells);
-  for (const ghost of ghosts) ends.set(ghost.id, ghost);
+  const focusKey = previewKey ?? selectedKey;
+  const focus = focusItem(graph, focusKey, showAllEdges);
+  const board = { itemsByKey, overrides, scores, visibleKeys };
+  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, focus.edges, focusKey, board);
+  const ghostElements = (
+    <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
+  );
   // A running review's fade governs, so that the queue stays legible as the review steps.
   function isFaded(key: string): boolean {
     return review.kind === undefined ? focus.related !== undefined && !focus.related.has(key) : review.isFaded(key);
@@ -226,20 +229,13 @@ export function Chart({
                       <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                     ))}
                     <Edges edges={focus.edges} ends={ends} />
-                    <Ghosts
-                      ghosts={ghosts}
-                      isFaded={isFaded}
-                      itemsByKey={itemsByKey}
-                      labelOf={labelOf}
-                      onReveal={revealGhost}
-                    />
                     {cells.map((cell) =>
                       cell.isGutter ? null : (
                         <g key={`${cell.u},${cell.i}`}>
                           {cell.circles.map((circle) => {
                             const item = itemsByKey.get(circle.id);
                             if (!item) return null;
-                            return (
+                            const circleElement = (
                               <ScoredCircle
                                 cellX={cell.x}
                                 cellY={cell.y}
@@ -262,10 +258,17 @@ export function Chart({
                                 workType={classifyWorkType(item.labels, workTypeMapping)}
                               />
                             );
+                            return (
+                              <Fragment key={circle.id}>
+                                {circleElement}
+                                {circle.id === ghostOwner ? ghostElements : null}
+                              </Fragment>
+                            );
                           })}
                         </g>
                       ),
                     )}
+                    {ghostOwner === undefined ? ghostElements : null}
                     {cells.map((cell) =>
                       cell.isGutter ? (
                         <GutterCell

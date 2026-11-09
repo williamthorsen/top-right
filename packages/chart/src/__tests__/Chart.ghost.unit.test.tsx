@@ -63,15 +63,27 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^Done/ })).not.toBePressed();
     });
 
-    it('reveals by keyboard while the related item stays selected', async () => {
+    it('is reached by Tab from the selected circle, past the other circles, and reveals by Enter', async () => {
       const user = userEvent.setup();
-      renderChart(items, {}, scores);
+      // t.5 is a visible circle that follows t.1 in the matrix; focusing it would move the edges to it.
+      renderChart([...items, buildItem({ number: 5 })], {}, { ...scores, [`${REPO}#5`]: place(2, 2) });
       await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
-      screen.getByRole('button', { name: GHOST_NAME }).focus();
 
+      await user.tab();
+
+      expect(screen.getByRole('button', { name: GHOST_NAME })).toHaveFocus();
       await user.keyboard('{Enter}');
 
       expect(screen.getByRole('button', { name: /^t\.2: Issue 2$/ })).toBePressed();
+    });
+
+    it('draws no ghost for an edge from an item in a gutter, which draws no edge', async () => {
+      const user = userEvent.setup();
+      renderChart(items, {}, { [`${REPO}#2`]: place(4, 4) });
+
+      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+
+      expect(screen.queryByRole('button', { name: GHOST_NAME })).not.toBeInTheDocument();
     });
 
     it('hides the revealed item again at the next filter-bar change', async () => {
