@@ -3,6 +3,7 @@ import {
   classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
   deriveStatus,
+  findLongestBlockerChain,
   findNextPick,
   formatItemKey,
   isAgentScored,
@@ -21,7 +22,7 @@ import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
 import { DragProxy, DropTarget } from './DragMarks.tsx';
-import { Edges, focusItem } from './Edges.tsx';
+import { Edges, focusItem, mergeChainEdges } from './Edges.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
@@ -34,7 +35,7 @@ import { ScoredCircle } from './ScoredCircle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
-import { useReview } from './useReview.ts';
+import { type Review, useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
 
@@ -99,6 +100,7 @@ export function Chart({
   const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
   const [scopeMode, setScopeMode] = useState<ScopeMode>('original');
+  const [isChainShown, setIsChainShown] = useState(false);
   const [highlightedKey, setHighlightedKey] = useState<string>();
   const [highlightOwner, setHighlightOwner] = useState<string>();
 
@@ -120,6 +122,11 @@ export function Chart({
     () => layoutCells(placeItems(visibleItems, scores, scopeMode)),
     [visibleItems, scores, scopeMode],
   );
+
+  const chain = useMemo(() => findLongestBlockerChain(visibleItems), [visibleItems]);
+  const chainKeys = useMemo(() => new Set(chain), [chain]);
+  // A filter that leaves no chain turns the view off, so that widening it again does not bring back an unasked view.
+  if (isChainShown && chain.length === 0) setIsChainShown(false);
 
   const pickKey = useMemo(() => findNextPick(visibleItems, scores, overrides), [visibleItems, scores, overrides]);
   const shownKey = previewKey ?? selectedKey ?? pickKey;
@@ -159,6 +166,12 @@ export function Chart({
     if (review.kind !== undefined) review.end();
   }
 
+  /** Shows or hides the longest chain, ending a running review, whose fade would compete with the chain's. */
+  function changeChainShown(next: boolean): void {
+    if (next && review.kind !== undefined) review.end();
+    setIsChainShown(next);
+  }
+
   /** Reveals one hidden item and selects it, ending a running review, whose queue the reveal would change. */
   function revealGhost(key: string): void {
     setFilter({ ...filter, revealedKeys: new Set([...filter.revealedKeys, key]) });
@@ -176,14 +189,24 @@ export function Chart({
   const focusKey = previewKey ?? selectedKey;
   const focus = focusItem(graph, focusKey, showAllEdges);
   const board = { itemsByKey, overrides, scopeMode, scores, visibleKeys };
-  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, focus.edges, focusKey, board);
+  const shownEdges = isChainShown ? mergeChainEdges(focus.edges, chain) : focus.edges;
+  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board);
   const ghostElements = (
     <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
   );
-  // A running review's fade governs, so that the queue stays legible as the review steps.
+  // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
   function isFaded(key: string): boolean {
-    return review.kind === undefined ? focus.related !== undefined && !focus.related.has(key) : review.isFaded(key);
+    if (review.kind !== undefined) return review.isFaded(key);
+    if (isChainShown) return !chainKeys.has(key);
+    return focus.related !== undefined && !focus.related.has(key);
   }
+  const stripReview: Review = {
+    ...review,
+    start: (kind) => {
+      setIsChainShown(false);
+      review.start(kind);
+    },
+  };
 
   const trails = listTrails(
     cells,
@@ -196,10 +219,11 @@ export function Chart({
       <div className="tr-work">
         <div className="tr-chart-area">
           <ChartStrip
+            chain={{ isShown: isChainShown, length: chain.length, onShownChange: changeChainShown }}
             filterBar={{ abbreviations, counts: statusCounts, filter, onChange: changeFilter }}
             onScopeModeChange={setScopeMode}
             onShowAllEdgesChange={setShowAllEdges}
-            review={review}
+            review={stripReview}
             scopeMode={scopeMode}
             settingsHref={settingsHref}
             showAllEdges={showAllEdges}
@@ -222,7 +246,7 @@ export function Chart({
                     {trails.map((trail) => (
                       <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                     ))}
-                    <Edges edges={focus.edges} ends={ends} />
+                    <Edges edges={shownEdges} ends={ends} />
                     {cells.map((cell) =>
                       cell.isGutter ? null : (
                         <g key={`${cell.u},${cell.i}`}>

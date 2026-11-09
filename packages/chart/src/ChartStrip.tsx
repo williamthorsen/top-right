@@ -2,11 +2,14 @@ import type { ReactElement } from 'react';
 
 import { FilterBar, type FilterBarProps } from './FilterBar.tsx';
 import type { ScopeMode } from './layout.ts';
+import { MoreMenu } from './MoreMenu.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
 import { Toggle } from './Toggle.tsx';
 import type { Review } from './useReview.ts';
 
 export interface ChartStripProps {
+  /** The longest blocker chain's view: whether it is shown, and the chain's length in items, 0 without a chain. */
+  chain: { isShown: boolean; length: number; onShownChange: (isShown: boolean) => void };
   filterBar: FilterBarProps;
   review: Review;
   showAllEdges: boolean;
@@ -17,8 +20,12 @@ export interface ChartStripProps {
   settingsHref: string | undefined;
 }
 
-/** The strip above the chart: the filter, the review controls, the view toggles, and the link to Settings. */
+/**
+ * The strip above the chart: the filter, the review controls, the view toggles and the More menu, the shown chain's
+ * status, and the link to Settings.
+ */
 export function ChartStrip({
+  chain,
   filterBar,
   review,
   showAllEdges,
@@ -47,7 +54,18 @@ export function ChartStrip({
         >
           Remaining scope
         </Toggle>
+        <MoreMenu hasChain={chain.length > 0} isChainShown={chain.isShown} onChainShownChange={chain.onShownChange} />
       </div>
+      {chain.isShown ? (
+        <div aria-label="Longest chain" className="tr-chain" role="toolbar">
+          <span aria-live="polite" className="tr-review-position">
+            Longest chain · {chain.length} items
+          </span>
+          <button className="tr-review-button" onClick={() => chain.onShownChange(false)} type="button">
+            End chain view
+          </button>
+        </div>
+      ) : null}
       {settingsHref === undefined ? null : (
         <a className="tr-strip-link" href={settingsHref}>
           Settings

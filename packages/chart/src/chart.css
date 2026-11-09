@@ -555,7 +555,8 @@
   gap: 4px 8px;
 }
 
-.tr-review {
+.tr-review,
+.tr-chain {
   display: flex;
   flex-wrap: wrap;
   align-items: center;

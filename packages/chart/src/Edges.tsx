@@ -107,7 +107,27 @@ export function listEdgeEnds(cells: readonly CellLayout[]): Map<string, EdgeEnd>
   return ends;
 }
 
+/**
+ * Returns `edges` with a full-weight blocker edge for each consecutive pair of `chain`; an edge that `edges` already
+ * contains takes full weight rather than drawing twice.
+ */
+export function mergeChainEdges(edges: readonly WeightedEdge[], chain: readonly string[]): WeightedEdge[] {
+  const merged = new Map(edges.map((edge) => [identifyEdge(edge), edge]));
+  for (let index = 1; index < chain.length; index++) {
+    const from = chain[index - 1];
+    const to = chain[index];
+    if (from === undefined || to === undefined) continue;
+    const edge: WeightedEdge = { kind: 'blocker', from, to, weight: 'direct' };
+    merged.set(identifyEdge(edge), edge);
+  }
+  return merged.values().toArray();
+}
+
 // region | Helpers
+function identifyEdge(edge: Edge): string {
+  return `${edge.kind}:${edge.from}:${edge.to}`;
+}
+
 function isWithin(edge: Edge, side: ReadonlySet<string>, key: string): boolean {
   return (side.has(edge.from) || edge.from === key) && (side.has(edge.to) || edge.to === key);
 }
