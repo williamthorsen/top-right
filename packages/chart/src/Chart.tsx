@@ -30,6 +30,7 @@ import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
+import { Toggle } from './Toggle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
 import { useItemFilter } from './useItemFilter.ts';
 import { useReview } from './useReview.ts';
@@ -189,14 +190,9 @@ export function Chart({
               onStart={review.start}
               running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
             />
-            <button
-              aria-pressed={showAllEdges}
-              className="tr-toggle"
-              onClick={() => setShowAllEdges((current) => !current)}
-              type="button"
-            >
+            <Toggle isPressed={showAllEdges} onToggle={() => setShowAllEdges((current) => !current)}>
               All edges
-            </button>
+            </Toggle>
             {settingsHref === undefined ? null : (
               <a className="tr-strip-link" href={settingsHref}>
                 Settings

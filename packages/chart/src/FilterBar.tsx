@@ -3,6 +3,7 @@ import { type ReactElement, useId } from 'react';
 
 import type { Abbreviations } from './item-label.ts';
 import { STATUS_NAMES } from './status-names.ts';
+import { Toggle } from './Toggle.tsx';
 
 export interface FilterBarProps {
   filter: ItemFilter;
@@ -50,15 +51,9 @@ export function FilterBar({ filter, abbreviations, counts, onChange }: FilterBar
       </select>
       <div aria-label="Status" className="tr-filter-statuses" role="group">
         {STATUS_TOGGLES.map((status) => (
-          <button
-            aria-pressed={filter.statuses.has(status)}
-            className="tr-toggle"
-            key={status}
-            onClick={() => toggleStatus(status)}
-            type="button"
-          >
+          <Toggle isPressed={filter.statuses.has(status)} key={status} onToggle={() => toggleStatus(status)}>
             {STATUS_NAMES[status]} <span className="tr-filter-count">{counts[status]}</span>
-          </button>
+          </Toggle>
         ))}
       </div>
     </div>

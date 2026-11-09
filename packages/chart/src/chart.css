@@ -519,8 +519,9 @@
   color: var(--tr-surface);
 }
 
-.tr-toggle[aria-pressed='true']::before {
-  content: '✓';
+.tr-toggle[aria-pressed='true']:hover {
+  border-color: var(--tr-ink-2);
+  background: var(--tr-ink-2);
 }
 
 /* -- Edges: blocker arrows and sub-issue lines, weighted by focus -- */
