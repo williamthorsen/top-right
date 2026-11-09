@@ -1,7 +1,8 @@
+import type { ItemScores } from '@top-right/model';
 import { type PointerEvent, type RefObject, useRef, useState } from 'react';
 
 import { HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
-import { findScoredCellAt } from './layout.ts';
+import { findScoredCellAt, type ScopeMode, sizeItem } from './layout.ts';
 
 /** A drag in progress: the dragged item, its circle's radius, the pointer in matrix units, and the drop target. */
 export interface ItemDrag {
@@ -24,18 +25,22 @@ export interface DragHandlers {
 
 export interface ItemDragOptions {
   svgRef: RefObject<SVGSVGElement | null>;
-  /** Returns the cell that the item occupies now, each axis 0 when unscored. */
-  cellOf: (key: string) => { u: number; i: number };
+  /** The scores that place each item in its cell and size its circle. */
+  scores: Readonly<Record<string, ItemScores>>;
+  scopeMode: ScopeMode;
+  /** The selected item, the only one that drags. */
+  selectedKey: string | undefined;
   /** Reports a drop on a scored cell other than the item's own. */
   onDrop: (key: string, cell: { u: number; i: number }) => void;
+  onSelect: (key: string) => void;
 }
 
 export interface ItemDragState {
   drag: ItemDrag | undefined;
-  /** Returns the handlers for an item whose circle has radius `r`. */
-  bindDrag: (key: string, r: number) => DragHandlers;
-  /** Returns whether a drag just ended on the element, consuming the answer, so that the click that follows is ignored. */
-  wasDragged: () => boolean;
+  /** Returns the drag handlers of the selected item, sized at `r` when given; any other item gets none. */
+  dragHandlersFor: (key: string, r?: number) => DragHandlers | undefined;
+  /** Selects an item, unless the click ends a drag of it. */
+  selectItem: (key: string) => void;
 }
 
 /** How far, in CSS pixels, a pointer moves from where it was pressed before the press becomes a drag. */
@@ -45,14 +50,23 @@ const DRAG_THRESHOLD = 4;
  * Drags an item to a scored cell: A press captures the pointer, a move past the threshold starts the drag, and a release
  * over a scored cell other than the item's own reports the drop. A cancelled pointer ends the drag without a drop.
  */
-export function useItemDrag({ svgRef, cellOf, onDrop }: ItemDragOptions): ItemDragState {
+export function useItemDrag({
+  svgRef,
+  scores,
+  scopeMode,
+  selectedKey,
+  onDrop,
+  onSelect,
+}: ItemDragOptions): ItemDragState {
   const [drag, setDrag] = useState<ItemDrag>();
   const press = useRef<{ key: string; r: number; pointerId: number; x: number; y: number; isDragging: boolean }>(
     undefined,
   );
   const justDragged = useRef(false);
 
-  function bindDrag(key: string, r: number): DragHandlers {
+  function dragHandlersFor(key: string, size?: number): DragHandlers | undefined {
+    if (key !== selectedKey) return undefined;
+    const r = size ?? sizeItem(scores[key], scopeMode).r;
     return {
       ref: holdTouch,
       onPointerDown(event) {
@@ -95,13 +109,18 @@ export function useItemDrag({ svgRef, cellOf, onDrop }: ItemDragOptions): ItemDr
     };
   }
 
-  function wasDragged(): boolean {
-    const result = justDragged.current;
+  function selectItem(key: string): void {
+    const wasDragged = justDragged.current;
     justDragged.current = false;
-    return result;
+    if (!wasDragged) onSelect(key);
   }
 
-  return { drag, bindDrag, wasDragged };
+  /** Returns the cell that the item occupies now, each axis 0 when unscored. */
+  function cellOf(key: string): { u: number; i: number } {
+    return { u: scores[key]?.urgency?.value ?? 0, i: scores[key]?.impact?.value ?? 0 };
+  }
+
+  return { drag, dragHandlersFor, selectItem };
 }
 
 // region | Helpers

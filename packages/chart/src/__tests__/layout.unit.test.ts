@@ -1,4 +1,4 @@
-import type { ItemScores } from '@top-right/model';
+import type { ItemScores, WorkItem } from '@top-right/model';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -10,6 +10,7 @@ import {
   GUTTER_ROW_PITCH,
   layoutCells,
   placeGhosts,
+  placeItems,
   RADIUS_PER_POINT,
   sizeCircle,
   sizeItem,
@@ -137,6 +138,34 @@ describe(placeGhosts, () => {
   it('centres a ghost in a cell that holds no circle, at the floor when it has no radius', () => {
     expect(placeGhosts([], [{ id: 'g', u: 5, i: 5 }])).toStrictEqual([
       { id: 'g', x: 5 * CELL_SIZE + CELL_SIZE / 2, y: CELL_SIZE / 2, r: FLOOR_RADIUS },
+    ]);
+  });
+});
+
+describe(placeItems, () => {
+  const at = '2026-11-01T09:00:00.000Z';
+  const item: WorkItem = {
+    repo: 'williamthorsen/top-right',
+    number: 1,
+    title: 'Issue 1',
+    url: 'https://github.com/williamthorsen/top-right/issues/1',
+    state: 'open',
+    createdAt: at,
+    labels: [],
+    relations: [],
+  };
+
+  it('places an item by its scores and sizes it in the given mode', () => {
+    const scores: Record<string, ItemScores> = {
+      'williamthorsen/top-right#1': {
+        urgency: { value: 4, by: 'author', at },
+        effort: { value: 8, by: 'author', at },
+        progress: { value: 0.5, by: 'author', at },
+      },
+    };
+
+    expect(placeItems([item], scores, 'remaining')).toStrictEqual([
+      { id: 'williamthorsen/top-right#1', u: 4, i: 0, ...sizeCircle(4) },
     ]);
   });
 });

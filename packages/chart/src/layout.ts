@@ -1,4 +1,4 @@
-import { computeRemainingScope, type ItemScores } from '@top-right/model';
+import { computeRemainingScope, formatItemKey, type ItemScores, type WorkItem } from '@top-right/model';
 
 // -- Geometry, in chart units at 1× --
 
@@ -141,6 +141,19 @@ export function placeGhosts(cells: readonly CellLayout[], placements: readonly P
     };
     placed.push(circle);
     return { id: circle.id, x: cell.x + circle.cx, y: cell.y + circle.cy, r };
+  });
+}
+
+/** Returns each item's placement: its cell from its scores, each axis 0 when unscored, and its size in `mode`. */
+export function placeItems(
+  items: readonly WorkItem[],
+  scores: Readonly<Record<string, ItemScores>>,
+  mode: ScopeMode,
+): Placement[] {
+  return items.map((item) => {
+    const id = formatItemKey(item);
+    const itemScores = scores[id];
+    return { id, u: itemScores?.urgency?.value ?? 0, i: itemScores?.impact?.value ?? 0, ...sizeItem(itemScores, mode) };
   });
 }
 

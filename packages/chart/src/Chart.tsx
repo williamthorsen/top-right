@@ -17,24 +17,22 @@ import {
 } from '@top-right/model';
 import { Fragment, type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
+import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
 import { DragProxy, DropTarget } from './DragMarks.tsx';
 import { Edges, focusItem } from './Edges.tsx';
-import { FilterBar } from './FilterBar.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { layoutCells, type ScopeMode, sizeItem } from './layout.ts';
+import { layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
-import { ReviewStrip } from './ReviewStrip.tsx';
 import { ScoredCircle } from './ScoredCircle.tsx';
-import { Toggle } from './Toggle.tsx';
 import { listTrails, Trail } from './Trail.tsx';
-import { type DragHandlers, useItemDrag } from './useItemDrag.ts';
+import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
@@ -116,19 +114,7 @@ export function Chart({
   });
   if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
   const cells = useMemo(
-    () =>
-      layoutCells(
-        visibleItems.map((item) => {
-          const id = formatItemKey(item);
-          const itemScores = scores[id];
-          return {
-            id,
-            u: itemScores?.urgency?.value ?? 0,
-            i: itemScores?.impact?.value ?? 0,
-            ...sizeItem(itemScores, scopeMode),
-          };
-        }),
-      ),
+    () => layoutCells(placeItems(visibleItems, scores, scopeMode)),
     [visibleItems, scores, scopeMode],
   );
 
@@ -152,12 +138,14 @@ export function Chart({
   });
   if (isRevealing && review.kind !== undefined) review.end();
   const svgRef = useRef<SVGSVGElement>(null);
-  const itemDrag = useItemDrag({
+  const { drag, dragHandlersFor, selectItem } = useItemDrag({
     svgRef,
-    cellOf: (key) => ({ u: scores[key]?.urgency?.value ?? 0, i: scores[key]?.impact?.value ?? 0 }),
+    scores,
+    scopeMode,
+    selectedKey,
     onDrop: (key, cell) => review.changeScores(key, { urgency: cell.u, impact: cell.i }),
+    onSelect: selection.push,
   });
-  const drag = itemDrag.drag;
   const scrollRef = useRef<HTMLDivElement>(null);
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
@@ -182,17 +170,6 @@ export function Chart({
     element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [review.kind, selectedKey]);
 
-  /** Selects an item, unless the click ends a drag of it. */
-  function selectItem(key: string): void {
-    if (!itemDrag.wasDragged()) selection.push(key);
-  }
-
-  /** Returns the drag handlers of the selected item, the only one that drags. */
-  function dragHandlersFor(key: string, r?: number): DragHandlers | undefined {
-    if (key !== selectedKey) return undefined;
-    return itemDrag.bindDrag(key, r ?? sizeItem(scores[key], scopeMode).r);
-  }
-
   const focusKey = previewKey ?? selectedKey;
   const focus = focusItem(graph, focusKey, showAllEdges);
   const board = { itemsByKey, overrides, scopeMode, scores, visibleKeys };
@@ -215,32 +192,15 @@ export function Chart({
     <div className="tr-root">
       <div className="tr-work">
         <div className="tr-chart-area">
-          <div className="tr-strip">
-            <FilterBar abbreviations={abbreviations} counts={statusCounts} filter={filter} onChange={changeFilter} />
-            <ReviewStrip
-              counts={{ agent: review.queues.agent.length, unscored: review.queues.unscored.length }}
-              onEnd={review.end}
-              onSkip={review.skip}
-              onStart={review.start}
-              running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
-            />
-            <div className="tr-view-toggles">
-              <Toggle isPressed={showAllEdges} onToggle={() => setShowAllEdges((current) => !current)}>
-                All edges
-              </Toggle>
-              <Toggle
-                isPressed={scopeMode === 'remaining'}
-                onToggle={() => setScopeMode((current) => (current === 'remaining' ? 'original' : 'remaining'))}
-              >
-                Remaining scope
-              </Toggle>
-            </div>
-            {settingsHref === undefined ? null : (
-              <a className="tr-strip-link" href={settingsHref}>
-                Settings
-              </a>
-            )}
-          </div>
+          <ChartStrip
+            filterBar={{ abbreviations, counts: statusCounts, filter, onChange: changeFilter }}
+            onScopeModeChange={setScopeMode}
+            onShowAllEdgesChange={setShowAllEdges}
+            review={review}
+            scopeMode={scopeMode}
+            settingsHref={settingsHref}
+            showAllEdges={showAllEdges}
+          />
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
               <div className="tr-chart-scroll" ref={scrollRef}>
