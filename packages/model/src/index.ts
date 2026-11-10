@@ -21,15 +21,27 @@ export {
 } from './relations.ts';
 export { type Cell, findTrailOrigin, isAgentScored, listReviewQueue, type ReviewQueueKind } from './review.ts';
 export {
+  DEFAULT_SCORE_LABEL_MAPPING,
+  describeDuplicateScoreLabel,
+  type DuplicateScoreLabel,
+  findDuplicateScoreLabels,
+  type LabelDimension,
+  normalizeScoreLabelMapping,
+  resolveItemScores,
+  type ScoreLabelMapping,
+} from './score-labels.ts';
+export {
   applyScoreWrite,
   computeRemainingScope,
   EFFORT_SCALE,
   isValidScore,
   type ItemScores,
   keepItemScores,
+  type LabelScoreEntry,
   PROGRESS_STEP,
   rankLevel,
   readScoreValues,
+  type ResolvedItemScores,
   SCORE_FIELDS,
   type ScoreEntry,
   type ScoreField,

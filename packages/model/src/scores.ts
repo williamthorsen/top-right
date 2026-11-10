@@ -44,6 +44,22 @@ export interface ScoreEntry<T extends ScoreTypes[ScoreField] = ScoreTypes[ScoreF
 /** An item's scores with their provenance, by field. */
 export type ItemScores = { [F in ScoreField]?: ScoreEntry<ScoreTypes[F]> };
 
+/** A score that one of the item's labels supplies, read from the source rather than stored. */
+export interface LabelScoreEntry<T extends UrgencyLevel | ValueLevel = UrgencyLevel | ValueLevel> {
+  score: T;
+  by: 'label';
+  /** The item's label as written at its source. */
+  label: string;
+}
+
+/** An item's stored scores with, where a dimension has none, the scores that its labels supply. */
+export interface ResolvedItemScores {
+  urgency?: LabelScoreEntry<UrgencyLevel> | ScoreEntry<UrgencyLevel>;
+  value?: LabelScoreEntry<ValueLevel> | ScoreEntry<ValueLevel>;
+  effort?: ScoreEntry<number>;
+  progress?: ScoreEntry<number>;
+}
+
 export const SCORE_FIELDS: readonly ScoreField[] = ['urgency', 'value', 'effort', 'progress'];
 
 /**
@@ -65,7 +81,7 @@ export function applyScoreWrite(existing: ItemScores | undefined, values: Scores
 }
 
 /** Returns effort × (1 − progress), with a missing progress as none done, or undefined when the effort is unknown. */
-export function computeRemainingScope(scores: ItemScores | undefined): number | undefined {
+export function computeRemainingScope(scores: ResolvedItemScores | undefined): number | undefined {
   const effort = scores?.effort?.score;
   return effort === undefined ? undefined : effort * (1 - (scores?.progress?.score ?? 0));
 }
