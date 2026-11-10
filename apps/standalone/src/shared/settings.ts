@@ -10,7 +10,7 @@ export const workTypeMappingSchema = z.object({
   task: labelsSchema,
 });
 
-/** The labels that supply each urgency and each value level. */
+/** The labels that supply each urgency level, each value level, and each effort on the scale. */
 export const scoreLabelMappingSchema = z.object({
   urgency: z.object({ critical: labelsSchema, high: labelsSchema, low: labelsSchema, medium: labelsSchema }),
   value: z.object({
@@ -18,6 +18,14 @@ export const scoreLabelMappingSchema = z.object({
     'nice-to-have': labelsSchema,
     questionable: labelsSchema,
     'should-have': labelsSchema,
+  }),
+  effort: z.object({
+    1: labelsSchema,
+    2: labelsSchema,
+    3: labelsSchema,
+    5: labelsSchema,
+    8: labelsSchema,
+    13: labelsSchema,
   }),
 });
 

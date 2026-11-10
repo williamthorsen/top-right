@@ -33,6 +33,7 @@ const MAPPING: WorkTypeMapping = { bug: ['defect'], feature: ['feat'], ops: [], 
 const LABEL_MAPPING: ScoreLabelMapping = {
   urgency: { critical: [], high: ['priority:high'], low: [], medium: [] },
   value: { 'must-have': ['value:must-have'], 'nice-to-have': [], questionable: [], 'should-have': [] },
+  effort: { 1: [], 2: [], 3: ['size:m'], 5: [], 8: [], 13: [] },
 };
 const IN_PROGRESS: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
 
@@ -394,6 +395,30 @@ describe(createApiHandler, () => {
         error: '"priority:high" is under urgency high and value questionable. Keep it under one level.',
       });
       expect(store.state.scoreLabelMapping).toBeUndefined();
+    });
+
+    it('refuses a label under an effort and a level and saves nothing', async () => {
+      const store = createMemoryStore();
+      const baseUrl = await startServer({ store });
+
+      const response = await post(`${baseUrl}/api/score-label-mapping`, {
+        mapping: { ...LABEL_MAPPING, effort: { ...LABEL_MAPPING.effort, 13: ['Value:Must-Have'] } },
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toStrictEqual({
+        error: '"value:must-have" is under value must-have and effort 13. Keep it under one level.',
+      });
+      expect(store.state.scoreLabelMapping).toBeUndefined();
+    });
+
+    it('refuses a mapping without effort entries', async () => {
+      const baseUrl = await startServer({});
+      const { effort, ...withoutEffort } = LABEL_MAPPING;
+
+      const response = await post(`${baseUrl}/api/score-label-mapping`, { mapping: withoutEffort });
+
+      expect(response.status).toBe(400);
     });
 
     it('refuses a mapping that omits a level', async () => {
