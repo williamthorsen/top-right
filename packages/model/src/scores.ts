@@ -4,11 +4,14 @@ export const URGENCY_LEVELS = ['low', 'medium', 'high', 'critical'] as const;
 /** The value levels, in ascending rank. */
 export const VALUE_LEVELS = ['questionable', 'nice-to-have', 'should-have', 'must-have'] as const;
 
-/** The effort values, in points. */
-export const EFFORT_SCALE: readonly number[] = [1, 2, 3, 5, 8, 13];
+/** The effort values, in points, in ascending order. */
+export const EFFORT_SCALE = [1, 2, 3, 5, 8, 13] as const;
 
 /** The step between progress values, as a fraction of the whole. */
 export const PROGRESS_STEP = 0.05;
+
+/** An effort value on the scale, in points. */
+export type EffortPoints = (typeof EFFORT_SCALE)[number];
 
 export type UrgencyLevel = (typeof URGENCY_LEVELS)[number];
 
@@ -45,7 +48,9 @@ export interface ScoreEntry<T extends ScoreTypes[ScoreField] = ScoreTypes[ScoreF
 export type ItemScores = { [F in ScoreField]?: ScoreEntry<ScoreTypes[F]> };
 
 /** A score that one of the item's labels supplies, read from the source rather than stored. */
-export interface LabelScoreEntry<T extends UrgencyLevel | ValueLevel = UrgencyLevel | ValueLevel> {
+export interface LabelScoreEntry<
+  T extends EffortPoints | UrgencyLevel | ValueLevel = EffortPoints | UrgencyLevel | ValueLevel,
+> {
   score: T;
   by: 'label';
   /** The item's label as written at its source. */
@@ -56,7 +61,7 @@ export interface LabelScoreEntry<T extends UrgencyLevel | ValueLevel = UrgencyLe
 export interface ResolvedItemScores {
   urgency?: LabelScoreEntry<UrgencyLevel> | ScoreEntry<UrgencyLevel>;
   value?: LabelScoreEntry<ValueLevel> | ScoreEntry<ValueLevel>;
-  effort?: ScoreEntry<number>;
+  effort?: LabelScoreEntry<EffortPoints> | ScoreEntry<number>;
   progress?: ScoreEntry<number>;
 }
 
@@ -127,7 +132,7 @@ function isScoreOf(field: ScoreField, value: unknown): boolean {
     case 'value':
       return VALUE_LEVELS.some((level) => level === value);
     case 'effort':
-      return typeof value === 'number' && EFFORT_SCALE.includes(value);
+      return EFFORT_SCALE.some((points) => points === value);
     case 'progress':
       return typeof value === 'number' && isProgressStep(value);
   }

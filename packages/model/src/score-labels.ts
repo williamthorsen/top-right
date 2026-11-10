@@ -1,4 +1,6 @@
 import {
+  EFFORT_SCALE,
+  type EffortPoints,
   type ItemScores,
   type LabelScoreEntry,
   type ResolvedItemScores,
@@ -9,15 +11,16 @@ import {
 } from './scores.ts';
 
 /** A dimension whose score a label can supply. */
-export type LabelDimension = 'urgency' | 'value';
+export type LabelDimension = 'effort' | 'urgency' | 'value';
 
-/** The labels that supply each urgency and each value level. */
+/** The labels that supply each urgency level, each value level, and each effort on the scale. */
 export interface ScoreLabelMapping {
   urgency: Readonly<Record<UrgencyLevel, readonly string[]>>;
   value: Readonly<Record<ValueLevel, readonly string[]>>;
+  effort: Readonly<Record<EffortPoints, readonly string[]>>;
 }
 
-/** The default mapping: Each level takes the label `<dimension>:<level>`. */
+/** The default mapping: Each entry takes the label `<dimension>:<entry>`. */
 export const DEFAULT_SCORE_LABEL_MAPPING: ScoreLabelMapping = {
   urgency: {
     critical: ['urgency:critical'],
@@ -31,25 +34,32 @@ export const DEFAULT_SCORE_LABEL_MAPPING: ScoreLabelMapping = {
     questionable: ['value:questionable'],
     'should-have': ['value:should-have'],
   },
+  effort: {
+    1: ['effort:1'],
+    2: ['effort:2'],
+    3: ['effort:3'],
+    5: ['effort:5'],
+    8: ['effort:8'],
+    13: ['effort:13'],
+  },
 };
 
-/** A label that a mapping lists under more than one level. */
+/** A label that a mapping lists under more than one entry. */
 export interface DuplicateScoreLabel {
   /** The label, lowercased. */
   label: string;
-  /** The levels that list it, urgency before value and each dimension in descending rank. */
-  levels: ReadonlyArray<{ dimension: LabelDimension; level: UrgencyLevel | ValueLevel }>;
+  /** The entries that list it, in the order urgency, value, effort, and each dimension in descending rank. */
+  levels: ReadonlyArray<{ dimension: LabelDimension; level: EffortPoints | UrgencyLevel | ValueLevel }>;
 }
 
-/** Returns the message that refuses a label listed under more than one level. */
+/** Returns the message that refuses a label listed under more than one entry. */
 export function describeDuplicateScoreLabel({ label, levels }: DuplicateScoreLabel): string {
   const names = levels.map(({ dimension, level }) => `${dimension} ${level}`);
   return `"${label}" is under ${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}. Keep it under one level.`;
 }
 
 /**
- * Returns each label that `mapping` lists under more than one level, in either dimension, compared
- * case-insensitively.
+ * Returns each label that `mapping` lists under more than one entry, in any dimension, compared case-insensitively.
  */
 export function findDuplicateScoreLabels(mapping: ScoreLabelMapping): DuplicateScoreLabel[] {
   const levelsByLabel = new Map<string, DuplicateScoreLabel['levels']>();
@@ -77,12 +87,20 @@ export function normalizeScoreLabelMapping(mapping: ScoreLabelMapping): ScoreLab
       questionable: normalizeLabels(mapping.value.questionable),
       'should-have': normalizeLabels(mapping.value['should-have']),
     },
+    effort: {
+      1: normalizeLabels(mapping.effort[1]),
+      2: normalizeLabels(mapping.effort[2]),
+      3: normalizeLabels(mapping.effort[3]),
+      5: normalizeLabels(mapping.effort[5]),
+      8: normalizeLabels(mapping.effort[8]),
+      13: normalizeLabels(mapping.effort[13]),
+    },
   };
 }
 
 /**
- * Returns an item's stored scores with, for urgency and value where none is stored, the score of the highest level
- * whose labels include one of the item's labels. Labels compare case-insensitively.
+ * Returns an item's stored scores with, for urgency, value, and effort where none is stored, the score of the highest
+ * entry whose labels include one of the item's labels. Labels compare case-insensitively.
  */
 export function resolveItemScores(
   stored: ItemScores | undefined,
@@ -91,16 +109,18 @@ export function resolveItemScores(
 ): ResolvedItemScores {
   const urgency = stored?.urgency ?? findLabelScore(URGENCY_LEVELS, mapping.urgency, labels);
   const value = stored?.value ?? findLabelScore(VALUE_LEVELS, mapping.value, labels);
+  const effort = stored?.effort ?? findLabelScore(EFFORT_SCALE, mapping.effort, labels);
   return {
     ...stored,
     ...(urgency && { urgency }),
     ...(value && { value }),
+    ...(effort && { effort }),
   };
 }
 
 // region | Helpers
 /** Returns the entry of the highest of `levels` (given in ascending rank) whose labels include one of `labels`. */
-function findLabelScore<T extends UrgencyLevel | ValueLevel>(
+function findLabelScore<T extends EffortPoints | UrgencyLevel | ValueLevel>(
   levels: readonly T[],
   levelLabels: Readonly<Record<T, readonly string[]>>,
   labels: readonly string[],
@@ -113,16 +133,17 @@ function findLabelScore<T extends UrgencyLevel | ValueLevel>(
   return undefined;
 }
 
-/** Returns each level with its labels, urgency before value and each dimension in descending rank. */
+/** Returns each entry with its labels, in the order urgency, value, effort, and each dimension in descending rank. */
 function listLevelLabels(mapping: ScoreLabelMapping): LevelLabels[] {
   return [
     ...listDimensionLabels('urgency', URGENCY_LEVELS, mapping.urgency),
     ...listDimensionLabels('value', VALUE_LEVELS, mapping.value),
+    ...listDimensionLabels('effort', EFFORT_SCALE, mapping.effort),
   ];
 }
 
-/** Returns one dimension's levels, given in ascending rank, with their labels in descending rank. */
-function listDimensionLabels<T extends UrgencyLevel | ValueLevel>(
+/** Returns one dimension's entries, given in ascending rank, with their labels in descending rank. */
+function listDimensionLabels<T extends EffortPoints | UrgencyLevel | ValueLevel>(
   dimension: LabelDimension,
   levels: readonly T[],
   levelLabels: Readonly<Record<T, readonly string[]>>,
@@ -132,7 +153,7 @@ function listDimensionLabels<T extends UrgencyLevel | ValueLevel>(
 
 interface LevelLabels {
   dimension: LabelDimension;
-  level: UrgencyLevel | ValueLevel;
+  level: EffortPoints | UrgencyLevel | ValueLevel;
   labels: readonly string[];
 }
 
