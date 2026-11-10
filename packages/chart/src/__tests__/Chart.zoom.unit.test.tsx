@@ -56,6 +56,20 @@ describe('Chart zoom', () => {
     expectScale(1);
   });
 
+  it('steps with a Safari trackpad pinch and keeps the page from zooming', () => {
+    renderChart(ITEMS, {}, SCORES);
+    const scroll = getScroll();
+
+    expect(fireGesture(scroll, 'gesturestart', 1)).toBe(false);
+    fireGesture(scroll, 'gesturechange', 1.1);
+    expectScale(1);
+    expect(fireGesture(scroll, 'gesturechange', 1.3)).toBe(false);
+    expectScale(1.25);
+    fireGesture(scroll, 'gesturechange', 0.9);
+    expectScale(1);
+    fireGesture(scroll, 'gestureend', 0.9);
+  });
+
   it('steps once per Ctrl or Cmd wheel event past the threshold, and keeps the page from zooming', () => {
     renderChart(ITEMS, {}, SCORES);
     const scroll = getScroll();
@@ -117,7 +131,7 @@ describe('Chart zoom', () => {
   it('fits the matrix to the chart area, keeps Fit checked, and steps from the Fit scale to the adjacent step', async () => {
     const user = userEvent.setup();
     renderChart(ITEMS, {}, SCORES);
-    mockScrollGeometry(getScroll(), { width: WIDTH * 1.4, height: HEIGHT * 2, left: 0, top: 0 });
+    mockLayout(getScroll(), { width: WIDTH * 1.4, height: HEIGHT * 2, left: 0, top: 0 });
 
     await user.click(getReadout());
     await user.click(screen.getByRole('menuitemradio', { name: 'Fit' }));
@@ -134,23 +148,34 @@ describe('Chart zoom', () => {
   it('keeps the centre of the visible area in place when a key steps', async () => {
     const user = userEvent.setup();
     renderChart(ITEMS, {}, SCORES);
-    const scroll = mockScrollGeometry(getScroll(), { width: 400, height: 300, left: 100, top: 50 });
+    const scroll = mockLayout(getScroll(), { width: 400, height: 300, left: 100, top: 50 });
 
     await user.keyboard('+');
 
-    expect(scroll.scrollLeft).toBe((100 + 200) * 1.25 - 200);
-    expect(scroll.scrollTop).toBe((50 + 150) * 1.25 - 150);
+    expect(scroll.scrollLeft).toBeCloseTo((100 + 200) * 1.25 - 200);
+    expect(scroll.scrollTop).toBeCloseTo((50 + 150) * 1.25 - 150);
+  });
+
+  it('keeps the visible centre in place when a step takes a centred matrix past the chart area', async () => {
+    const user = userEvent.setup();
+    renderChart(ITEMS, {}, SCORES);
+    const centredOffset = (900 - WIDTH) / 2;
+    const scroll = mockLayout(getScroll(), { width: 900, height: 300, left: 0, top: 0 });
+
+    await user.keyboard('+');
+
+    expect(scroll.scrollLeft).toBeCloseTo((450 - centredOffset) * 1.25 - 450);
+    expect(scroll.scrollTop).toBeCloseTo(150 * 1.25 - 150);
   });
 
   it('keeps the point under the pointer in place when the wheel steps', () => {
     renderChart(ITEMS, {}, SCORES);
-    const scroll = mockScrollGeometry(getScroll(), { width: 400, height: 300, left: 100, top: 50 });
-    scroll.getBoundingClientRect = () => DOMRect.fromRect({ x: 10, y: 20, width: 400, height: 300 });
+    const scroll = mockLayout(getScroll(), { width: 400, height: 300, left: 100, top: 50, x: 10, y: 20 });
 
     fireEvent.wheel(scroll, { ctrlKey: true, deltaY: -WHEEL_STEP_THRESHOLD, clientX: 110, clientY: 120 });
 
-    expect(scroll.scrollLeft).toBe((100 + 100) * 1.25 - 100);
-    expect(scroll.scrollTop).toBe((50 + 100) * 1.25 - 100);
+    expect(scroll.scrollLeft).toBeCloseTo((100 + 100) * 1.25 - 100);
+    expect(scroll.scrollTop).toBeCloseTo((50 + 100) * 1.25 - 100);
   });
 });
 
@@ -173,16 +198,41 @@ function getScroll(): HTMLElement {
   return scroll;
 }
 
-/** Gives the scroll container a client size and a settable scroll position, which jsdom does not lay out. */
-function mockScrollGeometry(
+/** Dispatches a WebKit gesture event, which jsdom does not define, and returns whether its default survived. */
+function fireGesture(target: Element, type: string, scale: number): boolean {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperties(event, { scale: { value: scale }, clientX: { value: 0 }, clientY: { value: 0 } });
+  return fireEvent(target, event);
+}
+
+/**
+ * Lays out the scroll container and the matrix as the browser would, which jsdom does not: the container at `x`, `y`
+ * with a client size and a settable scroll position, and the matrix centred in it while smaller, at its scaled size.
+ */
+function mockLayout(
   element: HTMLElement,
-  geometry: { width: number; height: number; left: number; top: number },
+  layout: { width: number; height: number; left: number; top: number; x?: number; y?: number },
 ): HTMLElement {
-  return Object.defineProperties(element, {
-    clientWidth: { configurable: true, value: geometry.width },
-    clientHeight: { configurable: true, value: geometry.height },
-    scrollLeft: { configurable: true, writable: true, value: geometry.left },
-    scrollTop: { configurable: true, writable: true, value: geometry.top },
+  const x = layout.x ?? 0;
+  const y = layout.y ?? 0;
+  Object.defineProperties(element, {
+    clientWidth: { configurable: true, value: layout.width },
+    clientHeight: { configurable: true, value: layout.height },
+    scrollLeft: { configurable: true, writable: true, value: layout.left },
+    scrollTop: { configurable: true, writable: true, value: layout.top },
   });
+  element.getBoundingClientRect = () => DOMRect.fromRect({ x, y, width: layout.width, height: layout.height });
+  const svg = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  svg.getBoundingClientRect = () => {
+    const width = Number(svg.getAttribute('width'));
+    const height = Number(svg.getAttribute('height'));
+    return DOMRect.fromRect({
+      x: x - element.scrollLeft + Math.max(0, (layout.width - width) / 2),
+      y: y - element.scrollTop + Math.max(0, (layout.height - height) / 2),
+      width,
+      height,
+    });
+  };
+  return element;
 }
 // endregion | Helpers

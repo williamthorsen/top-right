@@ -5,6 +5,8 @@ import { DEFAULT_ZOOM, fitScale, isAtEnd, stepZoom, type Zoom, type ZoomDirectio
 export interface ZoomOptions {
   /** The scroll container whose content the zoom scales. */
   scrollRef: RefObject<HTMLElement | null>;
+  /** The scaled content, whose laid-out box locates the anchored point. */
+  contentRef: RefObject<Element | null>;
   /** The element within which focus makes the zoom keys work; they also work while nothing on the page has focus. */
   keyRootRef: RefObject<HTMLElement | null>;
 }
@@ -30,6 +32,7 @@ const WHEEL_IDLE_MS = 200;
 /** The pixels that one line of a line-mode wheel event stands for. */
 const LINE_HEIGHT = 16;
 /** Targets in which the zoom keys keep their own meaning. */
+const GESTURE_EVENTS = ['gesturestart', 'gesturechange', 'gestureend'];
 const KEY_EXEMPT_SELECTOR =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="slider"]';
 
@@ -38,22 +41,22 @@ const KEY_EXEMPT_SELECTOR =
  * two-finger touch pinch over the scroll container, and the `+`, `-`, and `0` keys. Each change keeps an anchor point in
  * place by correcting the container's scroll: the pointer for the wheel and the pinch, the visible centre otherwise.
  */
-export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
+export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): ZoomState {
   const [zoom, setZoom] = useState<Zoom>(DEFAULT_ZOOM);
   // Several wheel or pinch events can arrive before a commit, so each steps from the latest request.
   const requestedScale = useRef(DEFAULT_ZOOM.scale);
-  const committedScale = useRef(DEFAULT_ZOOM.scale);
-  const anchor = useRef<{ x: number; y: number }>(undefined);
+  const anchor = useRef<Anchor>(undefined);
 
-  /** Records a zoom change and the container-local point that it keeps in place, the visible centre by default. */
-  function request(next: Zoom, at?: { x: number; y: number }): void {
+  /** Records a zoom change and the client point that it keeps in place, the visible centre by default. */
+  function request(next: Zoom, at?: ClientPoint): void {
     const container = scrollRef.current;
-    anchor.current = at ?? (container ? { x: container.clientWidth / 2, y: container.clientHeight / 2 } : undefined);
+    const content = contentRef.current;
+    if (container && content) anchor.current = locateAnchor(content, at ?? findVisibleCentre(container));
     requestedScale.current = next.scale;
     setZoom(next);
   }
 
-  function step(direction: ZoomDirection, at?: { x: number; y: number }): void {
+  function step(direction: ZoomDirection, at?: ClientPoint): void {
     const scale = stepZoom(requestedScale.current, direction);
     if (scale !== requestedScale.current) request({ kind: 'step', scale }, at);
   }
@@ -96,19 +99,20 @@ export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Keep the anchored point of the matrix under the anchor once the new size is laid out.
+  // Scroll the anchored point of the matrix back under the anchor once the new size is laid out, wherever the scroll
+  // container's centring places the matrix before and after.
   useLayoutEffect(() => {
     const container = scrollRef.current;
-    const old = committedScale.current;
-    committedScale.current = zoom.scale;
-    const at = anchor.current;
-    if (!container || !at || old === zoom.scale) return;
-    const ratio = zoom.scale / old;
-    container.scrollLeft = (container.scrollLeft + at.x) * ratio - at.x;
-    container.scrollTop = (container.scrollTop + at.y) * ratio - at.y;
-  }, [scrollRef, zoom.scale]);
+    const content = contentRef.current;
+    const held = anchor.current;
+    anchor.current = undefined;
+    if (!container || !content || !held) return;
+    const box = content.getBoundingClientRect();
+    container.scrollLeft += box.left + held.fractionX * box.width - held.clientX;
+    container.scrollTop += box.top + held.fractionY * box.height - held.clientY;
+  }, [scrollRef, contentRef, zoom.scale]);
 
-  const stepAt = useEffectEvent((direction: ZoomDirection, at: { x: number; y: number }) => step(direction, at));
+  const stepAt = useEffectEvent((direction: ZoomDirection, at: ClientPoint) => step(direction, at));
   const readScale = useEffectEvent(() => requestedScale.current);
 
   // React's wheel and touch handlers are passive, and only an active listener can keep the page from zooming.
@@ -118,14 +122,7 @@ export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
     let accumulated = 0;
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
     let pinchDistance: number | undefined;
-
-    function toLocal(clientX: number, clientY: number): { x: number; y: number } {
-      const rect = container?.getBoundingClientRect();
-      return {
-        x: clientX - (rect?.left ?? 0) - (container?.clientLeft ?? 0),
-        y: clientY - (rect?.top ?? 0) - (container?.clientTop ?? 0),
-      };
-    }
+    let gestureScale: number | undefined;
 
     function handleWheel(event: WheelEvent): void {
       if (!event.ctrlKey && !event.metaKey) return;
@@ -140,7 +137,7 @@ export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
       // One event steps once at most, so that a notch is one step however large the platform's delta.
       const direction = accumulated < 0 ? 'in' : 'out';
       accumulated = 0;
-      stepAt(direction, toLocal(event.clientX, event.clientY));
+      stepAt(direction, { clientX: event.clientX, clientY: event.clientY });
     }
 
     function handleTouchStart(event: TouchEvent): void {
@@ -155,11 +152,24 @@ export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
       const direction = choosePinchDirection(distance / pinchDistance, readScale());
       if (direction === undefined) return;
       pinchDistance = distance;
-      stepAt(direction, toLocal(x, y));
+      stepAt(direction, { clientX: x, clientY: y });
     }
 
     function handleTouchEnd(event: TouchEvent): void {
       if (event.touches.length < 2) pinchDistance = undefined;
+    }
+
+    // Safari reports a trackpad pinch as gesture events, whose `scale` runs from 1 at the gesture's start.
+    function handleGesture(event: Event): void {
+      event.preventDefault();
+      const gesture = readGesture(event);
+      if (event.type === 'gesturestart') gestureScale = 1;
+      else if (event.type === 'gestureend') gestureScale = undefined;
+      if (event.type !== 'gesturechange' || !gesture || gestureScale === undefined) return;
+      const direction = choosePinchDirection(gesture.scale / gestureScale, readScale());
+      if (direction === undefined) return;
+      gestureScale = gesture.scale;
+      stepAt(direction, gesture);
     }
 
     container.addEventListener('wheel', handleWheel, { passive: false });
@@ -167,7 +177,9 @@ export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd);
     container.addEventListener('touchcancel', handleTouchEnd);
+    for (const type of GESTURE_EVENTS) container.addEventListener(type, handleGesture);
     return () => {
+      for (const type of GESTURE_EVENTS) container.removeEventListener(type, handleGesture);
       clearTimeout(idleTimer);
       container.removeEventListener('wheel', handleWheel);
       container.removeEventListener('touchstart', handleTouchStart);
@@ -180,12 +192,51 @@ export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
   return { zoom, step: (direction) => step(direction), choose };
 }
 
+/** A point in client coordinates. */
+interface ClientPoint {
+  clientX: number;
+  clientY: number;
+}
+
+/** A client point and where it falls across the content's box, as a fraction of each dimension. */
+interface Anchor extends ClientPoint {
+  fractionX: number;
+  fractionY: number;
+}
+
 // region | Helpers
 /** Returns the direction in which a pinch has passed the next step from `scale`, if it has passed one. */
 function choosePinchDirection(ratio: number, scale: number): ZoomDirection | undefined {
   if (ratio >= stepZoom(scale, 'in') / scale && !isAtEnd(scale, 'in')) return 'in';
   if (ratio <= stepZoom(scale, 'out') / scale && !isAtEnd(scale, 'out')) return 'out';
   return undefined;
+}
+
+/** Returns the visible centre of a scroll container's client area. */
+function findVisibleCentre(container: Element): ClientPoint {
+  const box = container.getBoundingClientRect();
+  return {
+    clientX: box.left + container.clientLeft + container.clientWidth / 2,
+    clientY: box.top + container.clientTop + container.clientHeight / 2,
+  };
+}
+
+/** Returns the anchor that holds `at` over the point of the content beneath it. */
+function locateAnchor(content: Element, at: ClientPoint): Anchor {
+  const box = content.getBoundingClientRect();
+  return {
+    ...at,
+    fractionX: box.width === 0 ? 0 : (at.clientX - box.left) / box.width,
+    fractionY: box.height === 0 ? 0 : (at.clientY - box.top) / box.height,
+  };
+}
+
+/** Returns the scale and position of a WebKit gesture event, which the DOM typings do not describe. */
+function readGesture(event: Event): (ClientPoint & { scale: number }) | undefined {
+  if (!('scale' in event && 'clientX' in event && 'clientY' in event)) return undefined;
+  const { scale, clientX, clientY } = event;
+  if (typeof scale !== 'number' || typeof clientX !== 'number' || typeof clientY !== 'number') return undefined;
+  return { scale, clientX, clientY };
 }
 
 /** Returns the distance between a pinch's first two touches and their midpoint, in client coordinates. */

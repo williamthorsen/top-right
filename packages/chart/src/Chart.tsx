@@ -131,7 +131,8 @@ export function Chart({
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const zoom = useZoom({ scrollRef, keyRootRef: rootRef });
+  const svgRef = useRef<SVGSVGElement>(null);
+  const zoom = useZoom({ scrollRef, contentRef: svgRef, keyRootRef: rootRef });
   const scale = zoom.zoom.scale;
   const review = useReview({
     items: visibleItems,
@@ -146,7 +147,6 @@ export function Chart({
   });
   const chainView = useChainView(visibleItems, review);
   if (isRevealing && review.kind !== undefined) review.end();
-  const svgRef = useRef<SVGSVGElement>(null);
   const { drag, dragHandlersFor, selectItem, isHoldingPress } = useItemDrag({
     svgRef,
     scores,
