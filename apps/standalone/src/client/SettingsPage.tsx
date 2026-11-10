@@ -1,9 +1,10 @@
 import { Settings } from '@top-right/chart';
-import type { WorkTypeMapping } from '@top-right/model';
+import type { ScoreLabelMapping, WorkTypeMapping } from '@top-right/model';
 import { type ReactElement, useEffect, useState } from 'react';
 
 import {
   abbreviationsResponseSchema,
+  scoreLabelMappingResponseSchema,
   type SettingsResponse,
   settingsResponseSchema,
   workTypeMappingResponseSchema,
@@ -45,8 +46,10 @@ export function SettingsPage(): ReactElement {
       abbreviations={data.abbreviations}
       chartHref={buildChartHref()}
       onSaveAbbreviations={saveAbbreviations}
+      onSaveScoreLabelMapping={saveScoreLabelMapping}
       onSaveWorkTypeMapping={saveWorkTypeMapping}
       repos={data.repos}
+      scoreLabelMapping={data.scoreLabelMapping ?? undefined}
       workTypeMapping={data.workTypeMapping ?? undefined}
     />
   );
@@ -73,6 +76,13 @@ async function refuseOnFailure(save: () => Promise<unknown>): Promise<string | u
 /** Saves the abbreviations, and returns the reason that the host refused them, if it did. */
 async function saveAbbreviations(abbreviations: Record<string, string>): Promise<string | undefined> {
   return await refuseOnFailure(() => postJson('/api/abbreviations', { abbreviations }, abbreviationsResponseSchema));
+}
+
+/** Saves the score-label mapping, or restores the default, and returns the reason that the host refused it, if it did. */
+async function saveScoreLabelMapping(mapping: ScoreLabelMapping | undefined): Promise<string | undefined> {
+  return await refuseOnFailure(() =>
+    postJson('/api/score-label-mapping', { mapping: mapping ?? null }, scoreLabelMappingResponseSchema),
+  );
 }
 
 /** Saves the mapping, or restores the default, and returns the reason that the host refused it, if it did. */
