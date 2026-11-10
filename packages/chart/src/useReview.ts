@@ -121,7 +121,7 @@ export function useReview({
     onScoresChange?.(itemKey, changed);
     if (kind !== 'unscored' || itemKey !== selectedKey || !queueKeys.has(itemKey)) return;
     const after = applyScoreWrite(scores[itemKey], changed, 'author', '');
-    if (after.urgency === undefined || after.impact === undefined) return;
+    if (after.urgency === undefined || after.value === undefined) return;
     const next = findNext(itemKey, true);
     clearTimeout(pendingAdvance.current);
     pendingAdvance.current = setTimeout(() => {

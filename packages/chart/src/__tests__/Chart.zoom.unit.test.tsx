@@ -236,12 +236,12 @@ describe('Chart zoom', () => {
   it('keeps the visible centre in place when a step takes a centred matrix past the chart area', async () => {
     const user = userEvent.setup();
     renderChart(ITEMS, {}, SCORES);
-    const centredOffset = (900 - WIDTH) / 2;
-    const scroll = mockLayout(getScroll(), { width: 900, height: 300, left: 0, top: 0 });
+    const centredOffset = (750 - WIDTH) / 2;
+    const scroll = mockLayout(getScroll(), { width: 750, height: 300, left: 0, top: 0 });
 
     await user.keyboard('+');
 
-    expect(scroll.scrollLeft).toBeCloseTo((450 - centredOffset) * 1.25 - 450);
+    expect(scroll.scrollLeft).toBeCloseTo((375 - centredOffset) * 1.25 - 375);
     expect(scroll.scrollTop).toBeCloseTo(150 * 1.25 - 150);
   });
 
@@ -269,7 +269,7 @@ function expectReadoutText(text: string): void {
 }
 
 function expectScale(scale: number): void {
-  const svg = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
   expect(svg).toHaveAttribute('width', String(WIDTH * scale));
   expect(svg).toHaveAttribute('height', String(HEIGHT * scale));
 }
@@ -307,7 +307,7 @@ function mockScrollAreaSize(size: { width: number; height: number }): void {
 
 /** Returns the matrix's current scale, read from its rendered width. */
 function readScale(): number {
-  const svg = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
   return Number(svg.getAttribute('width')) / WIDTH;
 }
 
@@ -318,7 +318,7 @@ function resize(scroll: HTMLElement, size: { width: number; height: number }): v
 }
 
 function getScroll(): HTMLElement {
-  const svg = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
   // eslint-disable-next-line testing-library/no-node-access -- the scroll container has no role to query.
   const scroll = svg.closest<HTMLElement>('.tr-chart-scroll');
   if (!scroll) throw new Error('The chart has no scroll container');
@@ -357,7 +357,7 @@ function mockLayout(
     scrollTop: { configurable: true, writable: true, value: layout.top },
   });
   element.getBoundingClientRect = () => DOMRect.fromRect({ x, y, width: layout.width, height: layout.height });
-  const svg = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
   svg.getBoundingClientRect = () => {
     const width = Number(svg.getAttribute('width'));
     const height = Number(svg.getAttribute('height'));

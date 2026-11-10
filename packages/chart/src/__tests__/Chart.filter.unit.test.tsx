@@ -92,7 +92,7 @@ describe(Chart, () => {
     it('picks among the filtered items only', async () => {
       const user = userEvent.setup();
       renderChart([buildItem({ number: 1 }), buildItem({ number: 2, repo: CA })], ABBREVIATIONS, {
-        [`${REPO}#1`]: place(5, 5),
+        [`${REPO}#1`]: place(4, 4),
         [`${CA}#2`]: place(1, 1),
       });
       expect(screen.getByRole('button', { name: /^tr\.1:.*, next pick$/ })).toBeInTheDocument();

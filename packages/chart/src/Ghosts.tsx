@@ -13,6 +13,7 @@ import { listEdgeEnds } from './Edges.tsx';
 import { GhostCircle } from './GhostCircle.tsx';
 import {
   type CellLayout,
+  findItemCell,
   type GhostPlacement,
   placeGhosts,
   type Placement,
@@ -97,11 +98,10 @@ export function listGhostPlacements(
     .flatMap((key): Placement[] => {
       const item = itemsByKey.get(key);
       const itemScores = scores[key];
-      const u = itemScores?.urgency?.value;
-      const i = itemScores?.impact?.value;
-      if (!item || visibleKeys.has(key) || u === undefined || i === undefined) return [];
+      const { u, v } = findItemCell(itemScores);
+      if (!item || visibleKeys.has(key) || u === 0 || v === 0) return [];
       if (deriveStatus(item, overrides[key]) !== 'done') return [];
-      return [{ id: key, u, i, ...sizeItem(itemScores, scopeMode) }];
+      return [{ id: key, u, v, ...sizeItem(itemScores, scopeMode) }];
     })
     .toArray();
 }

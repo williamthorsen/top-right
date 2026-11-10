@@ -1,6 +1,8 @@
+import { URGENCY_LEVELS, VALUE_LEVELS } from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { CELL_SIZE, GRID_SIZE } from './layout.ts';
+import { LEVEL_NAMES } from './level-names.ts';
 
 // -- Frame around the matrix, in chart units --
 export const MARGIN_LEFT = 44;
@@ -13,12 +15,13 @@ export const HEIGHT = MARGIN_TOP + MATRIX_SIZE + AXIS_HEIGHT;
 /** The gridline index, counted from the gutter side, that separates the gutter from the scores. */
 const GUTTER_LINE = 1;
 /** The gridline index that separates the low and high halves of each axis. */
-const QUADRANT_LINE = 4;
+const QUADRANT_LINE = 3;
 
 /** The matrix's gridlines, axis labels, and axis titles, which never change. */
 export function Grid(): ReactElement {
   const lines = Array.from({ length: GRID_SIZE + 1 }, (_, index) => index);
-  const scores = Array.from({ length: GRID_SIZE }, (_, index) => index);
+  const urgencyTicks = ['Unscored', ...URGENCY_LEVELS.map((level) => LEVEL_NAMES[level])];
+  const valueTicks = ['Unscored', ...VALUE_LEVELS.map((level) => LEVEL_NAMES[level])];
   const left = MARGIN_LEFT;
   const top = MARGIN_TOP;
   const bottom = MARGIN_TOP + MATRIX_SIZE;
@@ -45,34 +48,34 @@ export function Grid(): ReactElement {
           y2={top + index * CELL_SIZE}
         />
       ))}
-      {scores.map((score) => (
+      {urgencyTicks.map((tick, index) => (
         <text
           className="tr-axis-label"
-          key={`u${score}`}
+          key={`u${index}`}
           textAnchor="middle"
-          x={left + (score + 0.5) * CELL_SIZE}
+          x={left + (index + 0.5) * CELL_SIZE}
           y={bottom + 16}
         >
-          {score === 0 ? 'unscored' : score}
+          {tick}
         </text>
       ))}
-      {scores.map((score) => (
+      {valueTicks.map((tick, index) => (
         <text
           className="tr-axis-label"
-          key={`i${score}`}
+          key={`v${index}`}
           textAnchor="middle"
-          transform={score === 0 ? `translate(${left - 10} ${bottom - CELL_SIZE / 2}) rotate(-90)` : undefined}
-          x={score === 0 ? 0 : left - 14}
-          y={score === 0 ? 0 : bottom - (score + 0.5) * CELL_SIZE + 4}
+          transform={`translate(${left - 10} ${bottom - (index + 0.5) * CELL_SIZE}) rotate(-90)`}
+          x={0}
+          y={0}
         >
-          {score === 0 ? 'unscored' : score}
+          {tick}
         </text>
       ))}
       <text className="tr-axis-title" textAnchor="end" x={left + MATRIX_SIZE} y={bottom + 34}>
         Urgency →
       </text>
       <text className="tr-axis-title" transform={`translate(12 ${top}) rotate(-90)`} textAnchor="end" x={0} y={0}>
-        Impact →
+        Value →
       </text>
     </g>
   );

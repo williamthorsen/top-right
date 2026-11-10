@@ -6,14 +6,14 @@ const NOW = new Date('2026-11-08T12:00:00');
 
 describe(formatProvenance, () => {
   it('names the scorer and the day and month of the current year', () => {
-    const line = formatProvenance({ value: 3, by: 'author', at: '2026-11-08T09:00:00' }, NOW);
+    const line = formatProvenance({ score: 3, by: 'author', at: '2026-11-08T09:00:00' }, NOW);
 
     expect(line).toMatch(/^Author · /);
     expect(line).not.toContain('2026');
   });
 
   it('adds the year to a date in another year', () => {
-    expect(formatProvenance({ value: 3, by: 'agent', at: '2025-03-02T09:00:00' }, NOW)).toMatch(/^Agent · .*2025/);
+    expect(formatProvenance({ score: 3, by: 'agent', at: '2025-03-02T09:00:00' }, NOW)).toMatch(/^Agent · .*2025/);
   });
 
   it('reads Unscored for an absent score', () => {

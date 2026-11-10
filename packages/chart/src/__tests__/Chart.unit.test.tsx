@@ -94,6 +94,22 @@ describe(Chart, () => {
     expect(within(subIssues).getByRole('link', { name: /t\.9 Done closed/ })).toBeInTheDocument();
   });
 
+  it.each(['Low', 'Medium', 'High', 'Critical', 'Questionable', 'Nice-to-have', 'Should-have', 'Must-have'])(
+    'names the %s level on its axis',
+    (level) => {
+      renderChart([]);
+
+      expect(screen.getByText(level)).toHaveClass('tr-axis-label');
+    },
+  );
+
+  it('titles the axes Urgency and Value', () => {
+    renderChart([]);
+
+    expect(screen.getByText('Urgency →')).toBeInTheDocument();
+    expect(screen.getByText('Value →')).toBeInTheDocument();
+  });
+
   it('when the unscored items do not fit the corner cell, lets its list scroll', () => {
     const rowsThatFit = Math.floor((CELL_SIZE - 2 * CELL_PADDING) / GUTTER_ROW_PITCH);
     const items = Array.from({ length: rowsThatFit + 1 }, (_, index) => buildItem({ number: index + 1 }));
@@ -107,7 +123,7 @@ describe(Chart, () => {
     const at = '2026-11-08T00:00:00.000Z';
     const author = 'author' as const;
 
-    it('moves an item with urgency and impact out of the gutter and into its cell', () => {
+    it('moves an item with urgency and value out of the gutter and into its cell', () => {
       const scored = buildItem({ number: 1 });
       const unscored = buildItem({ number: 2 });
 
@@ -115,7 +131,10 @@ describe(Chart, () => {
         [scored, unscored],
         {},
         {
-          [`${REPO}#1`]: { urgency: { value: 4, by: author, at }, impact: { value: 5, by: author, at } },
+          [`${REPO}#1`]: {
+            urgency: { score: 'critical', by: author, at },
+            value: { score: 'must-have', by: author, at },
+          },
         },
       );
 
@@ -125,15 +144,18 @@ describe(Chart, () => {
       expect(within(gutter).getByRole('button', { name: /^t\.2:/ })).toBeInTheDocument();
     });
 
-    it('keeps an item with only one of urgency and impact in the gutter', () => {
-      renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: { urgency: { value: 3, by: author, at } } });
+    it('keeps an item with only one of urgency and value in the gutter', () => {
+      renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: { urgency: { score: 'high', by: author, at } } });
 
       const gutter = screen.getByRole('list', { name: 'Unscored items' });
       expect(within(gutter).getByRole('button', { name: /^t\.1:/ })).toBeInTheDocument();
     });
 
     it('draws an in-progress item with a pie and a to-do item without one', () => {
-      const placed: ItemScores = { urgency: { value: 2, by: author, at }, impact: { value: 2, by: author, at } };
+      const placed: ItemScores = {
+        urgency: { score: 'medium', by: author, at },
+        value: { score: 'nice-to-have', by: author, at },
+      };
       const inProgress: StatusOverride = { status: 'in-progress', sourceState: 'open', at };
 
       renderChart(
@@ -156,10 +178,10 @@ describe(Chart, () => {
     it('switches circle area to remaining scope and fills an in-progress circle solid', async () => {
       const user = userEvent.setup();
       const halfDone: ItemScores = {
-        urgency: { value: 2, by: author, at },
-        impact: { value: 2, by: author, at },
-        effort: { value: 8, by: author, at },
-        progress: { value: 0.5, by: author, at },
+        urgency: { score: 'medium', by: author, at },
+        value: { score: 'nice-to-have', by: author, at },
+        effort: { score: 8, by: author, at },
+        progress: { score: 0.5, by: author, at },
       };
       renderChart(
         [buildItem({ number: 1 })],
@@ -196,8 +218,14 @@ describe(Chart, () => {
         [buildItem({ number: 1 }), buildItem({ number: 2 })],
         {},
         {
-          [`${REPO}#1`]: { urgency: { value: 1, by: author, at }, impact: { value: 1, by: author, at } },
-          [`${REPO}#2`]: { urgency: { value: 1, by: author, at }, impact: { value: 1, by: author, at } },
+          [`${REPO}#1`]: {
+            urgency: { score: 'low', by: author, at },
+            value: { score: 'questionable', by: author, at },
+          },
+          [`${REPO}#2`]: {
+            urgency: { score: 'low', by: author, at },
+            value: { score: 'questionable', by: author, at },
+          },
         },
       );
       const first = screen.getByRole('button', { name: /^t\.1:/ });
@@ -216,17 +244,23 @@ describe(Chart, () => {
   describe('with agent scores', () => {
     const at = '2026-11-08T00:00:00.000Z';
     const MOVED: ItemScores = {
-      urgency: { value: 4, by: 'agent', at, previous: 2 },
-      impact: { value: 5, by: 'agent', at, previous: 3 },
+      urgency: { score: 'critical', by: 'agent', at, previous: 'medium' },
+      value: { score: 'must-have', by: 'agent', at, previous: 'should-have' },
     };
-    const FROM_GUTTER: ItemScores = { urgency: { value: 2, by: 'agent', at }, impact: { value: 2, by: 'agent', at } };
-    const AUTHOR_HELD: ItemScores = { urgency: { value: 5, by: 'author', at }, impact: { value: 5, by: 'author', at } };
+    const FROM_GUTTER: ItemScores = {
+      urgency: { score: 'medium', by: 'agent', at },
+      value: { score: 'nice-to-have', by: 'agent', at },
+    };
+    const AUTHOR_HELD: ItemScores = {
+      urgency: { score: 'critical', by: 'author', at },
+      value: { score: 'must-have', by: 'author', at },
+    };
 
     it('wears a halo on an agent-scored circle and gutter item until the author keeps it', async () => {
       const user = userEvent.setup();
       renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {
         [`${REPO}#1`]: MOVED,
-        [`${REPO}#2`]: { urgency: { value: 3, by: 'agent', at } },
+        [`${REPO}#2`]: { urgency: { score: 'high', by: 'agent', at } },
       });
       const circle = screen.getByRole('button', { name: /^t\.1:/ });
       const gutter = screen.getByRole('list', { name: 'Unscored items' });
@@ -333,15 +367,18 @@ describe(Chart, () => {
       renderReview([buildItem({ number: 1 }), buildItem({ number: 2 }), buildItem({ number: 3 })], {
         [`${REPO}#1`]: FROM_GUTTER,
         [`${REPO}#2`]: MOVED,
-        [`${REPO}#3`]: { urgency: { value: 1, by: 'agent', at }, impact: { value: 1, by: 'agent', at } },
+        [`${REPO}#3`]: {
+          urgency: { score: 'low', by: 'agent', at },
+          value: { score: 'questionable', by: 'agent', at },
+        },
       });
 
       await user.click(screen.getByRole('button', { name: 'Review agent scores (3)' }));
-      await user.click(within(getGroup('Urgency')).getByRole('radio', { name: '3' }));
-      await user.click(within(getGroup('Impact')).getByRole('radio', { name: '2' }));
+      await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'High' }));
+      await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Nice-to-have' }));
 
       expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
-      expect(within(getGroup('Impact')).getByRole('radio', { name: '2' })).toBeChecked();
+      expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice-to-have' })).toBeChecked();
       expect(hasHalo(screen.getByRole('button', { name: /^t\.2:/ }))).toBe(false);
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · – of 2');
 
@@ -349,18 +386,20 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
     });
 
-    it('moves an Unscored review on once the selected item has both urgency and impact', async () => {
+    it('moves an Unscored review on once the selected item has both urgency and value', async () => {
       const user = userEvent.setup();
       renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {});
 
       await user.click(screen.getByRole('button', { name: 'Review unscored (2)' }));
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 2');
       await user.click(
-        within(within(getPane()).getByRole('radiogroup', { name: 'Urgency' })).getByRole('radio', { name: '3' }),
+        within(within(getPane()).getByRole('radiogroup', { name: 'Urgency' })).getByRole('radio', { name: 'High' }),
       );
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 2');
       await user.click(
-        within(within(getPane()).getByRole('radiogroup', { name: 'Impact' })).getByRole('radio', { name: '4' }),
+        within(within(getPane()).getByRole('radiogroup', { name: 'Value' })).getByRole('radio', {
+          name: 'Should-have',
+        }),
       );
 
       // The placed item stays selected for a moment, so that the author sees it move, then the review moves on.
@@ -383,8 +422,8 @@ describe(Chart, () => {
       [`${REPO}#1`]: place(1, 1),
       [`${REPO}#2`]: place(2, 2),
       [`${REPO}#3`]: place(3, 3),
-      [`${REPO}#4`]: place(4, 4),
-      [`${REPO}#5`]: place(5, 5),
+      [`${REPO}#4`]: place(4, 3),
+      [`${REPO}#5`]: place(4, 4),
     };
 
     it('draws no edge at rest', () => {
@@ -432,8 +471,14 @@ describe(Chart, () => {
 
     it('during a review, fades by the queue rather than by focus', async () => {
       const user = userEvent.setup();
-      const agent = { value: 3, by: 'agent' as const, at: '2026-11-08T00:00:00.000Z' };
-      renderReview(chainItems, { ...chainScores, [`${REPO}#5`]: { urgency: agent, impact: agent } });
+      const at = '2026-11-08T00:00:00.000Z';
+      renderReview(chainItems, {
+        ...chainScores,
+        [`${REPO}#5`]: {
+          urgency: { score: 'high', by: 'agent', at },
+          value: { score: 'should-have', by: 'agent', at },
+        },
+      });
 
       await user.click(screen.getByRole('button', { name: 'Review agent scores (1)' }));
 
@@ -512,7 +557,7 @@ describe(Chart, () => {
 // region | Helpers
 /** Returns the number of trails on the chart; a trail is decorative SVG, which has no role to query. */
 function countTrails(): number {
-  return screen.getByRole('group', { name: 'Items by urgency and impact' }).querySelectorAll('.tr-trail').length;
+  return screen.getByRole('group', { name: 'Items by urgency and value' }).querySelectorAll('.tr-trail').length;
 }
 
 /** Returns whether the item wears the agent's halo, which is decorative SVG without a role to query. */
@@ -527,7 +572,7 @@ function hasMark(element: HTMLElement, className: string): boolean {
 
 /** Returns each drawn edge as `kind:from>to:weight` by issue number, in draw order; edges are decorative SVG. */
 function listEdges(): string[] {
-  const group = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  const group = screen.getByRole('group', { name: 'Items by urgency and value' });
   return Array.from(group.querySelectorAll<SVGGElement>('.tr-edge'), ({ dataset }) => {
     const ends = (dataset['ends'] ?? '').replaceAll(`${REPO}#`, '');
     return `${dataset['kind']}:${ends}:${dataset['weight']}`;

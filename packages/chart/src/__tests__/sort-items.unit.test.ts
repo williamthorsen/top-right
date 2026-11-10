@@ -15,6 +15,13 @@ describe(sortItems, () => {
     expect(numbers(sortItems(items, descending('status'), buildContext({}, overrides)))).toEqual([1, 3, 2]);
   });
 
+  it.each(['urgency', 'value'] as const)('sorts %s by rank, not alphabetically', (column) => {
+    const items = [buildItem({ number: 1 }), buildItem({ number: 2 }), buildItem({ number: 3 })];
+    const scores = { [key(items, 0)]: place(3, 4), [key(items, 1)]: place(1, 1), [key(items, 2)]: place(2, 2) };
+
+    expect(numbers(sortItems(items, ascending(column), buildContext(scores)))).toEqual([2, 3, 1]);
+  });
+
   it('sorts an unscored item last in either direction', () => {
     const items = [buildItem({ number: 1 }), buildItem({ number: 2 }), buildItem({ number: 3 })];
     const scores = { [key(items, 1)]: place(2, 1), [key(items, 2)]: place(4, 1) };

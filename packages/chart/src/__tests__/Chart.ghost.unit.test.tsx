@@ -115,7 +115,7 @@ describe(Chart, () => {
 // region | Helpers
 /** Returns each drawn edge's ends as `from>to` by issue number; edges are decorative SVG. */
 function listEdgeEnds(): string[] {
-  const group = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  const group = screen.getByRole('group', { name: 'Items by urgency and value' });
   return Array.from(group.querySelectorAll<SVGGElement>('.tr-edge'), ({ dataset }) =>
     (dataset['ends'] ?? '').replaceAll(`${REPO}#`, ''),
   );

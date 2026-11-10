@@ -129,7 +129,7 @@ function getGutterRow(label: string): HTMLElement | null {
 
 /** Returns each drawn edge as `kind:from>to:weight`, in draw order; edges are decorative SVG. */
 function listEdges(): string[] {
-  const group = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  const group = screen.getByRole('group', { name: 'Items by urgency and value' });
   return Array.from(
     group.querySelectorAll<SVGGElement>('.tr-edge'),
     ({ dataset }) => `${dataset['kind']}:${dataset['ends']}:${dataset['weight']}`,
