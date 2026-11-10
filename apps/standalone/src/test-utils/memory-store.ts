@@ -1,4 +1,4 @@
-import { applyScoreWrite, keepItemScores, type StatusOverride } from '@top-right/model';
+import { applyScoreWrite, clearScoreFields, keepItemScores, type StatusOverride } from '@top-right/model';
 import type { Store, UserState } from '@top-right/store';
 
 /** A `Store` held in memory, whose first user's state a test reads directly. */
@@ -44,6 +44,13 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
       return readPrimary();
     },
     readUserState: (userId) => Promise.resolve(structuredClone(stateOf(userId))),
+    clearScores: (userId, itemKey, fields) => {
+      const state = stateOf(userId);
+      const itemScores = clearScoreFields(state.scores[itemKey], fields);
+      if (Object.keys(itemScores).length > 0) state.scores[itemKey] = itemScores;
+      else state.scores = Object.fromEntries(Object.entries(state.scores).filter(([key]) => key !== itemKey));
+      return Promise.resolve(structuredClone(itemScores));
+    },
     keepScores: (userId, itemKey, at) => {
       const state = stateOf(userId);
       const itemScores = keepItemScores(state.scores[itemKey], at);

@@ -31,3 +31,10 @@ export interface WorkItem extends ItemRef {
 export function formatItemKey(ref: Pick<ItemRef, 'number' | 'repo'>): string {
   return `${ref.repo}#${ref.number}`;
 }
+
+/** Returns the repository and number that an item key names, or `undefined` when it is not `owner/name#number`. */
+export function parseItemKey(itemKey: string): Pick<ItemRef, 'number' | 'repo'> | undefined {
+  const match = /^([^/#\s]+\/[^/#\s]+)#([1-9]\d*)$/.exec(itemKey);
+  if (!match?.[1] || !match[2]) return undefined;
+  return { repo: match[1], number: Number(match[2]) };
+}

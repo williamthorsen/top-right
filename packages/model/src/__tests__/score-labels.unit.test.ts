@@ -1,16 +1,67 @@
 import { describe, expect, it } from 'vitest';
 
+import { findTrailOrigin } from '../review.ts';
 import {
   DEFAULT_SCORE_LABEL_MAPPING,
   describeDuplicateScoreLabel,
   findDuplicateScoreLabels,
   normalizeScoreLabelMapping,
+  planLabelChange,
   resolveItemScores,
   type ScoreLabelMapping,
 } from '../score-labels.ts';
 import type { ItemScores } from '../scores.ts';
 
 const AT = '2026-11-10T09:00:00.000Z';
+
+describe(planLabelChange, () => {
+  it("adds the level's label and removes the labels of the dimension's other levels", () => {
+    expect(planLabelChange({ urgency: 'high' }, DEFAULT_SCORE_LABEL_MAPPING)).toEqual({
+      kind: 'change',
+      add: ['urgency:high'],
+      remove: ['urgency:low', 'urgency:medium', 'urgency:critical'],
+    });
+  });
+
+  it('when several dimensions are set, plans each and leaves an absent one alone', () => {
+    const plan = planLabelChange({ value: 'must-have', effort: 5 }, DEFAULT_SCORE_LABEL_MAPPING);
+
+    expect(plan).toEqual({
+      kind: 'change',
+      add: ['value:must-have', 'effort:5'],
+      remove: [
+        'value:questionable',
+        'value:nice-to-have',
+        'value:should-have',
+        'effort:1',
+        'effort:2',
+        'effort:3',
+        'effort:8',
+        'effort:13',
+      ],
+    });
+  });
+
+  it('adds the first label that the mapping lists for the level, and removes every other listed one', () => {
+    const mapping: ScoreLabelMapping = {
+      ...emptyMapping(),
+      urgency: { ...emptyMapping().urgency, high: ['p1', 'hot'], low: ['p3'] },
+    };
+
+    expect(planLabelChange({ urgency: 'high' }, mapping)).toEqual({ kind: 'change', add: ['p1'], remove: ['p3'] });
+  });
+
+  it('if the mapping lists no label for a level, refuses the write and points to Settings', () => {
+    const plan = planLabelChange({ urgency: 'high', value: 'must-have' }, emptyMapping());
+
+    expect(plan).toEqual({ kind: 'refused', message: expect.stringContaining('urgency high') });
+    expect(plan.kind === 'refused' && plan.message).toContain('Settings');
+  });
+
+  it('if the effort is not on the scale, refuses the write', () => {
+    expect(planLabelChange({ effort: 4 }, DEFAULT_SCORE_LABEL_MAPPING)).toMatchObject({ kind: 'refused' });
+  });
+});
 
 describe(resolveItemScores, () => {
   it('takes each dimension from its mapped label when nothing is stored', () => {
@@ -22,7 +73,7 @@ describe(resolveItemScores, () => {
 
   it('keeps a stored score over the label, and fills only the dimension without one', () => {
     const stored: ItemScores = {
-      value: { score: 'nice-to-have', by: 'agent', at: AT },
+      value: { score: 'nice-to-have', by: 'author', at: AT },
       effort: { score: 3, by: 'author', at: AT },
     };
 
@@ -59,6 +110,34 @@ describe(resolveItemScores, () => {
     const stored: ItemScores = { effort: { score: 2, by: 'author', at: AT } };
 
     expect(resolveItemScores(stored, ['effort:13'], DEFAULT_SCORE_LABEL_MAPPING)).toEqual(stored);
+  });
+
+  it("gives an agent entry without a previous score the label's level as its previous one", () => {
+    const stored: ItemScores = {
+      urgency: { score: 'critical', by: 'agent', at: AT },
+      value: { score: 'must-have', by: 'agent', at: AT, previous: 'questionable' },
+      effort: { score: 8, by: 'agent', at: AT },
+    };
+
+    expect(
+      resolveItemScores(stored, ['urgency:low', 'value:should-have', 'effort:2'], DEFAULT_SCORE_LABEL_MAPPING),
+    ).toEqual({
+      urgency: { ...stored.urgency, previous: 'low' },
+      value: stored.value,
+      effort: { ...stored.effort, previous: 2 },
+    });
+  });
+
+  it('when an agent moved an item off its labelled cell, draws the trail from that cell', () => {
+    const stored: ItemScores = {
+      urgency: { score: 'critical', by: 'agent', at: AT },
+      value: { score: 'must-have', by: 'agent', at: AT },
+    };
+
+    const resolved = resolveItemScores(stored, ['urgency:low', 'value:nice-to-have'], DEFAULT_SCORE_LABEL_MAPPING);
+
+    expect(findTrailOrigin(resolved)).toEqual({ urgency: 'low', value: 'nice-to-have' });
+    expect(findTrailOrigin(resolveItemScores(stored, [], DEFAULT_SCORE_LABEL_MAPPING))).toBeUndefined();
   });
 
   it('ignores an unmapped label', () => {

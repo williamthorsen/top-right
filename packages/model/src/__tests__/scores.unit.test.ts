@@ -6,8 +6,10 @@ import {
   isValidScore,
   type ItemScores,
   keepItemScores,
+  omitUnchangedScores,
   rankLevel,
   readScoreValues,
+  type ResolvedItemScores,
 } from '../scores.ts';
 
 describe(isValidScore, () => {
@@ -131,6 +133,26 @@ describe(applyScoreWrite, () => {
       urgency: { score: 'high', by: 'author', at: EARLIER },
       value: { score: 'questionable', by: 'author', at: LATER },
     });
+  });
+});
+
+describe(omitUnchangedScores, () => {
+  it('drops each field whose resolved score equals the value, and keeps the rest', () => {
+    const at = '2026-11-10T09:00:00.000Z';
+    const resolved: ResolvedItemScores = {
+      urgency: { score: 'high', by: 'label', label: 'urgency:high' },
+      value: { score: 'must-have', by: 'author', at },
+      effort: { score: 3, by: 'agent', at },
+    };
+
+    expect(omitUnchangedScores({ urgency: 'high', value: 'should-have', effort: 3, progress: 0.5 }, resolved)).toEqual({
+      value: 'should-have',
+      progress: 0.5,
+    });
+  });
+
+  it('keeps every value of an item without scores', () => {
+    expect(omitUnchangedScores({ urgency: 'low' }, undefined)).toEqual({ urgency: 'low' });
   });
 });
 

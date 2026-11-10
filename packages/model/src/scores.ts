@@ -85,6 +85,19 @@ export function applyScoreWrite(existing: ItemScores | undefined, values: Scores
   };
 }
 
+/** Returns an item's scores without the entries of `fields`. */
+export function clearScoreFields(existing: ItemScores | undefined, fields: readonly ScoreField[]): ItemScores {
+  function isKept(field: ScoreField): boolean {
+    return !fields.includes(field);
+  }
+  return {
+    ...(existing?.urgency && isKept('urgency') && { urgency: existing.urgency }),
+    ...(existing?.value && isKept('value') && { value: existing.value }),
+    ...(existing?.effort && isKept('effort') && { effort: existing.effort }),
+    ...(existing?.progress && isKept('progress') && { progress: existing.progress }),
+  };
+}
+
 /** Returns effort × (1 − progress), with a missing progress as none done, or undefined when the effort is unknown. */
 export function computeRemainingScope(scores: ResolvedItemScores | undefined): number | undefined {
   const effort = scores?.effort?.score;
@@ -99,6 +112,15 @@ export function isValidScore<F extends ScoreField>(field: F, value: unknown): va
 /** Returns an item's scores after the author keeps them at `at`: an author write of no values. */
 export function keepItemScores(existing: ItemScores | undefined, at: string): ItemScores {
   return applyScoreWrite(existing, {}, 'author', at);
+}
+
+/** Returns `values` without each field whose resolved score already equals it, so that only a change remains. */
+export function omitUnchangedScores(values: Scores, resolved: ResolvedItemScores | undefined): Scores {
+  const changed: Scores = {};
+  for (const field of SCORE_FIELDS) {
+    if (values[field] !== resolved?.[field]?.score) copyValue(changed, field, values[field]);
+  }
+  return changed;
 }
 
 /** Returns the values of `scores` without their provenance. */
@@ -116,6 +138,10 @@ export function rankLevel(level: UrgencyLevel | ValueLevel): number {
 // region | Helpers
 function copyScore<F extends ScoreField>(values: Scores, field: F, entry: ScoreEntry<ScoreTypes[F]> | undefined): void {
   if (entry) values[field] = entry.score;
+}
+
+function copyValue<F extends ScoreField>(target: Scores, field: F, value: ScoreTypes[F] | undefined): void {
+  if (value !== undefined) target[field] = value;
 }
 
 function isProgressStep(value: number): boolean {

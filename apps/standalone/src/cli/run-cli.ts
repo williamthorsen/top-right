@@ -1,13 +1,25 @@
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
 
 import { GitHubAdapterError } from '@top-right/adapter-github';
-import { DEFAULT_SCORE_LABEL_MAPPING, formatItemKey, type WorkItem } from '@top-right/model';
+import {
+  DEFAULT_SCORE_LABEL_MAPPING,
+  formatItemKey,
+  type ResolvedItemScores,
+  resolveItemScores,
+  type WorkItem,
+} from '@top-right/model';
 import type { Store } from '@top-right/store';
 
 import { StartupError } from '#src/server/startup-error.ts';
 
 import { listItems, renderItemsText } from './list-items.ts';
-import { parseScoreBatch, planScoreChanges, renderChangesText, writeScoreBatch } from './write-scores.ts';
+import {
+  omitHeldScores,
+  parseScoreBatch,
+  planScoreChanges,
+  renderChangesText,
+  writeScoreBatch,
+} from './write-scores.ts';
 
 /** The user's store and items, opened for one run of the CLI. */
 export interface CliContext {
@@ -101,6 +113,9 @@ Options:
 
 The whole batch is refused when any entry names an item that is not an open issue of a configured repository,
 repeats an item, or holds a value off its scale.
+
+A score equal to the one that the item already has, stored or supplied by a label, is neither reported nor written.
+The agent's scores never change an issue's labels; the author's review on the chart writes them.
 
 Example:
   pnpm --filter @top-right/standalone top-right write-scores --dry-run scores.json
@@ -215,9 +230,17 @@ async function runWriteScores(args: readonly string[], io: CliIo): Promise<numbe
       return USAGE_ERROR;
     }
     const at = io.now().toISOString();
-    const { scores } = await context.store.readUserState(context.userId);
-    const changes = planScoreChanges(batch.entries, scores, at);
-    if (!isDryRun) await writeScoreBatch(context.store, context.userId, batch.entries, at);
+    const { scores, scoreLabelMapping } = await context.store.readUserState(context.userId);
+    const mapping = scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING;
+    const resolved = Object.fromEntries(
+      items.map((item): [string, ResolvedItemScores] => {
+        const itemKey = formatItemKey(item);
+        return [itemKey, resolveItemScores(scores[itemKey], item.labels, mapping)];
+      }),
+    );
+    const entries = omitHeldScores(batch.entries, resolved);
+    const changes = planScoreChanges(entries, scores, resolved, at);
+    if (!isDryRun) await writeScoreBatch(context.store, context.userId, entries, at);
     io.stdout(renderChangesText(changes, isDryRun));
     return 0;
   });

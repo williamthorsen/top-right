@@ -81,6 +81,20 @@ describe(runCli, () => {
     });
   });
 
+  it.each([{ isDryRun: true }, { isDryRun: false }])(
+    'when the item has a label for a level, reports from that level and skips a write of it (dry run: $isDryRun)',
+    async ({ isDryRun }) => {
+      const run = await runWith(['write-scores', ...(isDryRun ? ['--dry-run'] : []), 'scores.json'], {
+        files: { 'scores.json': '[{ "itemKey": "o/r#1", "scores": { "urgency": "high", "value": "must-have" } }]' },
+        labels: ['urgency:high', 'value:questionable'],
+      });
+
+      expect(run.code).toBe(0);
+      expect(run.stdout).toMatch(/^o\/r#1 value questionable → must-have\ntop-right: /);
+      expect(run.store.state.scores['o/r#1']?.urgency).toBeUndefined();
+    },
+  );
+
   it('reports the same changes on a dry run and writes nothing', async () => {
     const run = await runWith(['write-scores', '--dry-run', '-'], {
       stdin: '[{ "itemKey": "o/r#1", "scores": { "urgency": "high" } }]',
@@ -131,6 +145,8 @@ describe(runCli, () => {
 // region | Helpers
 interface RunOptions {
   files?: Record<string, string>;
+  /** The labels of the open item `o/r#1`. */
+  labels?: string[];
   stdin?: string;
   isStdinTerminal?: boolean;
   failure?: Error;
@@ -148,7 +164,10 @@ async function runWith(argv: string[], options: RunOptions = {}) {
     openContext: () => {
       if (options.failure instanceof StartupError) return Promise.reject(options.failure);
       return Promise.resolve({
-        loadItems: () => (options.failure ? Promise.reject(options.failure) : Promise.resolve([ITEM, CLOSED_ITEM])),
+        loadItems: () =>
+          options.failure
+            ? Promise.reject(options.failure)
+            : Promise.resolve([{ ...ITEM, labels: options.labels ?? [] }, CLOSED_ITEM]),
         store,
         userId: 'github:author',
         close: () => {},

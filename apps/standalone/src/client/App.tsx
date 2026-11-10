@@ -7,6 +7,7 @@ import {
   keepItemScores,
   type Scores,
   type StatusOverride,
+  type WorkItem,
 } from '@top-right/model';
 import { type ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -32,16 +33,27 @@ export function App(): ReactElement {
   // Writes for one item run in order, so that a late response cannot overwrite a newer change.
   const writeQueues = useRef(new Map<string, Promise<void>>());
   const refreshRunning = useRef(false);
+  // A refresh answered after a label write may have read the issues before it, so the client re-applies newer writes.
+  const labelWrites = useRef(new Map<string, { labels: string[]; sequence: number }>());
+  const labelWriteCount = useRef(0);
 
   // Replaces only the issues, so that a refresh cannot overwrite a score or status write in progress.
   const refreshIssues = useCallback(async (): Promise<void> => {
     if (refreshRunning.current) return;
     refreshRunning.current = true;
     setIsRefreshing(true);
+    const startedAfter = labelWriteCount.current;
     try {
       const { items, readAt } = await postJson('/api/items/refresh', {}, refreshResponseSchema);
+      const newer = new Map<string, string[]>();
+      for (const [itemKey, write] of labelWrites.current) {
+        if (write.sequence > startedAfter) newer.set(itemKey, write.labels);
+        else labelWrites.current.delete(itemKey);
+      }
       setState((current) =>
-        current.kind === 'loaded' ? { ...current, data: { ...current.data, items, readAt } } : current,
+        current.kind === 'loaded'
+          ? { ...current, data: { ...current.data, items: replaceLabels(items, newer), readAt } }
+          : current,
       );
     } catch (error) {
       setFailure(`Issues not refreshed: ${endSentence(describeError(error))}`);
@@ -91,6 +103,17 @@ export function App(): ReactElement {
     writeQueues.current.set(itemKey, queued);
   }
 
+  function applyLabels(itemKey: string, labels: string[]): void {
+    labelWriteCount.current += 1;
+    labelWrites.current.set(itemKey, { labels, sequence: labelWriteCount.current });
+    const written = new Map([[itemKey, labels]]);
+    setState((current) =>
+      current.kind === 'loaded'
+        ? { ...current, data: { ...current.data, items: replaceLabels(current.data.items, written) } }
+        : current,
+    );
+  }
+
   function changeScores(itemKey: string, changed: Scores): void {
     const previous = scores[itemKey];
     const at = new Date().toISOString();
@@ -98,6 +121,7 @@ export function App(): ReactElement {
     enqueueWrite(itemKey, async () => {
       try {
         const body = await postJson('/api/scores', { itemKey, scores: changed }, scoresResponseSchema);
+        if (body.labels) applyLabels(itemKey, body.labels);
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
@@ -113,6 +137,7 @@ export function App(): ReactElement {
     enqueueWrite(itemKey, async () => {
       try {
         const body = await postJson('/api/keep', { itemKey }, scoresResponseSchema);
+        if (body.labels) applyLabels(itemKey, body.labels);
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
@@ -185,6 +210,14 @@ function buildSettingsHref(selectedKey: string | undefined): string {
 /** Returns `text` ending in a period, unless it already ends a sentence, as the host's GitHub messages do. */
 function endSentence(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
+/** Returns `items` with the labels of each item that `labels` names replaced. */
+function replaceLabels(items: readonly WorkItem[], labels: ReadonlyMap<string, string[]>): WorkItem[] {
+  return items.map((item) => {
+    const replaced = labels.get(formatItemKey(item));
+    return replaced ? { ...item, labels: replaced } : item;
+  });
 }
 
 /** Returns `record` with `key` set to `value`, or without `key` when `value` is undefined. */

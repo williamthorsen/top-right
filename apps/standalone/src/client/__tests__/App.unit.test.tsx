@@ -52,6 +52,8 @@ const ITEMS: ItemsResponse = {
   isStale: false,
 };
 
+const CRITICAL_BY_LABEL = { itemKey: ITEM_KEY, scores: {}, labels: ['feature', 'urgency:critical'] };
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -155,6 +157,39 @@ describe(App, () => {
     expect(within(getGroup('Urgency')).getByRole('radio', { name: 'Medium' })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('when the host writes the level to a label, shows the level that the returned label supplies', async () => {
+    const user = userEvent.setup();
+    stubFetch((path) => Promise.resolve(Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : ITEMS)));
+    render(<App />);
+
+    await selectItem(user);
+    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
+
+    expect(await screen.findByText('Label · urgency:critical')).toBeInTheDocument();
+    expect(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' })).toBeChecked();
+  });
+
+  it('keeps a label that a write returned when a refresh started before the write answers after it', async () => {
+    const user = userEvent.setup();
+    const read = Promise.withResolvers<Response>();
+    stubFetch((path) => {
+      if (path === '/api/items/refresh') return read.promise;
+      return Promise.resolve(Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : { ...ITEMS, isStale: true }));
+    });
+    render(<App />);
+
+    await selectItem(user);
+    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
+    expect(await screen.findByText('Label · urgency:critical')).toBeInTheDocument();
+    read.resolve(Response.json({ items: ITEMS.items, readAt: '2026-11-08T10:05:00.000Z' }));
+
+    expect(await within(screen.getByRole('toolbar', { name: 'Issues' })).findByRole('time')).toHaveAttribute(
+      'datetime',
+      '2026-11-08T10:05:00.000Z',
+    );
+    expect(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' })).toBeChecked();
   });
 
   it('keeps an agent score before the host confirms it, and restores it with an alert when the write fails', async () => {

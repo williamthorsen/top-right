@@ -4,6 +4,9 @@ import {
   type ItemScores,
   type LabelScoreEntry,
   type ResolvedItemScores,
+  type ScoreEntry,
+  type ScoreField,
+  type ScoreTypes,
   URGENCY_LEVELS,
   type UrgencyLevel,
   VALUE_LEVELS,
@@ -98,18 +101,56 @@ export function normalizeScoreLabelMapping(mapping: ScoreLabelMapping): ScoreLab
   };
 }
 
+/** The levels that a label write sets, by dimension; an absent dimension keeps its labels. */
+export interface LabelLevels {
+  urgency?: UrgencyLevel | undefined;
+  value?: ValueLevel | undefined;
+  effort?: number | undefined;
+}
+
+/** The labels that a write adds and removes, or the reason that the mapping refuses it. */
+export type LabelChangePlan =
+  { kind: 'change'; add: string[]; remove: string[] } | { kind: 'refused'; message: string };
+
+/**
+ * Returns the label change that sets `levels`: For each dimension, the first label that the mapping lists for the level
+ * is added, and every label listed under the dimension's other levels is removed. A level for which the mapping lists
+ * no label refuses the write.
+ */
+export function planLabelChange(levels: LabelLevels, mapping: ScoreLabelMapping): LabelChangePlan {
+  const add: string[] = [];
+  const remove: string[] = [];
+  const effort = levels.effort === undefined ? undefined : EFFORT_SCALE.find((points) => points === levels.effort);
+  if (levels.effort !== undefined && effort === undefined) {
+    return { kind: 'refused', message: `effort ${levels.effort} is not on the scale` };
+  }
+  const families = [
+    planFamily('urgency', URGENCY_LEVELS, mapping.urgency, levels.urgency),
+    planFamily('value', VALUE_LEVELS, mapping.value, levels.value),
+    planFamily('effort', EFFORT_SCALE, mapping.effort, effort),
+  ];
+  for (const family of families) {
+    if (family === undefined) continue;
+    if (family.kind === 'refused') return family;
+    add.push(...family.add);
+    remove.push(...family.remove);
+  }
+  return { kind: 'change', add, remove };
+}
+
 /**
  * Returns an item's stored scores with, for urgency, value, and effort where none is stored, the score of the highest
- * entry whose labels include one of the item's labels. Labels compare case-insensitively.
+ * entry whose labels include one of the item's labels. Labels compare case-insensitively. A label's level is the score
+ * that the author holds, so an agent entry without a previous score takes the label's level as its previous one.
  */
 export function resolveItemScores(
   stored: ItemScores | undefined,
   labels: readonly string[],
   mapping: ScoreLabelMapping,
 ): ResolvedItemScores {
-  const urgency = stored?.urgency ?? findLabelScore(URGENCY_LEVELS, mapping.urgency, labels);
-  const value = stored?.value ?? findLabelScore(VALUE_LEVELS, mapping.value, labels);
-  const effort = stored?.effort ?? findLabelScore(EFFORT_SCALE, mapping.effort, labels);
+  const urgency = resolveEntry(stored?.urgency, findLabelScore(URGENCY_LEVELS, mapping.urgency, labels));
+  const value = resolveEntry(stored?.value, findLabelScore(VALUE_LEVELS, mapping.value, labels));
+  const effort = resolveEntry(stored?.effort, findLabelScore(EFFORT_SCALE, mapping.effort, labels));
   return {
     ...stored,
     ...(urgency && { urgency }),
@@ -159,5 +200,34 @@ interface LevelLabels {
 
 function normalizeLabels(labels: readonly string[]): string[] {
   return labels.map((label) => label.trim()).filter((label) => label !== '');
+}
+
+/** Returns the change that sets one dimension to `level`, or `undefined` when `level` is absent. */
+function planFamily<T extends EffortPoints | UrgencyLevel | ValueLevel>(
+  dimension: LabelDimension,
+  levels: readonly T[],
+  levelLabels: Readonly<Record<T, readonly string[]>>,
+  level: T | undefined,
+): LabelChangePlan | undefined {
+  if (level === undefined) return undefined;
+  const [label] = levelLabels[level];
+  if (label === undefined) {
+    return { kind: 'refused', message: `no label is mapped to ${dimension} ${level}; add one in Settings` };
+  }
+  const remove = levels.filter((other) => other !== level).flatMap((other) => levelLabels[other]);
+  return { kind: 'change', add: [label], remove };
+}
+
+/**
+ * Returns the stored entry, or the label score when none is stored. An agent entry without a previous score takes the
+ * label's level as its previous one.
+ */
+function resolveEntry<T extends ScoreTypes[ScoreField], L extends T & (EffortPoints | UrgencyLevel | ValueLevel)>(
+  stored: ScoreEntry<T> | undefined,
+  label: LabelScoreEntry<L> | undefined,
+): LabelScoreEntry<L> | ScoreEntry<T> | undefined {
+  if (!stored) return label;
+  if (stored.by !== 'agent' || stored.previous !== undefined || !label) return stored;
+  return { ...stored, previous: label.score };
 }
 // endregion | Helpers

@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 
 import {
   applyScoreWrite,
+  clearScoreFields,
   DEFAULT_SCORE_LABEL_MAPPING,
   isValidScore,
   type ItemScores,
@@ -214,6 +215,9 @@ export function openSqliteStore(path: string): SqliteStore {
   }
 
   return {
+    clearScores(userId: string, itemKey: string, fields: readonly ScoreField[]): Promise<ItemScores> {
+      return Promise.resolve(updateItemScores(userId, itemKey, (existing) => clearScoreFields(existing, fields)));
+    },
     keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores> {
       return Promise.resolve(updateItemScores(userId, itemKey, (existing) => keepItemScores(existing, at)));
     },

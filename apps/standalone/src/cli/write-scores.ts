@@ -1,6 +1,8 @@
 import {
   applyScoreWrite,
   type ItemScores,
+  omitUnchangedScores,
+  type ResolvedItemScores,
   SCORE_FIELDS,
   type ScoreField,
   type Scores,
@@ -25,6 +27,19 @@ export interface ScoreChange<F extends ScoreField = ScoreField> {
   field: F;
   from: ScoreTypes[F] | undefined;
   to: ScoreTypes[F];
+}
+
+/**
+ * Returns the entries without each score that the item already resolves to, a label's level included, and without an
+ * entry left with none, so that an agent's write of the author's level neither marks the item nor reports a change.
+ */
+export function omitHeldScores(
+  entries: readonly BatchEntry[],
+  resolved: Readonly<Record<string, ResolvedItemScores>>,
+): BatchEntry[] {
+  return entries
+    .map(({ itemKey, scores }) => ({ itemKey, scores: omitUnchangedScores(scores, resolved[itemKey]) }))
+    .filter(({ scores }) => SCORE_FIELDS.some((field) => scores[field] !== undefined));
 }
 
 /**
@@ -56,18 +71,21 @@ export function parseScoreBatch(json: unknown, openKeys: ReadonlySet<string>): B
   return problems.length > 0 ? { kind: 'invalid', problems } : { kind: 'valid', entries };
 }
 
-/** Returns the field changes that writing `entries` as the agent at `at` makes to `scores`. */
+/**
+ * Returns the field changes that writing `entries` as the agent at `at` makes to the stored `scores`, each reported from
+ * the score that the item resolves to in `resolved`, a label's level included.
+ */
 export function planScoreChanges(
   entries: readonly BatchEntry[],
   scores: Readonly<Record<string, ItemScores>>,
+  resolved: Readonly<Record<string, ResolvedItemScores>>,
   at: string,
 ): ScoreChange[] {
   const changes: ScoreChange[] = [];
   for (const { itemKey, scores: values } of entries) {
-    const before = scores[itemKey];
-    const after = applyScoreWrite(before, values, 'agent', at);
+    const after = applyScoreWrite(scores[itemKey], values, 'agent', at);
     for (const field of SCORE_FIELDS) {
-      const change = planFieldChange(itemKey, field, before?.[field]?.score, after[field]?.score);
+      const change = planFieldChange(itemKey, field, resolved[itemKey]?.[field]?.score, after[field]?.score);
       if (change) changes.push(change);
     }
   }

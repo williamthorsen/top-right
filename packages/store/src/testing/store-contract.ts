@@ -109,6 +109,32 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
       expect((await opened.store.readUserState(USER)).scores).toEqual({});
     });
 
+    it('clears the named fields of an item and keeps the rest', async () => {
+      await opened.store.writeScores(
+        USER,
+        ITEM,
+        { urgency: 'high', value: 'must-have', progress: 0.5 },
+        'author',
+        EARLIER,
+      );
+      await opened.store.writeScores(USER, OTHER_ITEM, { urgency: 'low' }, 'author', EARLIER);
+      const cleared = await opened.store.clearScores(USER, ITEM, ['urgency', 'value', 'effort']);
+
+      const expected = { progress: { score: 0.5, by: 'author', at: EARLIER } };
+      expect(cleared).toEqual(expected);
+      expect((await opened.store.readUserState(USER)).scores).toEqual({
+        [ITEM]: expected,
+        [OTHER_ITEM]: { urgency: { score: 'low', by: 'author', at: EARLIER } },
+      });
+    });
+
+    it('when every field of an item is cleared, reads the item as unscored', async () => {
+      await opened.store.writeScores(USER, ITEM, { urgency: 'high' }, 'agent', EARLIER);
+
+      await expect(opened.store.clearScores(USER, ITEM, ['urgency'])).resolves.toEqual({});
+      expect((await opened.store.readUserState(USER)).scores).toEqual({});
+    });
+
     it('keeps users and items apart', async () => {
       await opened.store.writeScores(USER, ITEM, { effort: 3 }, 'author', EARLIER);
       await opened.store.writeScores(USER, OTHER_ITEM, { effort: 8 }, 'author', EARLIER);

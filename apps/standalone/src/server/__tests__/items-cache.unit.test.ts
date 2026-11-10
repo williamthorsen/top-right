@@ -105,6 +105,44 @@ describe(createItemsCache, () => {
     await expect(cache.refresh()).rejects.toThrow('The config could not be read.');
     expect((await cache.get()).items).toStrictEqual([ITEM]);
   });
+
+  describe('setLabels', () => {
+    const KEY = 'williamthorsen/top-right#11';
+
+    it("replaces the item's labels in the last read", async () => {
+      const cache = createItemsCache({ load: () => Promise.resolve([ITEM]), now: () => START });
+      await cache.get();
+
+      cache.setLabels(KEY, ['urgency:high']);
+
+      expect((await cache.get()).items[0]?.labels).toStrictEqual(['urgency:high']);
+    });
+
+    it('when a read is in progress, applies the labels to the issues that it returns', async () => {
+      const read = Promise.withResolvers<WorkItem[]>();
+      const cache = createItemsCache({ load: () => read.promise, now: () => START });
+
+      const refreshing = cache.refresh();
+      cache.setLabels(KEY, ['urgency:high']);
+      read.resolve([ITEM]);
+
+      expect((await refreshing).items[0]?.labels).toStrictEqual(['urgency:high']);
+      expect((await cache.get()).items[0]?.labels).toStrictEqual(['urgency:high']);
+    });
+
+    it('lets a read that starts after the write take its labels from the source', async () => {
+      const load = vi
+        .fn<() => Promise<WorkItem[]>>()
+        .mockResolvedValueOnce([ITEM])
+        .mockResolvedValueOnce([{ ...ITEM, labels: ['urgency:low'] }]);
+      const cache = createItemsCache({ load, now: () => START });
+      await cache.get();
+
+      cache.setLabels(KEY, ['urgency:high']);
+
+      expect((await cache.refresh()).items[0]?.labels).toStrictEqual(['urgency:low']);
+    });
+  });
 });
 
 // region | Helpers

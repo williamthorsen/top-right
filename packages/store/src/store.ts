@@ -1,4 +1,12 @@
-import type { ItemScores, ScoreLabelMapping, Scorer, Scores, StatusOverride, WorkTypeMapping } from '@top-right/model';
+import type {
+  ItemScores,
+  ScoreField,
+  ScoreLabelMapping,
+  Scorer,
+  Scores,
+  StatusOverride,
+  WorkTypeMapping,
+} from '@top-right/model';
 
 /** What the store holds for one user, keyed by item key (`owner/name#number`). */
 export interface UserState {
@@ -16,6 +24,8 @@ export interface UserState {
 
 /** The storage that a host supplies for scores, status overrides, visits, and settings, each keyed by user. */
 export interface Store {
+  /** Removes the item's entries for `fields`, and returns the item's remaining scores. */
+  clearScores(userId: string, itemKey: string, fields: readonly ScoreField[]): Promise<ItemScores>;
   /** Keeps the item's agent scores as the author's, at `at`, and returns the item's resulting scores. */
   keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores>;
   readUserState(userId: string): Promise<UserState>;
