@@ -87,7 +87,9 @@ export function applyScoreWrite(existing: ItemScores | undefined, values: Scores
 
 /** Returns an item's scores without the entries of `fields`. */
 export function clearScoreFields(existing: ItemScores | undefined, fields: readonly ScoreField[]): ItemScores {
-  const isKept = (field: ScoreField): boolean => !fields.includes(field);
+  function isKept(field: ScoreField): boolean {
+    return !fields.includes(field);
+  }
   return {
     ...(existing?.urgency && isKept('urgency') && { urgency: existing.urgency }),
     ...(existing?.value && isKept('value') && { value: existing.value }),
