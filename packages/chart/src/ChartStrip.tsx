@@ -51,7 +51,7 @@ export function ChartStrip({
         onStart={review.start}
         running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
       />
-      <div className="tr-view-toggles">
+      <div className="tr-view-controls">
         <Switch isChecked={showAllEdges} onChange={onShowAllEdgesChange}>
           All edges
         </Switch>

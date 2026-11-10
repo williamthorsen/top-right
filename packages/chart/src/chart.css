@@ -577,7 +577,7 @@
 }
 
 /* The view controls stay together when the strip wraps. */
-.tr-view-toggles {
+.tr-view-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
