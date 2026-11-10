@@ -212,6 +212,63 @@ describe(App, () => {
   });
 });
 
+describe('refreshing the issues', () => {
+  const RENAMED = 'Score every item';
+  const REFRESHED = { items: [{ ...ITEMS.items[0], title: RENAMED }], readAt: '2026-11-08T10:05:00.000Z' };
+
+  it('shows the read time and, when the issues are stale, replaces them with a fresh read', async () => {
+    const read = Promise.withResolvers<Response>();
+    stubFetch((path) =>
+      path === '/api/items/refresh' ? read.promise : Promise.resolve(Response.json({ ...ITEMS, isStale: true })),
+    );
+    render(<App />);
+
+    const toolbar = await screen.findByRole('toolbar', { name: 'Issues' });
+    expect(toolbar).toHaveTextContent('Reading issues…');
+    expect(screen.getAllByText('Score items').length).toBeGreaterThan(0);
+
+    read.resolve(Response.json(REFRESHED));
+    expect((await screen.findAllByText(RENAMED)).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Score items')).not.toBeInTheDocument();
+    expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', REFRESHED.readAt);
+  });
+
+  it('reads the issues again on Refresh, keeping the scores on the page', async () => {
+    const user = userEvent.setup();
+    stubFetch((path) => Promise.resolve(Response.json(path === '/api/items/refresh' ? REFRESHED : ITEMS)));
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Refresh' }));
+
+    expect((await screen.findAllByText(RENAMED)).length).toBeGreaterThan(0);
+    await selectItem(user);
+    expect(within(getGroup('Urgency')).getByRole('radio', { name: 'Medium' })).toBeChecked();
+  });
+
+  it.each([
+    {
+      case: 'the host reports an error',
+      response: () => Promise.resolve(Response.json({ error: 'GitHub responded 502 Bad Gateway.' }, { status: 502 })),
+      expected: 'Issues not refreshed: GitHub responded 502 Bad Gateway.',
+    },
+    {
+      case: 'the host does not respond',
+      response: () => Promise.reject(new TypeError('Failed to fetch')),
+      expected: 'Issues not refreshed: the host did not respond.',
+    },
+  ])('if the read fails because $case, keeps the last issues and says so', async ({ response, expected }) => {
+    const user = userEvent.setup();
+    stubFetch((path) => (path === '/api/items/refresh' ? response() : Promise.resolve(Response.json(ITEMS))));
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Refresh' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(new RegExp(`^${RegExp.escape(expected)}Dismiss$`));
+    expect(screen.getAllByText('Score items').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Refresh' })).toHaveAttribute('aria-disabled', 'false');
+  });
+});
+
 describe('with the selection in the URL', () => {
   const OTHER_KEY = 'williamthorsen/top-right#13';
   const TWO_ITEMS: ItemsResponse = {
