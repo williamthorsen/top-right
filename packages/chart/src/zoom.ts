@@ -17,7 +17,8 @@ const MIN_FIT = 1;
 /** Returns the scale that fits the matrix to an area, rounded down to a whole percent and clamped to 100–400 %. */
 export function fitScale(areaWidth: number, areaHeight: number): number {
   if (areaWidth <= 0 || areaHeight <= 0) return MIN_FIT;
-  const percent = Math.floor(Math.min(areaWidth / WIDTH, areaHeight / HEIGHT) * 100);
+  // The tolerance keeps an area of exactly a whole percent from rounding down a percent through float error.
+  const percent = Math.floor(Math.min(areaWidth / WIDTH, areaHeight / HEIGHT) * 100 + 1e-9);
   return Math.min(MAX_STEP, Math.max(MIN_FIT, percent / 100));
 }
 

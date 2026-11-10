@@ -207,6 +207,7 @@ export function Chart({
             scopeMode={scopeMode}
             settingsHref={settingsHref}
             showAllEdges={showAllEdges}
+            zoom={zoom}
           />
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>

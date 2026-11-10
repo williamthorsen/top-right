@@ -694,8 +694,35 @@
   cursor: pointer;
 }
 
-.tr-menu-button:hover {
+.tr-menu-button:hover:not(:disabled) {
   background: var(--tr-surface-2);
+}
+
+.tr-menu-button:disabled {
+  border-color: var(--tr-line);
+  color: var(--tr-ink-2);
+  cursor: default;
+}
+
+/* The zoom control's buttons sit flush, so that the three read as one control. */
+.tr-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tr-zoom-step {
+  justify-content: center;
+  min-width: 32px;
+  padding-inline: 0;
+  font-size: 16px;
+}
+
+/* A fixed width keeps the control's size as the readout changes from 50 % to 400 %. */
+.tr-zoom-readout {
+  justify-content: center;
+  min-width: 9ch;
+  font-variant-numeric: tabular-nums;
 }
 
 .tr-menu-button[aria-expanded='true'] {

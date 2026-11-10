@@ -75,6 +75,54 @@ describe('Chart zoom', () => {
     expectScale(1);
   });
 
+  it('steps with the zoom buttons, shows the scale in the readout, and disables each button at its end', async () => {
+    const user = userEvent.setup();
+    renderChart(ITEMS, {}, SCORES);
+    const zoomIn = screen.getByRole('button', { name: 'Zoom in' });
+    const zoomOut = screen.getByRole('button', { name: 'Zoom out' });
+
+    await user.click(zoomIn);
+    expectScale(1.25);
+    expect(getReadout()).toHaveAccessibleName('Zoom, 125\u{A0}%');
+    for (const _ of [1.5, 2, 3, 4]) await user.click(zoomIn);
+    expectScale(4);
+    expect(zoomIn).toBeDisabled();
+    for (const _ of [3, 2, 1.5, 1.25, 1, 0.75, 0.5]) await user.click(zoomOut);
+    expectScale(0.5);
+    expect(zoomOut).toBeDisabled();
+    expect(zoomIn).toBeEnabled();
+  });
+
+  it('sets the scale that a readout menu item names, and marks it checked', async () => {
+    const user = userEvent.setup();
+    renderChart(ITEMS, {}, SCORES);
+
+    await user.click(getReadout());
+    await user.click(screen.getByRole('menuitemradio', { name: '200\u{A0}%' }));
+    expectScale(2);
+
+    await user.click(getReadout());
+    expect(screen.getByRole('menuitemradio', { name: '200\u{A0}%' })).toBeChecked();
+    expect(screen.getByRole('menuitemradio', { name: '100\u{A0}%' })).not.toBeChecked();
+  });
+
+  it('fits the matrix to the chart area, keeps Fit checked, and steps from the Fit scale to the adjacent step', async () => {
+    const user = userEvent.setup();
+    renderChart(ITEMS, {}, SCORES);
+    mockScrollGeometry(getScroll(), { width: WIDTH * 1.4, height: HEIGHT * 2, left: 0, top: 0 });
+
+    await user.click(getReadout());
+    await user.click(screen.getByRole('menuitemradio', { name: 'Fit' }));
+    expectScale(1.4);
+    expect(getReadout()).toHaveAccessibleName('Zoom, 140\u{A0}%');
+    await user.click(getReadout());
+    expect(screen.getByRole('menuitemradio', { name: 'Fit' })).toBeChecked();
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expectScale(1.5);
+  });
+
   it('keeps the centre of the visible area in place when a key steps', async () => {
     const user = userEvent.setup();
     renderChart(ITEMS, {}, SCORES);
@@ -103,6 +151,10 @@ function expectScale(scale: number): void {
   const svg = screen.getByRole('group', { name: 'Items by urgency and impact' });
   expect(svg).toHaveAttribute('width', String(WIDTH * scale));
   expect(svg).toHaveAttribute('height', String(HEIGHT * scale));
+}
+
+function getReadout(): HTMLElement {
+  return screen.getByRole('button', { name: /^Zoom, / });
 }
 
 function getScroll(): HTMLElement {
