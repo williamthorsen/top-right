@@ -35,6 +35,7 @@ export {
 } from './score-labels.ts';
 export {
   applyScoreWrite,
+  clearScoreFields,
   computeRemainingScope,
   EFFORT_SCALE,
   type EffortPoints,

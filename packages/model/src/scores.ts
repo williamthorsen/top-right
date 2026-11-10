@@ -85,6 +85,17 @@ export function applyScoreWrite(existing: ItemScores | undefined, values: Scores
   };
 }
 
+/** Returns an item's scores without the entries of `fields`. */
+export function clearScoreFields(existing: ItemScores | undefined, fields: readonly ScoreField[]): ItemScores {
+  const isKept = (field: ScoreField): boolean => !fields.includes(field);
+  return {
+    ...(existing?.urgency && isKept('urgency') && { urgency: existing.urgency }),
+    ...(existing?.value && isKept('value') && { value: existing.value }),
+    ...(existing?.effort && isKept('effort') && { effort: existing.effort }),
+    ...(existing?.progress && isKept('progress') && { progress: existing.progress }),
+  };
+}
+
 /** Returns effort × (1 − progress), with a missing progress as none done, or undefined when the effort is unknown. */
 export function computeRemainingScope(scores: ResolvedItemScores | undefined): number | undefined {
   const effort = scores?.effort?.score;
