@@ -68,4 +68,11 @@ describe(renderItemsText, () => {
 
     expect(renderItemsText(listed ? [listed] : [])).toBe('o/r#7  u:high(label) v:- e:- p:-  Plot the issues\n');
   });
+
+  it('marks an effort that a label supplies', () => {
+    const [listed] = listItems([{ ...ITEM, labels: ['effort:5'] }], {}, DEFAULT_SCORE_LABEL_MAPPING);
+
+    expect(listed?.scores.effort).toStrictEqual({ score: 5, by: 'label', label: 'effort:5' });
+    expect(renderItemsText(listed ? [listed] : [])).toBe('o/r#7  u:- v:- e:5(label) p:-  Plot the issues\n');
+  });
 });

@@ -17,6 +17,6 @@ What each score means to a scorer, whether an agent or the author. The values th
 
 Score from the issue's title, body, labels, and relations. Leave a score out when the issue does not give enough to judge it; an absent score keeps the item in the gutter, which is better than a guess that places it.
 
-A score that `list-items` reports with `by: "label"` comes from one of the issue's labels, through the mapping that Settings edits, and is the tracker's statement of the level. Write over it only when the issue gives evidence against it: An agent score outranks the label until the author reviews it.
+A score that `list-items` reports with `by: "label"`, whether a level or an effort, comes from one of the issue's labels, through the mapping that Settings edits, and is the tracker's statement of that score. Write over it only when the issue gives evidence against it: An agent score outranks the label until the author reviews it.
 
 The author reviews each agent score on the chart, and an agent may write over the author's scores: The chart shows the cell that the agent moved an item from until the author keeps or corrects it.
