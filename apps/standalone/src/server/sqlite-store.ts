@@ -2,12 +2,15 @@ import { DatabaseSync } from 'node:sqlite';
 
 import {
   applyScoreWrite,
+  isValidScore,
   type ItemScores,
   keepItemScores,
   SCORE_FIELDS,
   type ScoreEntry,
+  type ScoreField,
   type Scorer,
   type Scores,
+  type ScoreTypes,
   type StatusOverride,
   type WorkTypeMapping,
 } from '@top-right/model';
@@ -53,6 +56,33 @@ const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (user_id, name)
   ) STRICT;
   `,
+  `
+  DROP TABLE scores;
+  CREATE TABLE scores (
+    user_id TEXT NOT NULL,
+    item_key TEXT NOT NULL,
+    field TEXT NOT NULL CHECK (field IN ('effort', 'progress', 'urgency', 'value')),
+    score ANY NOT NULL,
+    scored_by TEXT NOT NULL,
+    scored_at TEXT NOT NULL,
+    previous_score ANY,
+    PRIMARY KEY (user_id, item_key, field),
+    CHECK (
+      CASE field
+        WHEN 'urgency' THEN score IN ('low', 'medium', 'high', 'critical')
+        WHEN 'value' THEN score IN ('questionable', 'nice-to-have', 'should-have', 'must-have')
+        ELSE typeof(score) IN ('integer', 'real')
+      END
+    ),
+    CHECK (
+      previous_score IS NULL OR CASE field
+        WHEN 'urgency' THEN previous_score IN ('low', 'medium', 'high', 'critical')
+        WHEN 'value' THEN previous_score IN ('questionable', 'nice-to-have', 'should-have', 'must-have')
+        ELSE typeof(previous_score) IN ('integer', 'real')
+      END
+    )
+  ) STRICT;
+  `,
 ];
 
 /** The name of each setting in the `settings` table, whose `value` holds the setting as JSON. */
@@ -64,11 +94,11 @@ const BUSY_TIMEOUT_MS = 5000;
 
 const scoreRowSchema = z.object({
   item_key: z.string(),
-  field: z.enum(['effort', 'impact', 'progress', 'urgency']),
-  value: z.number(),
+  field: z.enum(['effort', 'progress', 'urgency', 'value']),
+  score: z.union([z.number(), z.string()]),
   scored_by: z.enum(['agent', 'author']),
   scored_at: z.string(),
-  previous_value: z.number().nullable(),
+  previous_score: z.union([z.number(), z.string()]).nullable(),
 });
 
 const overrideRowSchema = z.object({
@@ -101,16 +131,16 @@ export function openSqliteStore(path: string): SqliteStore {
   migrate(db);
 
   const selectScores = db.prepare(
-    `SELECT item_key, field, value, scored_by, scored_at, previous_value FROM scores
+    `SELECT item_key, field, score, scored_by, scored_at, previous_score FROM scores
      WHERE user_id = ? ORDER BY item_key, field`,
   );
   const selectItemScores = db.prepare(
-    `SELECT item_key, field, value, scored_by, scored_at, previous_value FROM scores
+    `SELECT item_key, field, score, scored_by, scored_at, previous_score FROM scores
      WHERE user_id = ? AND item_key = ?`,
   );
   const deleteItemScores = db.prepare('DELETE FROM scores WHERE user_id = ? AND item_key = ?');
   const insertScore = db.prepare(
-    `INSERT INTO scores (user_id, item_key, field, value, scored_by, scored_at, previous_value)
+    `INSERT INTO scores (user_id, item_key, field, score, scored_by, scored_at, previous_score)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
 
@@ -122,7 +152,7 @@ export function openSqliteStore(path: string): SqliteStore {
       deleteItemScores.run(userId, itemKey);
       for (const field of SCORE_FIELDS) {
         const entry = result[field];
-        if (entry) insertScore.run(userId, itemKey, field, entry.value, entry.by, entry.at, entry.previous ?? null);
+        if (entry) insertScore.run(userId, itemKey, field, entry.score, entry.by, entry.at, entry.previous ?? null);
       }
     });
     return result;
@@ -173,8 +203,7 @@ export function openSqliteStore(path: string): SqliteStore {
       const scores: Record<string, ItemScores> = {};
       const scoreRows = z.array(scoreRowSchema).parse(selectScores.all(userId));
       for (const row of scoreRows) {
-        const itemScores = (scores[row.item_key] ??= {});
-        itemScores[row.field] = readEntry(row);
+        scores[row.item_key] = { ...scores[row.item_key], [row.field]: readEntry(row.field, row) };
       }
       const overrides: Record<string, StatusOverride> = {};
       const overrideRows = z.array(overrideRowSchema).parse(selectOverrides.all(userId));
@@ -237,15 +266,18 @@ function migrate(db: DatabaseSync): void {
   }
 }
 
-function readEntry(row: z.infer<typeof scoreRowSchema>): ScoreEntry {
-  const entry: ScoreEntry = { value: row.value, by: row.scored_by, at: row.scored_at };
-  if (row.previous_value !== null) entry.previous = row.previous_value;
-  return entry;
+/** Returns the row's entry, or throws when a score is off the scale of `field`, which the table's checks prevent. */
+function readEntry<F extends ScoreField>(field: F, row: z.infer<typeof scoreRowSchema>): ScoreEntry<ScoreTypes[F]> {
+  const { score, previous_score: previous } = row;
+  if (!isValidScore(field, score) || (previous !== null && !isValidScore(field, previous))) {
+    throw new Error(`The store holds a ${field} score off its scale for ${row.item_key}`);
+  }
+  return { score, by: row.scored_by, at: row.scored_at, ...(previous !== null && { previous }) };
 }
 
 function readItemScores(rows: ReadonlyArray<z.infer<typeof scoreRowSchema>>): ItemScores {
-  const itemScores: ItemScores = {};
-  for (const row of rows) itemScores[row.field] = readEntry(row);
+  let itemScores: ItemScores = {};
+  for (const row of rows) itemScores = { ...itemScores, [row.field]: readEntry(row.field, row) };
   return itemScores;
 }
 
