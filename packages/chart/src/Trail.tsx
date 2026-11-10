@@ -1,4 +1,4 @@
-import { type Cell, findTrailOrigin, type ItemScores } from '@top-right/model';
+import { type Cell, findTrailOrigin, type ItemScores, rankLevel } from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { CELL_SIZE, type CellLayout, GRID_SIZE } from './layout.ts';
@@ -14,8 +14,8 @@ export interface TrailProps {
 
 /** A dashed outline of the circle at the centre of its previous cell, joined by a dashed line to where it is now. */
 export function Trail({ origin, x, y, r }: TrailProps): ReactElement {
-  const originX = (origin.urgency + 0.5) * CELL_SIZE;
-  const originY = (GRID_SIZE - 1 - origin.impact + 0.5) * CELL_SIZE;
+  const originX = (rankLevel(origin.urgency) + 0.5) * CELL_SIZE;
+  const originY = (GRID_SIZE - 1 - rankLevel(origin.value) + 0.5) * CELL_SIZE;
   return (
     <g aria-hidden="true" className="tr-trail">
       <circle cx={originX} cy={originY} r={r} />

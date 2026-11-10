@@ -1,7 +1,13 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { DEFAULT_WORK_TYPE_MAPPING, type StatusOverride, type WorkItem, type WorkTypeMapping } from '@top-right/model';
+import {
+  DEFAULT_WORK_TYPE_MAPPING,
+  type ItemScores,
+  type StatusOverride,
+  type WorkItem,
+  type WorkTypeMapping,
+} from '@top-right/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createMemoryStore } from '#src/test-utils/memory-store.ts';
@@ -33,10 +39,10 @@ afterEach(() => {
 describe(createApiHandler, () => {
   describe('GET /api/items', () => {
     it("answers with the items, the abbreviations, and the user's scores, overrides, and last visit", async () => {
-      const scores = {
+      const scores: Record<string, ItemScores> = {
         [ITEM_KEY]: {
-          urgency: { value: 4, by: 'author' as const, at: EARLIER },
-          impact: { value: 5, by: 'agent' as const, at: EARLIER, previous: 3 },
+          urgency: { score: 'high', by: 'author', at: EARLIER },
+          value: { score: 'must-have', by: 'agent', at: EARLIER, previous: 'should-have' },
         },
       };
       const store = createMemoryStore({ scores, overrides: { [ITEM_KEY]: IN_PROGRESS }, lastVisitAt: EARLIER });
@@ -123,13 +129,13 @@ describe(createApiHandler, () => {
   describe('POST /api/keep', () => {
     it("keeps the item's agent scores as the author's, at the host's time, and answers with them", async () => {
       const store = createMemoryStore({
-        scores: { [ITEM_KEY]: { urgency: { value: 4, by: 'agent', at: EARLIER, previous: 2 } } },
+        scores: { [ITEM_KEY]: { urgency: { score: 'high', by: 'agent', at: EARLIER, previous: 'medium' } } },
       });
       const baseUrl = await startServer({ store });
 
       const response = await post(`${baseUrl}/api/keep`, { itemKey: ITEM_KEY });
 
-      const expected = { urgency: { value: 4, by: 'author', at: NOW.toISOString() } };
+      const expected = { urgency: { score: 'high', by: 'author', at: NOW.toISOString() } };
       expect(response.status).toBe(200);
       expect(await response.json()).toStrictEqual({ itemKey: ITEM_KEY, scores: expected });
       expect(store.state.scores[ITEM_KEY]).toStrictEqual(expected);
@@ -149,17 +155,22 @@ describe(createApiHandler, () => {
       const store = createMemoryStore();
       const baseUrl = await startServer({ store });
 
-      const response = await post(`${baseUrl}/api/scores`, { itemKey: ITEM_KEY, scores: { impact: 5, progress: 0.4 } });
+      const response = await post(`${baseUrl}/api/scores`, {
+        itemKey: ITEM_KEY,
+        scores: { value: 'must-have', progress: 0.4 },
+      });
 
       const at = NOW.toISOString();
-      const expected = { impact: { value: 5, by: 'author', at }, progress: { value: 0.4, by: 'author', at } };
+      const expected = { value: { score: 'must-have', by: 'author', at }, progress: { score: 0.4, by: 'author', at } };
       expect(response.status).toBe(200);
       expect(await response.json()).toStrictEqual({ itemKey: ITEM_KEY, scores: expected });
       expect(store.state.scores[ITEM_KEY]).toStrictEqual(expected);
     });
 
     it.each([
-      { case: 'a value is off its scale', scores: { effort: 4 }, field: 'scores.effort' },
+      { case: 'a number is off its scale', scores: { effort: 4 }, field: 'scores.effort' },
+      { case: 'an axis score is a number', scores: { urgency: 3 }, field: 'scores.urgency' },
+      { case: 'a level is not on its axis', scores: { value: 'high' }, field: 'scores.value' },
       { case: 'the body names an unknown field', scores: { priority: 2 }, field: 'scores' },
       { case: 'the body names no score', scores: {}, field: 'scores' },
     ])('if $case, responds 400 naming the field', async ({ scores, field }) => {
@@ -186,7 +197,7 @@ describe(createApiHandler, () => {
       store.writeScores = () => Promise.reject(new Error('disk full'));
       const baseUrl = await startServer({ store });
 
-      const response = await post(`${baseUrl}/api/scores`, { itemKey: ITEM_KEY, scores: { urgency: 1 } });
+      const response = await post(`${baseUrl}/api/scores`, { itemKey: ITEM_KEY, scores: { urgency: 'low' } });
 
       expect(response.status).toBe(500);
       expect(await response.json()).toStrictEqual({ error: 'disk full' });

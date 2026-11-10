@@ -21,15 +21,15 @@ const AT = '2026-11-08T10:00:00.000Z';
 describe(DetailPane, () => {
   describe('with agent scores', () => {
     const moved: ItemScores = {
-      urgency: { value: 4, by: 'agent', at: AT, previous: 2 },
-      impact: { value: 5, by: 'author', at: AT },
+      urgency: { score: 'critical', by: 'agent', at: AT, previous: 'medium' },
+      value: { score: 'must-have', by: 'author', at: AT },
     };
 
     it('offers Keep, which keeps the item, and names the cell that the agent moved it from', async () => {
       const user = userEvent.setup();
       const { onKeep } = renderPane({ scores: moved });
 
-      expect(screen.getByText('Moved by the agent from urgency 2, impact 5')).toBeInTheDocument();
+      expect(screen.getByText('Moved by the agent from Medium urgency, Must-have value')).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Keep' }));
 
       expect(onKeep).toHaveBeenCalledWith(ITEM_KEY);
@@ -42,7 +42,7 @@ describe(DetailPane, () => {
     });
 
     it('offers no Keep for an item that the author holds', () => {
-      renderPane({ scores: { urgency: { value: 4, by: 'author', at: AT } } });
+      renderPane({ scores: { urgency: { score: 'critical', by: 'author', at: AT } } });
 
       expect(screen.queryByRole('button', { name: 'Keep' })).not.toBeInTheDocument();
     });
@@ -52,35 +52,37 @@ describe(DetailPane, () => {
     const user = userEvent.setup();
     const { onScoresChange } = renderPane();
 
-    await user.click(within(getGroup('Impact')).getByRole('radio', { name: '4' }));
+    await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Should-have' }));
     await user.click(within(getGroup('Effort')).getByRole('radio', { name: '8' }));
 
     expect(onScoresChange.mock.calls).toStrictEqual([
-      [ITEM_KEY, { impact: 4 }],
+      [ITEM_KEY, { value: 'should-have' }],
       [ITEM_KEY, { effort: 8 }],
     ]);
   });
 
   it('gives each control one tab stop, and moves and chooses with the arrow keys', async () => {
     const user = userEvent.setup();
-    const { onScoresChange } = renderPane({ scores: { urgency: { value: 3, by: 'author', at: AT } } });
+    const { onScoresChange } = renderPane({ scores: { urgency: { score: 'high', by: 'author', at: AT } } });
     const urgency = getGroup('Urgency');
-    const three = within(urgency).getByRole('radio', { name: '3' });
+    const high = within(urgency).getByRole('radio', { name: 'High' });
 
     expect(
       within(urgency)
         .getAllByRole('radio')
         .filter((radio) => radio.tabIndex === 0),
-    ).toStrictEqual([three]);
-    three.focus();
+    ).toStrictEqual([high]);
+    high.focus();
     await user.keyboard('{ArrowRight}');
 
-    expect(onScoresChange).toHaveBeenCalledWith(ITEM_KEY, { urgency: 4 });
-    expect(within(urgency).getByRole('radio', { name: '4' })).toHaveFocus();
+    expect(onScoresChange).toHaveBeenCalledWith(ITEM_KEY, { urgency: 'critical' });
+    expect(within(urgency).getByRole('radio', { name: 'Critical' })).toHaveFocus();
   });
 
   it('shows the provenance of each score, and Unscored for an absent one', () => {
-    renderPane({ scores: { urgency: { value: 2, by: 'agent', at: AT }, effort: { value: 3, by: 'author', at: AT } } });
+    renderPane({
+      scores: { urgency: { score: 'medium', by: 'agent', at: AT }, effort: { score: 3, by: 'author', at: AT } },
+    });
 
     const pane = screen.getByRole('region', { name: 'Scores' });
     expect(pane).toHaveTextContent(/Agent · /);

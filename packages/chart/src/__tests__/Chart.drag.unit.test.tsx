@@ -19,13 +19,13 @@ describe('Chart drag', () => {
     await userEvent.setup().click(circle);
 
     fireEvent.pointerDown(circle, { pointerId: 1, ...centreOf(2, 2) });
-    fireEvent.pointerMove(circle, { pointerId: 1, ...centreOf(4, 5) });
+    fireEvent.pointerMove(circle, { pointerId: 1, ...centreOf(4, 4) });
     expect(countMarks('.tr-drop-target')).toBe(1);
     expect(countMarks('.tr-drag-proxy')).toBe(1);
-    fireEvent.pointerUp(circle, { pointerId: 1, ...centreOf(4, 5) });
+    fireEvent.pointerUp(circle, { pointerId: 1, ...centreOf(4, 4) });
 
     expect(onScoresChange).toHaveBeenCalledTimes(1);
-    expect(onScoresChange).toHaveBeenCalledWith(FIRST, { urgency: 4, impact: 5 });
+    expect(onScoresChange).toHaveBeenCalledWith(FIRST, { urgency: 'critical', value: 'must-have' });
     expect(countMarks('.tr-drop-target')).toBe(0);
     expect(countMarks('.tr-drag-proxy')).toBe(0);
   });
@@ -159,7 +159,7 @@ describe('Chart drag', () => {
     fireEvent.pointerMove(row, { pointerId: 1, ...centreOf(3, 4) });
     fireEvent.pointerUp(row, { pointerId: 1, ...centreOf(3, 4) });
 
-    expect(onScoresChange).toHaveBeenCalledWith(FIRST, { urgency: 3, impact: 4 });
+    expect(onScoresChange).toHaveBeenCalledWith(FIRST, { urgency: 'high', value: 'must-have' });
   });
 
   it('moves an Unscored review on once a drop places the selected item', async () => {
@@ -192,7 +192,7 @@ function centreOf(u: number, i: number): { clientX: number; clientY: number } {
 /** Counts the drag's marks in the chart's layers, which include the overlay that draws the proxy above the gutters. */
 function countMarks(selector: string): number {
   // eslint-disable-next-line testing-library/no-node-access -- the layers' shared box has no role to query.
-  const canvas = screen.getByRole('group', { name: 'Items by urgency and impact' }).closest('.tr-canvas');
+  const canvas = screen.getByRole('group', { name: 'Items by urgency and value' }).closest('.tr-canvas');
   return canvas?.querySelectorAll(selector).length ?? 0;
 }
 
@@ -232,7 +232,7 @@ function renderDragHost(items: WorkItem[], initialScores: Record<string, ItemSco
     );
   }
   render(<DragHost />);
-  const svg = screen.getByRole('group', { name: 'Items by urgency and impact' });
+  const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
   svg.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
   return { onScoresChange, onSelectedKeyChange };
 }

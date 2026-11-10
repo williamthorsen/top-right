@@ -65,7 +65,7 @@ export function ScoredCells({
     <>
       {cells.map((cell) =>
         cell.isGutter ? null : (
-          <g key={`${cell.u},${cell.i}`}>
+          <g key={`${cell.u},${cell.v}`}>
             {cell.circles.map((circle) => {
               const item = itemsByKey.get(circle.id);
               if (!item) return null;
@@ -89,7 +89,7 @@ export function ScoredCells({
                     })}
                     onPreview={onPreview}
                     onSelect={onSelect}
-                    progress={scores[circle.id]?.progress?.value ?? 0}
+                    progress={scores[circle.id]?.progress?.score ?? 0}
                     scopeMode={scopeMode}
                     status={deriveStatus(item, overrides[circle.id])}
                     workType={classifyWorkType(item.labels, workTypeMapping)}

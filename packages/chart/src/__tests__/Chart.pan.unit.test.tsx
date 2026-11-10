@@ -80,10 +80,10 @@ describe('Chart pan', () => {
     await user.click(circle);
 
     fireEvent.pointerDown(circle, { ...MOUSE, ...centreOf(2, 2, 2) });
-    fireEvent.pointerMove(circle, { ...MOUSE, ...centreOf(4, 5, 2) });
-    fireEvent.pointerUp(circle, { ...MOUSE, ...centreOf(4, 5, 2) });
+    fireEvent.pointerMove(circle, { ...MOUSE, ...centreOf(4, 4, 2) });
+    fireEvent.pointerUp(circle, { ...MOUSE, ...centreOf(4, 4, 2) });
 
-    expect(onScoresChange).toHaveBeenCalledWith(FIRST, { urgency: 4, impact: 5 });
+    expect(onScoresChange).toHaveBeenCalledWith(FIRST, { urgency: 'critical', value: 'must-have' });
     expect(scroll.scrollLeft).toBe(100);
   });
 });
@@ -127,7 +127,7 @@ function getScroll(): HTMLElement {
 }
 
 function getSvg(): HTMLElement {
-  return screen.getByRole('group', { name: 'Items by urgency and impact' });
+  return screen.getByRole('group', { name: 'Items by urgency and value' });
 }
 
 /** Gives the scroll container a client size, a content size at the natural scale, and a settable scroll position. */

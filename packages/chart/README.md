@@ -2,7 +2,7 @@
 
 # Chart
 
-The Top Right chart as a React component: work items by urgency and impact, with the legend, the table, and the detail pane. It takes items as props and never fetches. [`docs/design.md`](../../docs/design.md) records the decisions behind it.
+The Top Right chart as a React component: work items by urgency and value, with the legend, the table, and the detail pane. It takes items as props and never fetches. [`docs/design.md`](../../docs/design.md) records the decisions behind it.
 
 <!-- section:release-notes --><!-- /section:release-notes -->
 

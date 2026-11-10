@@ -1,4 +1,11 @@
-import { applyScoreWrite, type ItemScores, SCORE_FIELDS, type ScoreField, type Scores } from '@top-right/model';
+import {
+  applyScoreWrite,
+  type ItemScores,
+  SCORE_FIELDS,
+  type ScoreField,
+  type Scores,
+  type ScoreTypes,
+} from '@top-right/model';
 import type { Store } from '@top-right/store';
 
 import { compactScores, scoresRequestSchema } from '#src/shared/write-requests.ts';
@@ -13,11 +20,11 @@ export interface BatchEntry {
 export type BatchParse = { kind: 'invalid'; problems: string[] } | { kind: 'valid'; entries: BatchEntry[] };
 
 /** A change that writing a batch makes to one field. */
-export interface ScoreChange {
+export interface ScoreChange<F extends ScoreField = ScoreField> {
   itemKey: string;
-  field: ScoreField;
-  from: number | undefined;
-  to: number;
+  field: F;
+  from: ScoreTypes[F] | undefined;
+  to: ScoreTypes[F];
 }
 
 /**
@@ -60,9 +67,8 @@ export function planScoreChanges(
     const before = scores[itemKey];
     const after = applyScoreWrite(before, values, 'agent', at);
     for (const field of SCORE_FIELDS) {
-      const to = after[field]?.value;
-      const from = before?.[field]?.value;
-      if (to !== undefined && to !== from) changes.push({ itemKey, field, from, to });
+      const change = planFieldChange(itemKey, field, before?.[field]?.score, after[field]?.score);
+      if (change) changes.push(change);
     }
   }
   return changes;
@@ -91,3 +97,14 @@ export async function writeScoreBatch(
     await store.writeScores(userId, itemKey, scores, 'agent', at);
   }
 }
+
+// region | Helpers
+function planFieldChange<F extends ScoreField>(
+  itemKey: string,
+  field: F,
+  from: ScoreTypes[F] | undefined,
+  to: ScoreTypes[F] | undefined,
+): ScoreChange<F> | undefined {
+  return to === undefined || to === from ? undefined : { itemKey, field, from, to };
+}
+// endregion | Helpers

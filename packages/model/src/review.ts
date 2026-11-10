@@ -1,13 +1,13 @@
-import type { ItemScores } from './scores.ts';
+import { type ItemScores, rankLevel, type UrgencyLevel, type ValueLevel } from './scores.ts';
 import { formatItemKey, type ItemRef } from './work-item.ts';
 
 /** A review queue: the items that carry an agent's score, or the items that lack a placing score. */
 export type ReviewQueueKind = 'agent' | 'unscored';
 
-/** A cell of the matrix, by its urgency and impact. */
+/** A cell of the matrix, by its urgency and value. */
 export interface Cell {
-  urgency: number;
-  impact: number;
+  urgency: UrgencyLevel;
+  value: ValueLevel;
 }
 
 /**
@@ -17,13 +17,13 @@ export interface Cell {
 export function findTrailOrigin(scores: ItemScores | undefined): Cell | undefined {
   if (!isAgentScored(scores)) return undefined;
   const urgency = scores?.urgency;
-  const impact = scores?.impact;
-  if (!urgency || !impact) return undefined;
-  const originUrgency = urgency.by === 'agent' ? urgency.previous : urgency.value;
-  const originImpact = impact.by === 'agent' ? impact.previous : impact.value;
-  if (originUrgency === undefined || originImpact === undefined) return undefined;
-  if (originUrgency === urgency.value && originImpact === impact.value) return undefined;
-  return { urgency: originUrgency, impact: originImpact };
+  const value = scores?.value;
+  if (!urgency || !value) return undefined;
+  const originUrgency = urgency.by === 'agent' ? urgency.previous : urgency.score;
+  const originValue = value.by === 'agent' ? value.previous : value.score;
+  if (originUrgency === undefined || originValue === undefined) return undefined;
+  if (originUrgency === urgency.score && originValue === value.score) return undefined;
+  return { urgency: originUrgency, value: originValue };
 }
 
 /** Returns whether any of the item's scores is the agent's, which the author has not yet kept or corrected. */
@@ -31,7 +31,7 @@ export function isAgentScored(scores: ItemScores | undefined): boolean {
   return Object.values(scores ?? {}).some((entry) => entry.by === 'agent');
 }
 
-/** Returns the keys of the open items in the queue of `kind`, top-right first: impact, then urgency, then key. */
+/** Returns the keys of the open items in the queue of `kind`, top-right first: value, then urgency, then key. */
 export function listReviewQueue(
   kind: ReviewQueueKind,
   items: ReadonlyArray<Pick<ItemRef, 'number' | 'repo' | 'state'>>,
@@ -46,15 +46,20 @@ export function listReviewQueue(
 
 // region | Helpers
 function compareTopRightFirst(a: string, b: string, scores: Readonly<Record<string, ItemScores>>): number {
-  const impact = (scores[b]?.impact?.value ?? 0) - (scores[a]?.impact?.value ?? 0);
-  if (impact !== 0) return impact;
-  const urgency = (scores[b]?.urgency?.value ?? 0) - (scores[a]?.urgency?.value ?? 0);
+  const value = rankScore(scores[b]?.value?.score) - rankScore(scores[a]?.value?.score);
+  if (value !== 0) return value;
+  const urgency = rankScore(scores[b]?.urgency?.score) - rankScore(scores[a]?.urgency?.score);
   if (urgency !== 0) return urgency;
   return a.localeCompare(b);
 }
 
-/** Returns whether the item lacks urgency or impact, so that it sits in a gutter. */
+/** Returns whether the item lacks urgency or value, so that it sits in a gutter. */
 function isUnplaced(scores: ItemScores | undefined): boolean {
-  return scores?.urgency === undefined || scores.impact === undefined;
+  return scores?.urgency === undefined || scores.value === undefined;
+}
+
+/** Returns a level's rank, or 0 for an unscored axis, which sorts below every level. */
+function rankScore(level: UrgencyLevel | ValueLevel | undefined): number {
+  return level === undefined ? 0 : rankLevel(level);
 }
 // endregion | Helpers

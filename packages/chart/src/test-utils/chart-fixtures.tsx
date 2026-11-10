@@ -1,5 +1,5 @@
 import { render, type RenderResult } from '@testing-library/react';
-import type { ItemScores, StatusOverride, WorkItem } from '@top-right/model';
+import { type ItemScores, type StatusOverride, URGENCY_LEVELS, VALUE_LEVELS, type WorkItem } from '@top-right/model';
 
 import { Chart } from '../Chart.tsx';
 
@@ -21,10 +21,13 @@ export function buildItem(overrides: Partial<WorkItem> & Pick<WorkItem, 'number'
   };
 }
 
-/** Returns author scores that place an item in the cell at urgency `u` and impact `i`. */
-export function place(u: number, i: number): ItemScores {
+/** Returns author scores that place an item in the cell whose urgency rank is `u` and value rank is `v`, each 1 to 4. */
+export function place(u: number, v: number): ItemScores {
+  const urgency = URGENCY_LEVELS[u - 1];
+  const value = VALUE_LEVELS[v - 1];
+  if (!urgency || !value) throw new RangeError(`no scored cell at urgency ${u}, value ${v}`);
   const at = '2026-11-08T00:00:00.000Z';
-  return { urgency: { value: u, by: 'author', at }, impact: { value: i, by: 'author', at } };
+  return { urgency: { score: urgency, by: 'author', at }, value: { score: value, by: 'author', at } };
 }
 
 /** Renders the chart without a host, so that a score or status change does not reach its props. */

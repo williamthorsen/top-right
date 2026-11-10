@@ -71,23 +71,23 @@ describe(runCli, () => {
 
   it('writes a batch as the agent’s and reports the changes', async () => {
     const run = await runWith(['write-scores', 'scores.json'], {
-      files: { 'scores.json': '[{ "itemKey": "o/r#1", "scores": { "urgency": 4 } }]' },
+      files: { 'scores.json': '[{ "itemKey": "o/r#1", "scores": { "urgency": "high" } }]' },
     });
 
     expect(run.code).toBe(0);
-    expect(run.stdout).toBe('o/r#1 urgency - → 4\ntop-right: wrote 1 score on 1 item\n');
+    expect(run.stdout).toBe('o/r#1 urgency - → high\ntop-right: wrote 1 score on 1 item\n');
     expect(run.store.state.scores).toStrictEqual({
-      'o/r#1': { urgency: { value: 4, by: 'agent', at: NOW.toISOString() } },
+      'o/r#1': { urgency: { score: 'high', by: 'agent', at: NOW.toISOString() } },
     });
   });
 
   it('reports the same changes on a dry run and writes nothing', async () => {
     const run = await runWith(['write-scores', '--dry-run', '-'], {
-      stdin: '[{ "itemKey": "o/r#1", "scores": { "urgency": 4 } }]',
+      stdin: '[{ "itemKey": "o/r#1", "scores": { "urgency": "high" } }]',
     });
 
     expect(run.code).toBe(0);
-    expect(run.stdout).toContain('o/r#1 urgency - → 4\n');
+    expect(run.stdout).toContain('o/r#1 urgency - → high\n');
     expect(run.store.state.scores).toStrictEqual({});
   });
 
@@ -95,7 +95,7 @@ describe(runCli, () => {
     const run = await runWith(['write-scores', 'scores.json'], {
       files: {
         'scores.json':
-          '[{ "itemKey": "o/r#1", "scores": { "urgency": 4 } }, { "itemKey": "o/r#2", "scores": { "impact": 1 } }, { "itemKey": "o/r#3", "scores": { "impact": 1 } }]',
+          '[{ "itemKey": "o/r#1", "scores": { "urgency": "high" } }, { "itemKey": "o/r#2", "scores": { "value": "questionable" } }, { "itemKey": "o/r#3", "scores": { "value": "questionable" } }]',
       },
     });
 

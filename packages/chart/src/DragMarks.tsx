@@ -19,7 +19,7 @@ export function DropTarget({ drag }: { drag: ItemDrag | undefined }): ReactEleme
       height={CELL_SIZE}
       width={CELL_SIZE}
       x={drag.target.u * CELL_SIZE}
-      y={(GRID_SIZE - 1 - drag.target.i) * CELL_SIZE}
+      y={(GRID_SIZE - 1 - drag.target.v) * CELL_SIZE}
     />
   );
 }

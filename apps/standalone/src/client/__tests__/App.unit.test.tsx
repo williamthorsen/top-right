@@ -45,7 +45,7 @@ const ITEMS: ItemsResponse = {
   abbreviations: {},
   abbreviationClashes: [],
   workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
-  scores: { [ITEM_KEY]: { urgency: { value: 2, by: 'author', at: AT } } },
+  scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'author', at: AT } } },
   overrides: {},
 };
 
@@ -119,11 +119,13 @@ describe(App, () => {
     render(<App />);
 
     await selectItem(user);
-    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: '5' }));
-    expect(within(getGroup('Urgency')).getByRole('radio', { name: '5' })).toBeChecked();
+    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
+    expect(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' })).toBeChecked();
 
-    write.resolve(Response.json({ itemKey: ITEM_KEY, scores: { urgency: { value: 5, by: 'author', at: AT } } }));
-    expect(await within(getGroup('Urgency')).findByRole('radio', { name: '5' })).toBeChecked();
+    write.resolve(
+      Response.json({ itemKey: ITEM_KEY, scores: { urgency: { score: 'critical', by: 'author', at: AT } } }),
+    );
+    expect(await within(getGroup('Urgency')).findByRole('radio', { name: 'Critical' })).toBeChecked();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -144,10 +146,10 @@ describe(App, () => {
     render(<App />);
 
     await selectItem(user);
-    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: '5' }));
+    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(expected);
-    expect(within(getGroup('Urgency')).getByRole('radio', { name: '2' })).toBeChecked();
+    expect(within(getGroup('Urgency')).getByRole('radio', { name: 'Medium' })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -155,7 +157,10 @@ describe(App, () => {
   it('keeps an agent score before the host confirms it, and restores it with an alert when the write fails', async () => {
     const user = userEvent.setup();
     const keep = Promise.withResolvers<Response>();
-    const agentScored = { ...ITEMS, scores: { [ITEM_KEY]: { urgency: { value: 2, by: 'agent' as const, at: AT } } } };
+    const agentScored = {
+      ...ITEMS,
+      scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'agent' as const, at: AT } } },
+    };
     stubFetch((path) => (path === '/api/keep' ? keep.promise : Promise.resolve(Response.json(agentScored))));
     render(<App />);
 
@@ -174,8 +179,8 @@ describe(App, () => {
       ...ITEMS,
       scores: {
         [ITEM_KEY]: {
-          urgency: { value: 2, by: 'agent' as const, at: AT },
-          effort: { value: 3, by: 'agent' as const, at: AT },
+          urgency: { score: 'medium', by: 'agent' as const, at: AT },
+          effort: { score: 3, by: 'agent' as const, at: AT },
         },
       },
     };
@@ -186,7 +191,7 @@ describe(App, () => {
 
     await selectItem(user);
     expect(screen.getByRole('button', { name: 'Keep' })).toBeInTheDocument();
-    await user.click(within(getGroup('Impact')).getByRole('radio', { name: '4' }));
+    await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Should-have' }));
 
     expect(screen.queryByRole('button', { name: 'Keep' })).not.toBeInTheDocument();
   });
@@ -255,7 +260,10 @@ describe('with the selection in the URL', () => {
 
   it('records a review step in place of the current entry', async () => {
     const user = userEvent.setup();
-    const agentScored = { ...ITEMS, scores: { [ITEM_KEY]: { urgency: { value: 2, by: 'agent' as const, at: AT } } } };
+    const agentScored = {
+      ...ITEMS,
+      scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'agent' as const, at: AT } } },
+    };
     stubFetch(() => Promise.resolve(Response.json(agentScored)));
     render(<App />);
     const entries = globalThis.history.length;

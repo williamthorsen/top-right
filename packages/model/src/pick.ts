@@ -1,12 +1,12 @@
 import { isBlocked } from './relations.ts';
-import { computeRemainingScope, type ItemScores } from './scores.ts';
+import { computeRemainingScope, type ItemScores, rankLevel } from './scores.ts';
 import { deriveStatus, type StatusOverride } from './status.ts';
 import { formatItemKey, type WorkItem } from './work-item.ts';
 
 /**
  * Returns the key of the next pick: among the open items that both axes place and that no open item blocks, the
- * highest urgency plus impact, then impact, then in progress before to do, then the least remaining scope, then the
- * oldest. An agent's score places an item as the author's does. An item without effort sorts after every item with
+ * highest rank of urgency plus value, then value, then in progress before to do, then the least remaining scope, then
+ * the oldest. An agent's score places an item as the author's does. An item without effort sorts after every item with
  * one, because an unknown scope is not assumed to be small. The key breaks any tie that remains.
  */
 export function findNextPick(
@@ -18,13 +18,13 @@ export function findNextPick(
   for (const item of items) {
     const key = formatItemKey(item);
     const itemScores = scores[key];
-    const urgency = itemScores?.urgency?.value;
-    const impact = itemScores?.impact?.value;
-    if (item.state !== 'open' || urgency === undefined || impact === undefined || isBlocked(item)) continue;
+    const urgency = itemScores?.urgency?.score;
+    const value = itemScores?.value?.score;
+    if (item.state !== 'open' || urgency === undefined || value === undefined || isBlocked(item)) continue;
     candidates.push({
       key,
-      urgency,
-      impact,
+      urgency: rankLevel(urgency),
+      value: rankLevel(value),
       isInProgress: deriveStatus(item, overrides[key]) === 'in-progress',
       remaining: computeRemainingScope(itemScores),
       createdAt: item.createdAt,
@@ -36,8 +36,10 @@ export function findNextPick(
 // region | Helpers
 interface Candidate {
   key: string;
+  /** The rank of the urgency. */
   urgency: number;
-  impact: number;
+  /** The rank of the value. */
+  value: number;
   isInProgress: boolean;
   /** The remaining scope, or undefined when the effort is unknown. */
   remaining: number | undefined;
@@ -46,8 +48,8 @@ interface Candidate {
 
 function compareCandidates(a: Candidate, b: Candidate): number {
   return (
-    b.urgency + b.impact - (a.urgency + a.impact) ||
-    b.impact - a.impact ||
+    b.urgency + b.value - (a.urgency + a.value) ||
+    b.value - a.value ||
     Number(b.isInProgress) - Number(a.isInProgress) ||
     compareRemaining(a.remaining, b.remaining) ||
     a.createdAt.localeCompare(b.createdAt) ||

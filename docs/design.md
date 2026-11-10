@@ -4,7 +4,7 @@ This document records the product's idea, the decisions taken so far, and the re
 
 ## Purpose
 
-Top Right plots work items as circles on a chart. Urgency runs along the x-axis and impact along the y-axis, so that the work that matters most collects in the top-right corner. A circle's area shows the item's scope.
+Top Right plots work items as circles on a chart. Urgency runs along the x-axis and value along the y-axis, so that the work that matters most collects in the top-right corner. A circle's area shows the item's scope.
 
 A session's job is to choose the next item to work on and to review the scores that changed since the last session. A feature belongs in the MVP when the product cannot do that job without it.
 
@@ -14,7 +14,7 @@ Each circle links to the item's source of truth. Hovering a circle previews its 
 
 The primary user is the author, who runs Top Right locally as a personal tool. Agents and an editing UI both write scores. Later hosts serve developers at work, Jira customers, and small-scale users through skypilot.dev.
 
-Revised after the product manager and interaction designer evaluations: The purpose described the chart and not the session's job, which the MVP boundary needs as its test, and it named hover as the one path to detail, which keyboard and touch do not have. Revised after the prototype round: The round showed that a computed pick and a review queue are what make a session short, and "importance" became "impact", which carries less argument than importance or value.
+Revised after the product manager and interaction designer evaluations: The purpose described the chart and not the session's job, which the MVP boundary needs as its test, and it named hover as the one path to detail, which keyboard and touch do not have. Revised after the prototype round: The round showed that a computed pick and a review queue are what make a session short, and "importance" became "impact", which carries less argument than importance or value. Revised at #44: The y-axis became "Value"; "Ordinal axes and the cell as the tie" gives the reasons.
 
 ## Non-goals
 
@@ -62,7 +62,7 @@ Revised after the Jira site admin evaluation: The seam did not say whether the F
 
 ### Scores live in the app's store
 
-Urgency, impact, effort, and progress live in the app's store, because the sources do not have fields for them. A score is keyed by the item's source identity and by user, so that it survives a refresh of the source. Writing scores through to Jira issue entity properties waits for a Forge release after the first, so that the first Forge manifest requests read scopes only.
+Urgency, value, effort, and progress live in the app's store, because the sources do not have fields for them. A score is keyed by the item's source identity and by user, so that it survives a refresh of the source. Writing scores through to Jira issue entity properties waits for a Forge release after the first, so that the first Forge manifest requests read scopes only.
 
 Revised after the Jira site admin and developer evaluations: The decision offered the entity-property write-through as optional from the start, and a Forge manifest declares its scopes for every user at install, so an unused write scope still costs the admin a write approval; the decision also did not say how a score keeps its item across refreshes.
 
@@ -72,9 +72,9 @@ An agent writes scores through the local host's `top-right` CLI, which writes th
 
 ### Ordinal axes and the cell as the tie
 
-Urgency and impact are integers 1 to 5. A hand-scored backlog does not hold finer differences, and an integer scale makes a cell a guarantee: A drag snaps to a cell, a nudge inside the cell never reads as the neighbouring score, and every item in a cell has the same true point, so a tie is a cell. Tied circles pack inside their cell, and the cell's gridlines are the anchor; the chart draws neither spokes nor a centre dot, which would mark what the gridlines already show.
+Urgency and value each take one of four named levels: urgency critical, high, medium, or low, and value must-have, should-have, nice-to-have, or questionable. A level's rank is its position on its axis, from 1 for the lowest to 4 for the highest, and the matrix has a row or column per level. A hand-scored backlog does not hold finer differences, and an ordinal scale makes a cell a guarantee: A drag snaps to a cell, a nudge inside the cell never reads as the neighbouring score, and every item in a cell has the same true point, so a tie is a cell. Tied circles pack inside their cell, and the cell's gridlines are the anchor; the chart draws neither spokes nor a centre dot, which would mark what the gridlines already show.
 
-Decided at the prototype round: All four prototypes converged on the integer scale, and the developer observed that on integer axes the true point is the cell itself (idea rows 4, 6, and 8).
+Decided at the prototype round: All four prototypes converged on the integer scale, and the developer observed that on integer axes the true point is the cell itself (idea rows 4, 6, and 8). Revised at #44: The author rates work in words, on four levels per dimension, and five numbered levels asked for a finer distinction than a hand-scored backlog holds; an even count also puts the quadrant lines on gridlines, where an odd one put a middle row and column across them. The y-axis is "Value", because the levels grade worth. Urgency keeps its name rather than becoming "Priority", because priority is what the next pick computes from both axes. The store, the API, and the CLI carry the level names rather than ranks, so that an agent writes the author's words and a stored score keeps its meaning if the levels change.
 
 ### Unscored items in a gutter row and column
 
@@ -86,7 +86,7 @@ Added after the product manager, interaction designer, and developer evaluations
 
 ### The next pick and the review
 
-The chart computes the next pick, rings it, and shows its detail in the pane while nothing is selected. The pick is the open, scored item with the highest urgency plus impact, then impact, then in progress before to do, then the least remaining scope, then the oldest; an item that an open item blocks is never the pick.
+The chart computes the next pick, rings it, and shows its detail in the pane while nothing is selected. The pick is the open, scored item with the highest rank of urgency plus value, then value, then in progress before to do, then the least remaining scope, then the oldest; an item that an open item blocks is never the pick.
 
 A review is a queue: Agent-scored, the items with an agent score that the author has not yet kept or corrected, and Unscored, the items that lack a placing score. Starting a queue selects its first item and fades the rest; Enter or a Keep button keeps the selected item's scores and advances; Skip advances without keeping. Keeping, or correcting any score, turns an agent score into the author's, clears the item's agent mark, and clears its trail. An agent-scored item wears a halo, and a circle that the agent moved within the matrix shows a dashed trail from its previous cell while the Agent-scored review is on or while it is hovered or selected, so that the resting chart stays calm. An item that the agent moved out of a gutter has no trail. "Since the last visit", which the "Changed since the last visit" fade reads, means since the end of the previous session, stored per user.
 
@@ -124,7 +124,7 @@ A blocker is an arrow from the blocking item to the blocked one. GitHub's blocke
 
 An item that an open item blocks wears a red ring, and the arrow into it is red; a blocking item carries no mark of its own, because the arrow out of it says enough. A hidden done item keeps a ghost at its true point while an edge reaches it, and a click on the ghost reveals that one item. The longest blocker chain is an advanced view under a More menu, not a top-level control.
 
-Edges never move circles, because a circle's position states the item's urgency and impact, and moving it would misstate them.
+Edges never move circles, because a circle's position states the item's urgency and value, and moving it would misstate them.
 
 An edge joins two circles in the matrix only. A gutter cell's list scrolls within the cell, so an edge cannot anchor on its rows, and the pane's relation list covers an item that the gutter holds or that the chart does not load. A sub-issue edge has no arrowhead, as the decision above states. While a review runs, the review's fade governs and the focus fade is off, so that the queue stays legible as the review steps; the edges still follow the hovered or selected item. Decided at the fourth MVP iteration (#14).
 
@@ -160,7 +160,7 @@ Decided at the prototype round (row 26). Revised after the first MVP iteration (
 
 Detail lives in a side pane on desktop and a bottom sheet on a phone, never in a tooltip, because a tooltip jumps and cannot carry the pane's structure. The pane shows the id with an external-link icon to the source, the title, the status control, the four scores as compact segmented controls with one provenance line each (who set it and when), the points in Effort's line, and the relations as lists of rows with the id in monospace and the title, each row tagged closed or blocked where that holds. Hovering a relation row rings its circle on the chart. A segmented control is one tab stop, and arrow keys move within it. The pane takes the room that a wide window offers and is resizable. While an item is selected, the pane shows a Close button that clears the selection, because touch has no Escape key; on a phone, the page leaves room to scroll the chart above the sheet.
 
-Decided at the prototype round: The relations list comes from 1.1 (row 30), and 4.1's pane won on feel (row 29); the "Open" state chip (row 34), the "Open on GitHub" button (row 36), and 3.1's tall rating buttons (row 24) were dropped. Revised after the first MVP iteration (#11): On a phone, the sheet covered the corner cell and offered no way to dismiss it. Revised at the second MVP iteration (#12): Progress is a range in steps of 5 % with a readout rather than a segmented control, because twenty-one segments do not fit the pane; Status, Urgency, Impact, and Effort stay segmented. The points move to Effort's line, because under Progress one line would join two scores' provenance.
+Decided at the prototype round: The relations list comes from 1.1 (row 30), and 4.1's pane won on feel (row 29); the "Open" state chip (row 34), the "Open on GitHub" button (row 36), and 3.1's tall rating buttons (row 24) were dropped. Revised after the first MVP iteration (#11): On a phone, the sheet covered the corner cell and offered no way to dismiss it. Revised at the second MVP iteration (#12): Progress is a range in steps of 5 % with a readout rather than a segmented control, because twenty-one segments do not fit the pane; Status, Urgency, Value, and Effort stay segmented. The points move to Effort's line, because under Progress one line would join two scores' provenance.
 
 ### Filter and fade
 
@@ -192,7 +192,7 @@ A drag moves only the already-selected circle; a drag on anything else pans. On 
 
 Decided at the prototype round: From 3.1 Thumb and arrow keys (rows 14, 16); row 15 deferred.
 
-A drag starts once the pointer moves more than 4 px from the press, so that a slightly moving click still clicks, and only from a press on the selected item, so that the press that selects never drags. The item stays dimmed in place while a proxy follows the pointer, and only a scored cell other than the item's own highlights. A drop there writes urgency and impact in one write; a drop on the item's own cell writes nothing, because an author write would turn every agent score on the item into the author's and act as Keep. The chart does not scroll by itself near its edge during a drag, because on a phone the author scrolls to the target cell first. The pane's segmented controls are the single-pointer alternative to the drag. Decided at the drag-and-scope iteration (#19).
+A drag starts once the pointer moves more than 4 px from the press, so that a slightly moving click still clicks, and only from a press on the selected item, so that the press that selects never drags. The item stays dimmed in place while a proxy follows the pointer, and only a scored cell other than the item's own highlights. A drop there writes urgency and value in one write; a drop on the item's own cell writes nothing, because an author write would turn every agent score on the item into the author's and act as Keep. The chart does not scroll by itself near its edge during a drag, because on a phone the author scrolls to the target cell first. The pane's segmented controls are the single-pointer alternative to the drag. Decided at the drag-and-scope iteration (#19).
 
 A mouse or pen drag on anything other than the selected circle pans a matrix that is larger than the chart area, once it passes the same 4 px threshold, so that a click still selects; the click that ends a pan selects nothing. Touch keeps the browser's own scrolling, which already pans. Decided at #42.
 
@@ -209,7 +209,7 @@ Revised at the sixth MVP iteration (#26): At 760 px wide or narrower, the panes 
 - Separate apps for GitHub and Jira: Each app would duplicate the model, scoring, layout, and chart. One core with an adapter per source keeps a single copy.
 - Scores as Jira custom fields: A custom field needs a site admin to create it and changes the issue schema for every user of the site. It also holds one value per issue, which cannot key a score by user.
 - Labels as score carriers: Labels are free text shared by everyone who reads the source, and they cannot hold a number cleanly. They also cannot key a score by user.
-- A default score for an unscored item: A default position states an urgency and an impact that nobody assigned, which is the misstatement that the chart exists to avoid. Added after the interaction designer evaluation.
+- A default score for an unscored item: A default position states an urgency and a value that nobody assigned, which is the misstatement that the chart exists to avoid. Added after the interaction designer evaluation.
 - Spokes from a displaced circle to its true point (2.1, 4.1): On integer axes the cell is the true point, so the spokes marked what the gridlines show. Prototype round, row 6.
 - An unscored tray above the chart (3.1) or a dock below it (4.1): Both ate space and did not read; the gutters inside the matrix replace them. Rows 9 and 18.
 - A border per work type with dash patterns (4.1), text codes with legend chips (2.1), a checkmark on a done circle, and a diamond on an agent-scored circle (3.1): Rows 12, 13, 38, and 37.
@@ -244,7 +244,7 @@ Questions for the round, answered: The halos, trails, and the "Changed since" fa
 
 What it would change: Hover now previews and selection persists; an unscored dimension is absent rather than defaulted; a default score is a rejected alternative.
 
-Questions for the round, answered: Unscored items render in the gutters and are scored through the Unscored queue; drag sets urgency and impact alone and works only on the selected circle; keyboard focus and Escape are deferred with the keyboard model; a rescored circle shows a trail from its previous cell during review; the smallest circles carry their id beside them in the gutters and none inside the matrix until zoom.
+Questions for the round, answered: Unscored items render in the gutters and are scored through the Unscored queue; drag sets urgency and value alone and works only on the selected circle; keyboard focus and Escape are deferred with the keyboard model; a rescored circle shows a trail from its previous cell during review; the smallest circles carry their id beside them in the gutters and none inside the matrix until zoom.
 
 ### Data-visualization specialist
 

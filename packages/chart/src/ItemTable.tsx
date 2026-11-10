@@ -6,6 +6,8 @@ import {
   type ItemScores,
   type StatusCategory,
   type StatusOverride,
+  type UrgencyLevel,
+  type ValueLevel,
   WORK_TYPE_NAMES,
   type WorkItem,
   type WorkType,
@@ -16,6 +18,7 @@ import { type Dispatch, type ReactElement, type SetStateAction, useEffect, useRe
 import { CircleIcon } from './CircleIcon.tsx';
 import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
 import { StatusSwatch } from './Legend.tsx';
+import { LEVEL_NAMES } from './level-names.ts';
 import { type ItemSort, type SortColumn, sortItems } from './sort-items.ts';
 import { STATUS_NAMES } from './status-names.ts';
 
@@ -36,8 +39,8 @@ const COLUMNS: ReadonlyArray<{ column: SortColumn; name: string; isNumeric?: boo
   { column: 'title', name: 'Title' },
   { column: 'type', name: 'Type' },
   { column: 'status', name: 'Status' },
-  { column: 'urgency', name: 'Urgency', isNumeric: true },
-  { column: 'impact', name: 'Impact', isNumeric: true },
+  { column: 'urgency', name: 'Urgency' },
+  { column: 'value', name: 'Value' },
   { column: 'effort', name: 'Effort', isNumeric: true },
   { column: 'progress', name: 'Progress', isNumeric: true },
 ];
@@ -174,11 +177,11 @@ export function ItemTable({
                   {STATUS_NAMES[status]}
                 </span>
               </td>
-              <td className="tr-table-number">{formatScore(itemScores?.urgency?.value)}</td>
-              <td className="tr-table-number">{formatScore(itemScores?.impact?.value)}</td>
-              <td className="tr-table-number">{formatScore(itemScores?.effort?.value)}</td>
+              <td className="tr-table-level">{formatLevel(itemScores?.urgency?.score)}</td>
+              <td className="tr-table-level">{formatLevel(itemScores?.value?.score)}</td>
+              <td className="tr-table-number">{formatScore(itemScores?.effort?.score)}</td>
               <td className="tr-table-number">
-                {itemScores?.progress === undefined ? '–' : `${itemScores.progress.value} %`}
+                {itemScores?.progress === undefined ? '–' : `${Math.round(itemScores.progress.score * 100)} %`}
               </td>
             </tr>
           );
@@ -189,6 +192,10 @@ export function ItemTable({
 }
 
 // region | Helpers
+function formatLevel(level: UrgencyLevel | ValueLevel | undefined): string {
+  return level === undefined ? '–' : LEVEL_NAMES[level];
+}
+
 function formatScore(value: number | undefined): string {
   return value === undefined ? '–' : String(value);
 }

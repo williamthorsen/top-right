@@ -2,7 +2,7 @@ import type { ItemScores } from '@top-right/model';
 import { type PointerEvent, type RefObject, useRef, useState } from 'react';
 
 import { HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
-import { findScoredCellAt, type ScopeMode, sizeItem } from './layout.ts';
+import { findItemCell, findScoredCellAt, type ScopeMode, sizeItem } from './layout.ts';
 
 /** A drag in progress: the dragged item, its circle's radius, the pointer in matrix units, and the drop target. */
 export interface ItemDrag {
@@ -11,7 +11,7 @@ export interface ItemDrag {
   x: number;
   y: number;
   /** The scored cell that a drop would move the item to; undefined over its own cell, a gutter, or off the matrix. */
-  target: { u: number; i: number } | undefined;
+  target: { u: number; v: number } | undefined;
 }
 
 /** The pointer handlers that make an element the handle of an item's drag, with the ref that keeps touch from scrolling. */
@@ -31,7 +31,7 @@ export interface ItemDragOptions {
   /** The selected item, the only one that drags. */
   selectedKey: string | undefined;
   /** Reports a drop on a scored cell other than the item's own. */
-  onDrop: (key: string, cell: { u: number; i: number }) => void;
+  onDrop: (key: string, cell: { u: number; v: number }) => void;
   onSelect: (key: string) => void;
 }
 
@@ -118,8 +118,8 @@ export function useItemDrag({
   }
 
   /** Returns the cell that the item occupies now, each axis 0 when unscored. */
-  function cellOf(key: string): { u: number; i: number } {
-    return { u: scores[key]?.urgency?.value ?? 0, i: scores[key]?.impact?.value ?? 0 };
+  function cellOf(key: string): { u: number; v: number } {
+    return findItemCell(scores[key]);
   }
 
   return { drag, dragHandlersFor, selectItem, isHoldingPress: () => press.current !== undefined };
@@ -139,17 +139,17 @@ function holdTouch(element: Element | null): (() => void) | undefined {
 /** Returns the scored cell under `point`, unless it is the item's own cell. */
 function findTarget(
   point: { x: number; y: number },
-  own: { u: number; i: number },
-): { u: number; i: number } | undefined {
+  own: { u: number; v: number },
+): { u: number; v: number } | undefined {
   const cell = findScoredCellAt(point.x, point.y);
-  return cell && (cell.u !== own.u || cell.i !== own.i) ? cell : undefined;
+  return cell && (cell.u !== own.u || cell.v !== own.v) ? cell : undefined;
 }
 
 function preventDefault(event: Event): void {
   event.preventDefault();
 }
 
-/** Converts a pointer's client position to matrix units, whose origin is the top-left of the impact-5 row. */
+/** Converts a pointer's client position to matrix units, whose origin is the top-left of the must-have row. */
 function toMatrixPoint(
   svg: SVGSVGElement | null,
   clientX: number,

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_PADDING,
   CELL_SIZE,
+  findCellLevels,
   findScoredCellAt,
   FLOOR_RADIUS,
   GRID_SIZE,
@@ -19,19 +20,34 @@ import {
 /** The most rows that fit a gutter cell, derived from the geometry. */
 const ROWS_THAT_FIT = Math.floor((CELL_SIZE - 2 * CELL_PADDING) / GUTTER_ROW_PITCH);
 
+describe(findCellLevels, () => {
+  it('returns the levels of a scored cell', () => {
+    expect(findCellLevels(1, 4)).toStrictEqual({ urgency: 'low', value: 'must-have' });
+    expect(findCellLevels(4, 1)).toStrictEqual({ urgency: 'critical', value: 'questionable' });
+  });
+
+  it.each([
+    { u: 0, v: 2 },
+    { u: 2, v: 0 },
+    { u: 5, v: 2 },
+  ])('returns undefined for the cell at $u, $v', ({ u, v }) => {
+    expect(findCellLevels(u, v)).toBeUndefined();
+  });
+});
+
 describe(findScoredCellAt, () => {
   it('returns the scored cell that contains an interior point', () => {
-    expect(findScoredCellAt(CELL_SIZE * 2.5, CELL_SIZE * 0.5)).toStrictEqual({ u: 2, i: 5 });
-    expect(findScoredCellAt(CELL_SIZE * 5.5, CELL_SIZE * 4.5)).toStrictEqual({ u: 5, i: 1 });
+    expect(findScoredCellAt(CELL_SIZE * 2.5, CELL_SIZE * 0.5)).toStrictEqual({ u: 2, v: 4 });
+    expect(findScoredCellAt(CELL_SIZE * 4.5, CELL_SIZE * 3.5)).toStrictEqual({ u: 4, v: 1 });
   });
 
   it('gives a point on a shared edge to the cell to its right or below it', () => {
-    expect(findScoredCellAt(CELL_SIZE * 3, CELL_SIZE * 2)).toStrictEqual({ u: 3, i: 3 });
+    expect(findScoredCellAt(CELL_SIZE * 3, CELL_SIZE * 2)).toStrictEqual({ u: 3, v: 2 });
   });
 
   it.each([
     { case: 'the unscored-urgency column', x: CELL_SIZE * 0.5, y: CELL_SIZE * 2.5 },
-    { case: 'the unscored-impact row', x: CELL_SIZE * 2.5, y: CELL_SIZE * 5.5 },
+    { case: 'the unscored-value row', x: CELL_SIZE * 2.5, y: CELL_SIZE * 4.5 },
     { case: 'left of the matrix', x: -1, y: CELL_SIZE * 2.5 },
     { case: 'above the matrix', x: CELL_SIZE * 2.5, y: -1 },
     { case: 'on the far right edge', x: CELL_SIZE * GRID_SIZE, y: CELL_SIZE * 2.5 },
@@ -44,8 +60,8 @@ describe(findScoredCellAt, () => {
 describe(layoutCells, () => {
   it('places unscored items in the corner cell at the bottom left of the matrix', () => {
     const [corner, ...rest] = layoutCells([
-      { id: 'a', u: 0, i: 0 },
-      { id: 'b', u: 0, i: 0 },
+      { id: 'a', u: 0, v: 0 },
+      { id: 'b', u: 0, v: 0 },
     ]);
 
     expect(rest).toHaveLength(0);
@@ -56,7 +72,7 @@ describe(layoutCells, () => {
     { count: ROWS_THAT_FIT, overflow: false },
     { count: ROWS_THAT_FIT + 1, overflow: true },
   ])('when a gutter cell lists $count items, sets overflow to $overflow', ({ count, overflow }) => {
-    const placements = Array.from({ length: count }, (_, index) => ({ id: String(index), u: 0, i: 0 }));
+    const placements = Array.from({ length: count }, (_, index) => ({ id: String(index), u: 0, v: 0 }));
 
     expect(layoutCells(placements)[0]?.overflow).toBe(overflow);
   });
@@ -65,7 +81,7 @@ describe(layoutCells, () => {
     { case: 'nine floor-sized circles', radii: Array.from({ length: 9 }, () => FLOOR_RADIUS) },
     { case: 'an overfull cell of large circles', radii: Array.from({ length: 12 }, () => sizeCircle(13).r) },
   ])('keeps $case inside their cell', ({ radii }) => {
-    const [cell] = layoutCells(radii.map((r, index) => ({ id: String(index), u: 3, i: 4, r, floored: false })));
+    const [cell] = layoutCells(radii.map((r, index) => ({ id: String(index), u: 3, v: 4, r, floored: false })));
 
     expect(cell?.isGutter).toBe(false);
     expect(cell?.circles).toHaveLength(radii.length);
@@ -78,9 +94,9 @@ describe(layoutCells, () => {
 
   it('puts the largest circle at the centre and the others clear of each other, largest first', () => {
     const [cell] = layoutCells([
-      { id: 'small', u: 2, i: 2, ...sizeCircle(1) },
-      { id: 'large', u: 2, i: 2, ...sizeCircle(13) },
-      { id: 'medium', u: 2, i: 2, ...sizeCircle(5) },
+      { id: 'small', u: 2, v: 2, ...sizeCircle(1) },
+      { id: 'large', u: 2, v: 2, ...sizeCircle(13) },
+      { id: 'medium', u: 2, v: 2, ...sizeCircle(5) },
     ]);
     const circles = cell?.circles ?? [];
 
@@ -95,25 +111,25 @@ describe(layoutCells, () => {
   });
 
   it('when a placement has no radius, draws it at the floor and marks it floored', () => {
-    const [cell] = layoutCells([{ id: 'a', u: 1, i: 1 }]);
+    const [cell] = layoutCells([{ id: 'a', u: 1, v: 1 }]);
 
     expect(cell?.circles[0]).toMatchObject({ r: FLOOR_RADIUS, floored: true });
   });
 
   it('if a placement is outside the grid, throws a RangeError', () => {
-    expect(() => layoutCells([{ id: 'a', u: GRID_SIZE, i: 0 }])).toThrow(RangeError);
+    expect(() => layoutCells([{ id: 'a', u: GRID_SIZE, v: 0 }])).toThrow(RangeError);
   });
 });
 
 describe(placeGhosts, () => {
   it('places a ghost clear of the circles in its cell and leaves them where they were', () => {
     const cells = layoutCells([
-      { id: 'a', u: 3, i: 3, r: 20 },
-      { id: 'b', u: 3, i: 3, r: 10 },
+      { id: 'a', u: 3, v: 3, r: 20 },
+      { id: 'b', u: 3, v: 3, r: 10 },
     ]);
     const before = structuredClone(cells);
 
-    const [ghost] = placeGhosts(cells, [{ id: 'g', u: 3, i: 3, r: 10 }]);
+    const [ghost] = placeGhosts(cells, [{ id: 'g', u: 3, v: 3, r: 10 }]);
 
     expect(cells).toStrictEqual(before);
     const [cell] = cells;
@@ -126,9 +142,9 @@ describe(placeGhosts, () => {
   });
 
   it('keeps two ghosts in one cell clear of each other', () => {
-    const [first, second] = placeGhosts(layoutCells([{ id: 'a', u: 2, i: 2, r: 20 }]), [
-      { id: 'g', u: 2, i: 2, r: 10 },
-      { id: 'h', u: 2, i: 2, r: 10 },
+    const [first, second] = placeGhosts(layoutCells([{ id: 'a', u: 2, v: 2, r: 20 }]), [
+      { id: 'g', u: 2, v: 2, r: 10 },
+      { id: 'h', u: 2, v: 2, r: 10 },
     ]);
 
     if (!first || !second) throw new Error('expected two ghosts');
@@ -136,8 +152,8 @@ describe(placeGhosts, () => {
   });
 
   it('centres a ghost in a cell that holds no circle, at the floor when it has no radius', () => {
-    expect(placeGhosts([], [{ id: 'g', u: 5, i: 5 }])).toStrictEqual([
-      { id: 'g', x: 5 * CELL_SIZE + CELL_SIZE / 2, y: CELL_SIZE / 2, r: FLOOR_RADIUS },
+    expect(placeGhosts([], [{ id: 'g', u: 4, v: 4 }])).toStrictEqual([
+      { id: 'g', x: 4 * CELL_SIZE + CELL_SIZE / 2, y: CELL_SIZE / 2, r: FLOOR_RADIUS },
     ]);
   });
 });
@@ -158,14 +174,14 @@ describe(placeItems, () => {
   it('places an item by its scores and sizes it in the given mode', () => {
     const scores: Record<string, ItemScores> = {
       'williamthorsen/top-right#1': {
-        urgency: { value: 4, by: 'author', at },
-        effort: { value: 8, by: 'author', at },
-        progress: { value: 0.5, by: 'author', at },
+        urgency: { score: 'critical', by: 'author', at },
+        effort: { score: 8, by: 'author', at },
+        progress: { score: 0.5, by: 'author', at },
       },
     };
 
     expect(placeItems([item], scores, 'remaining')).toStrictEqual([
-      { id: 'williamthorsen/top-right#1', u: 4, i: 0, ...sizeCircle(4) },
+      { id: 'williamthorsen/top-right#1', u: 4, v: 0, ...sizeCircle(4) },
     ]);
   });
 });
@@ -187,7 +203,7 @@ describe(sizeCircle, () => {
 
 describe(sizeItem, () => {
   const at = '2026-11-01T09:00:00.000Z';
-  const halfDone: ItemScores = { effort: { value: 8, by: 'author', at }, progress: { value: 0.5, by: 'author', at } };
+  const halfDone: ItemScores = { effort: { score: 8, by: 'author', at }, progress: { score: 0.5, by: 'author', at } };
 
   it('sizes original scope from the effort', () => {
     expect(sizeItem(halfDone, 'original')).toStrictEqual(sizeCircle(8));
@@ -198,14 +214,14 @@ describe(sizeItem, () => {
   });
 
   it('draws finished work at the floor at remaining scope', () => {
-    const done: ItemScores = { ...halfDone, progress: { value: 1, by: 'author', at } };
+    const done: ItemScores = { ...halfDone, progress: { score: 1, by: 'author', at } };
 
     expect(sizeItem(done, 'remaining')).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
   });
 
   it('draws an item without effort at the floor in both modes', () => {
     expect(sizeItem(undefined, 'original')).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
-    expect(sizeItem({ progress: { value: 0.5, by: 'author', at } }, 'remaining')).toStrictEqual({
+    expect(sizeItem({ progress: { score: 0.5, by: 'author', at } }, 'remaining')).toStrictEqual({
       r: FLOOR_RADIUS,
       floored: true,
     });

@@ -1,7 +1,7 @@
-import { type ItemScores, STATUS_ORDER, type StatusCategory, type WorkItem } from '@top-right/model';
+import { type ItemScores, rankLevel, STATUS_ORDER, type StatusCategory, type WorkItem } from '@top-right/model';
 
 /** A table column by which the items sort. */
-export type SortColumn = 'effort' | 'id' | 'impact' | 'progress' | 'status' | 'title' | 'type' | 'urgency';
+export type SortColumn = 'effort' | 'id' | 'progress' | 'status' | 'title' | 'type' | 'urgency' | 'value';
 
 export interface ItemSort {
   column: SortColumn;
@@ -55,10 +55,13 @@ function readSortValue(item: WorkItem, column: SortColumn, context: SortContext)
   const scores = context.scores[context.keyOf(item)];
   switch (column) {
     case 'effort':
-    case 'impact':
     case 'progress':
+      return scores?.[column]?.score;
     case 'urgency':
-      return scores?.[column]?.value;
+    case 'value': {
+      const level = scores?.[column]?.score;
+      return level === undefined ? undefined : rankLevel(level);
+    }
     case 'id':
       return { repo: item.repo, number: item.number };
     case 'status':

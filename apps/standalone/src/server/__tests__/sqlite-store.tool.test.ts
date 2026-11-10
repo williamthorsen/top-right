@@ -29,7 +29,13 @@ describe('SqliteStore on a file', () => {
 
   it('reads back after the file is closed and reopened what was written before', async () => {
     const before = openSqliteStore(file);
-    await before.writeScores('github:author', 'owner/repo#1', { urgency: 3, impact: 4, effort: 5 }, 'author', at);
+    await before.writeScores(
+      'github:author',
+      'owner/repo#1',
+      { urgency: 'high', value: 'should-have', effort: 5 },
+      'author',
+      at,
+    );
     await before.writeStatusOverride('github:author', 'owner/repo#1', {
       status: 'in-progress',
       sourceState: 'open',
@@ -52,23 +58,43 @@ describe('SqliteStore on a file', () => {
     reopened.close();
 
     using db = new DatabaseSync(file);
-    expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: 3 });
+    expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: 4 });
   });
 
-  it('migrates a version-1 file and keeps its scores', async () => {
+  it('migrates a version-1 file, dropping its 1 to 5 scores and keeping its other records', async () => {
     createVersion1File(file);
     {
       using db = new DatabaseSync(file);
       db.prepare(
         `INSERT INTO scores (user_id, item_key, field, value, scored_by, scored_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      ).run('github:author', 'owner/repo#1', 'urgency', 3, 'author', at);
+      ).run('github:author', 'owner/repo#1', 'impact', 3, 'author', at);
+      db.prepare('INSERT INTO visits (user_id, last_visit_at) VALUES (?, ?)').run('github:author', at);
     }
 
     const store = openSqliteStore(file);
+    await expect(store.readUserState('github:author')).resolves.toMatchObject({ scores: {}, lastVisitAt: at });
+    await store.writeScores('github:author', 'owner/repo#1', { value: 'must-have' }, 'author', at);
     await expect(store.readUserState('github:author')).resolves.toMatchObject({
-      scores: { 'owner/repo#1': { urgency: { value: 3, by: 'author', at } } },
+      scores: { 'owner/repo#1': { value: { score: 'must-have', by: 'author', at } } },
     });
     store.close();
+  });
+
+  it.each([
+    { field: 'urgency', score: 'must-have' },
+    { field: 'value', score: 'critical' },
+    { field: 'value', score: 3 },
+    { field: 'effort', score: 'high' },
+    { field: 'impact', score: 3 },
+  ])('refuses a row whose $field score is $score', ({ field, score }) => {
+    openSqliteStore(file).close();
+
+    using db = new DatabaseSync(file);
+    expect(() =>
+      db
+        .prepare('INSERT INTO scores (user_id, item_key, field, score, scored_by, scored_at) VALUES (?, ?, ?, ?, ?, ?)')
+        .run('github:author', 'owner/repo#1', field, score, 'author', at),
+    ).toThrow(/CHECK constraint failed/);
   });
 
   it('ignores a stored setting that is not valid, with a warning', async () => {
@@ -86,30 +112,9 @@ describe('SqliteStore on a file', () => {
     reopened.close();
     expect(warn).toHaveBeenCalledOnce();
   });
-
-  it('serves the version-1 statements on a migrated file', async () => {
-    const store = openSqliteStore(file);
-    await store.writeScores('github:author', 'owner/repo#1', { urgency: 2 }, 'author', at);
-    await store.writeScores('github:author', 'owner/repo#1', { urgency: 4 }, 'agent', at);
-    store.close();
-
-    using db = new DatabaseSync(file);
-    db.prepare(VERSION_1_UPSERT_SCORE).run('github:author', 'owner/repo#1', 'impact', 5, 'author', at);
-    expect(db.prepare(VERSION_1_SELECT_SCORES).all('github:author')).toEqual([
-      { item_key: 'owner/repo#1', field: 'impact', value: 5, scored_by: 'author', scored_at: at },
-      { item_key: 'owner/repo#1', field: 'urgency', value: 4, scored_by: 'agent', scored_at: at },
-    ]);
-  });
 });
 
 // region | Helpers
-/** The score statements of the version-1 store, which code on `main` still runs against a migrated file. */
-const VERSION_1_SELECT_SCORES =
-  'SELECT item_key, field, value, scored_by, scored_at FROM scores WHERE user_id = ? ORDER BY item_key, field';
-const VERSION_1_UPSERT_SCORE = `INSERT INTO scores (user_id, item_key, field, value, scored_by, scored_at) VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT (user_id, item_key, field)
-     DO UPDATE SET value = excluded.value, scored_by = excluded.scored_by, scored_at = excluded.scored_at`;
-
 /** Creates the schema of version 1 at `file`. */
 function createVersion1File(file: string): void {
   using db = new DatabaseSync(file);

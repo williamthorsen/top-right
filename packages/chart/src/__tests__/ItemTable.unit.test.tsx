@@ -36,6 +36,23 @@ describe(ItemTable, () => {
     expect(getRow('Issue 1')).not.toHaveAttribute('aria-current');
   });
 
+  it('shows urgency and value by their level names', () => {
+    renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: place(3, 4) });
+
+    const row = screen.getByRole('row', { name: /Issue 1/ });
+    expect(within(row).getByRole('cell', { name: 'High' })).toBeInTheDocument();
+    expect(within(row).getByRole('cell', { name: 'Must-have' })).toBeInTheDocument();
+  });
+
+  it('shows progress as a percentage', () => {
+    const at = '2026-11-08T00:00:00.000Z';
+    renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: { progress: { score: 0.35, by: 'author', at } } });
+
+    expect(
+      within(screen.getByRole('row', { name: /Issue 1/ })).getByRole('cell', { name: '35 %' }),
+    ).toBeInTheDocument();
+  });
+
   it('sorts by a column ascending, then descending, and marks the sorted column', async () => {
     const user = userEvent.setup();
     renderChart(

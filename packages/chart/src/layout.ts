@@ -1,10 +1,19 @@
-import { computeRemainingScope, formatItemKey, type ItemScores, type WorkItem } from '@top-right/model';
+import {
+  type Cell,
+  computeRemainingScope,
+  formatItemKey,
+  type ItemScores,
+  rankLevel,
+  URGENCY_LEVELS,
+  VALUE_LEVELS,
+  type WorkItem,
+} from '@top-right/model';
 
 // -- Geometry, in chart units at 1× --
 
 export const CELL_SIZE = 120;
-/** Cells per axis: the gutter at index 0, then scores 1 to 5. */
-export const GRID_SIZE = 6;
+/** Cells per axis: the gutter at index 0, then each level at its rank, 1 to 4. */
+export const GRID_SIZE = 5;
 /** The smallest legible circle radius. */
 export const FLOOR_RADIUS = 6.5;
 /** The height of one row of a gutter cell's list, which `.tr-item` matches; 24 meets the WCAG 2.2 target size. */
@@ -31,11 +40,11 @@ const FLOOR_SIZE: CircleSize = { r: FLOOR_RADIUS, floored: true };
 /** Which scope a circle's area shows. */
 export type ScopeMode = 'original' | 'remaining';
 
-/** An item's cell: `u` is its urgency column and `i` its impact row, each 0 (unscored) to 5. */
+/** An item's cell: `u` is its urgency column and `v` its value row, each its level's rank, or 0 when unscored. */
 export interface Placement {
   id: string;
   u: number;
-  i: number;
+  v: number;
   /** The circle's radius; the floor when absent. */
   r?: number;
   /** Whether the radius is the floor rather than the item's scope; true when `r` is absent. */
@@ -53,8 +62,8 @@ export interface PlacedCircle {
 
 export interface CellLayout {
   u: number;
-  i: number;
-  /** The cell's top-left corner in the matrix, whose origin is the top-left of the impact-5 row. */
+  v: number;
+  /** The cell's top-left corner in the matrix, whose origin is the top-left of the must-have row. */
   x: number;
   y: number;
   isGutter: boolean;
@@ -70,11 +79,25 @@ export interface CellLayout {
  * Returns the scored cell that contains a point in matrix units, or undefined for a point in a gutter or off the matrix.
  * A point on a shared edge belongs to the cell to its right or below it.
  */
-export function findScoredCellAt(x: number, y: number): { u: number; i: number } | undefined {
+export function findScoredCellAt(x: number, y: number): { u: number; v: number } | undefined {
   const u = Math.floor(x / CELL_SIZE);
-  const i = GRID_SIZE - 1 - Math.floor(y / CELL_SIZE);
-  if (u < 1 || u >= GRID_SIZE || i < 1 || i >= GRID_SIZE) return undefined;
-  return { u, i };
+  const v = GRID_SIZE - 1 - Math.floor(y / CELL_SIZE);
+  if (u < 1 || u >= GRID_SIZE || v < 1 || v >= GRID_SIZE) return undefined;
+  return { u, v };
+}
+
+/** Returns the levels of the scored cell at column `u` and row `v`, or undefined for a gutter or off the matrix. */
+export function findCellLevels(u: number, v: number): Cell | undefined {
+  const urgency = URGENCY_LEVELS[u - 1];
+  const value = VALUE_LEVELS[v - 1];
+  return urgency && value ? { urgency, value } : undefined;
+}
+
+/** Returns the cell of an item's scores: each axis its level's rank, or 0 when unscored. */
+export function findItemCell(scores: ItemScores | undefined): { u: number; v: number } {
+  const urgency = scores?.urgency?.score;
+  const value = scores?.value?.score;
+  return { u: urgency === undefined ? 0 : rankLevel(urgency), v: value === undefined ? 0 : rankLevel(value) };
 }
 
 /** Groups placements into the cells that they occupy and lays out each cell's contents, in matrix order. */
@@ -86,10 +109,10 @@ export function layoutCells(placements: readonly Placement[]): CellLayout[] {
       r: placement.r ?? FLOOR_RADIUS,
       floored: placement.floored ?? placement.r === undefined,
     });
-    const key = `${placement.u},${placement.i}`;
+    const key = `${placement.u},${placement.v}`;
     let cell = cells.get(key);
     if (!cell) {
-      cell = createCell(placement.u, placement.i);
+      cell = createCell(placement.u, placement.v);
       cells.set(key, cell);
     }
     cell.ids.push(placement.id);
@@ -101,7 +124,7 @@ export function layoutCells(placements: readonly Placement[]): CellLayout[] {
   return cells
     .values()
     .toArray()
-    .toSorted((a, b) => b.i - a.i || a.u - b.u);
+    .toSorted((a, b) => b.v - a.v || a.u - b.u);
 }
 
 /** A ghost's circle in the matrix: its centre, in matrix units, and its radius. */
@@ -118,13 +141,13 @@ export interface GhostPlacement {
  */
 export function placeGhosts(cells: readonly CellLayout[], placements: readonly Placement[]): GhostPlacement[] {
   const occupants = new Map<string, { cell: CellLayout; placed: PlacedCircle[] }>(
-    cells.map((cell) => [`${cell.u},${cell.i}`, { cell, placed: [...cell.circles] }]),
+    cells.map((cell) => [`${cell.u},${cell.v}`, { cell, placed: [...cell.circles] }]),
   );
   return placements.map((placement) => {
-    const key = `${placement.u},${placement.i}`;
+    const key = `${placement.u},${placement.v}`;
     let occupant = occupants.get(key);
     if (!occupant) {
-      occupant = { cell: createCell(placement.u, placement.i), placed: [] };
+      occupant = { cell: createCell(placement.u, placement.v), placed: [] };
       occupants.set(key, occupant);
     }
     const { cell, placed } = occupant;
@@ -153,7 +176,7 @@ export function placeItems(
   return items.map((item) => {
     const id = formatItemKey(item);
     const itemScores = scores[id];
-    return { id, u: itemScores?.urgency?.value ?? 0, i: itemScores?.impact?.value ?? 0, ...sizeItem(itemScores, mode) };
+    return { id, ...findItemCell(itemScores), ...sizeItem(itemScores, mode) };
   });
 }
 
@@ -166,7 +189,7 @@ export function sizeCircle(points: number | undefined): CircleSize {
 
 /** Returns the radius of an item's circle for the scope that `mode` shows, on the one area scale of `sizeCircle`. */
 export function sizeItem(scores: ItemScores | undefined, mode: ScopeMode): CircleSize {
-  return sizeCircle(mode === 'remaining' ? computeRemainingScope(scores) : scores?.effort?.value);
+  return sizeCircle(mode === 'remaining' ? computeRemainingScope(scores) : scores?.effort?.score);
 }
 
 // region | Helpers
@@ -176,15 +199,15 @@ function assertIndex(value: number, axis: string): void {
   }
 }
 
-function createCell(u: number, i: number): CellLayout {
+function createCell(u: number, v: number): CellLayout {
   assertIndex(u, 'urgency');
-  assertIndex(i, 'impact');
+  assertIndex(v, 'value');
   return {
     u,
-    i,
+    v,
     x: u * CELL_SIZE,
-    y: (GRID_SIZE - 1 - i) * CELL_SIZE,
-    isGutter: u === 0 || i === 0,
+    y: (GRID_SIZE - 1 - v) * CELL_SIZE,
+    isGutter: u === 0 || v === 0,
     ids: [],
     overflow: false,
     circles: [],

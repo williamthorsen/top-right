@@ -22,19 +22,24 @@ export {
 export { type Cell, findTrailOrigin, isAgentScored, listReviewQueue, type ReviewQueueKind } from './review.ts';
 export {
   applyScoreWrite,
-  AXIS_SCALE,
   computeRemainingScope,
   EFFORT_SCALE,
   isValidScore,
   type ItemScores,
   keepItemScores,
   PROGRESS_STEP,
+  rankLevel,
   readScoreValues,
   SCORE_FIELDS,
   type ScoreEntry,
   type ScoreField,
   type Scorer,
   type Scores,
+  type ScoreTypes,
+  URGENCY_LEVELS,
+  type UrgencyLevel,
+  VALUE_LEVELS,
+  type ValueLevel,
 } from './scores.ts';
 export { deriveStatus, isOverrideVoid, STATUS_ORDER, type StatusCategory, type StatusOverride } from './status.ts';
 export {

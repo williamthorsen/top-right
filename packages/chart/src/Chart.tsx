@@ -24,7 +24,7 @@ import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { layoutCells, placeItems, type ScopeMode } from './layout.ts';
+import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import { ScoredCells } from './ScoredCells.tsx';
@@ -79,7 +79,7 @@ const MATRIX_ORIGIN = { x: MARGIN_LEFT, y: MARGIN_TOP };
 const MATRIX_TRANSFORM = `translate(${MATRIX_ORIGIN.x} ${MATRIX_ORIGIN.y})`;
 
 /**
- * The Top Right chart: items by urgency and impact, with the legend, the table, and the detail pane. It fills its
+ * The Top Right chart: items by urgency and value, with the legend, the table, and the detail pane. It fills its
  * container's height, which the container must bound for the table to scroll within its pane.
  */
 export function Chart({
@@ -152,7 +152,10 @@ export function Chart({
     scores,
     scopeMode,
     selectedKey,
-    onDrop: (key, cell) => review.changeScores(key, { urgency: cell.u, impact: cell.i }),
+    onDrop: (key, cell) => {
+      const levels = findCellLevels(cell.u, cell.v);
+      if (levels) review.changeScores(key, levels);
+    },
     onSelect: selection.push,
   });
   usePan({ scrollRef, isHoldingPress });
@@ -213,7 +216,7 @@ export function Chart({
               <div className="tr-chart-scroll" ref={scrollRef}>
                 <div className="tr-canvas" style={{ width: WIDTH * scale, height: HEIGHT * scale }}>
                   <svg
-                    aria-label="Items by urgency and impact"
+                    aria-label="Items by urgency and value"
                     className="tr-chart"
                     height={HEIGHT * scale}
                     ref={svgRef}
@@ -263,7 +266,7 @@ export function Chart({
                           highlightedKey={highlightedKey}
                           isFaded={isFaded}
                           itemsByKey={itemsByKey}
-                          key={`${cell.u},${cell.i}`}
+                          key={`${cell.u},${cell.v}`}
                           labelOf={labelOf}
                           onPreview={setPreviewKey}
                           onSelect={selectItem}

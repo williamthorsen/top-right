@@ -110,9 +110,13 @@ describe(Chart, () => {
 });
 
 // region | Helpers
-/** Returns agent scores that place an item in the cell at urgency `u` and impact `i`. */
-function agentPlace(u: number, i: number): ItemScores {
-  return { urgency: { value: u, by: 'agent', at: AGENT_AT }, impact: { value: i, by: 'agent', at: AGENT_AT } };
+/** Returns agent scores that place an item in the cell whose urgency rank is `u` and value rank is `v`. */
+function agentPlace(u: number, v: number): ItemScores {
+  const scores = place(u, v);
+  return {
+    ...(scores.urgency && { urgency: { ...scores.urgency, by: 'agent', at: AGENT_AT } }),
+    ...(scores.value && { value: { ...scores.value, by: 'agent', at: AGENT_AT } }),
+  };
 }
 
 /** Renders the chart under a host that holds the selection, starting at `initialKey`, and records each change. */

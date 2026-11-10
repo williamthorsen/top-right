@@ -1,5 +1,4 @@
 import {
-  AXIS_SCALE,
   deriveStatus,
   EFFORT_SCALE,
   type ItemRef,
@@ -7,9 +6,12 @@ import {
   PROGRESS_STEP,
   type Scores,
   type StatusOverride,
+  URGENCY_LEVELS,
+  VALUE_LEVELS,
 } from '@top-right/model';
 import { type ReactElement, useEffect, useEffectEvent, useRef, useState } from 'react';
 
+import { LEVEL_NAMES } from './level-names.ts';
 import { formatPoints, formatProvenance } from './provenance.ts';
 import { SegmentedControl, type SegmentOption } from './SegmentedControl.tsx';
 import { STATUS_NAMES } from './status-names.ts';
@@ -31,7 +33,8 @@ const STATUS_OPTIONS: ReadonlyArray<SegmentOption<'done' | SettableStatus>> = [
   { value: 'done', label: STATUS_NAMES.done, isDisabled: true },
 ];
 
-const AXIS_OPTIONS = AXIS_SCALE.map((value) => ({ value, label: String(value) }));
+const URGENCY_OPTIONS = URGENCY_LEVELS.map((value) => ({ value, label: LEVEL_NAMES[value] }));
+const VALUE_OPTIONS = VALUE_LEVELS.map((value) => ({ value, label: LEVEL_NAMES[value] }));
 const EFFORT_OPTIONS = EFFORT_SCALE.map((value) => ({ value, label: String(value) }));
 const PERCENT = 100;
 
@@ -59,32 +62,32 @@ export function PaneScores({ item, scores, override, onScoresChange, onStatusCha
       <ScoreRow
         label="Urgency"
         line={formatProvenance(scores?.urgency)}
-        onChange={(value) => onScoresChange({ urgency: value })}
-        options={AXIS_OPTIONS}
-        value={scores?.urgency?.value}
+        onChange={(urgency) => onScoresChange({ urgency })}
+        options={URGENCY_OPTIONS}
+        value={scores?.urgency?.score}
       />
       <ScoreRow
-        label="Impact"
-        line={formatProvenance(scores?.impact)}
-        onChange={(value) => onScoresChange({ impact: value })}
-        options={AXIS_OPTIONS}
-        value={scores?.impact?.value}
+        label="Value"
+        line={formatProvenance(scores?.value)}
+        onChange={(value) => onScoresChange({ value })}
+        options={VALUE_OPTIONS}
+        value={scores?.value?.score}
       />
       <ScoreRow
         label="Effort"
         line={
           scores?.effort
-            ? `${formatPoints(scores.effort.value)} · ${formatProvenance(scores.effort)}`
+            ? `${formatPoints(scores.effort.score)} · ${formatProvenance(scores.effort)}`
             : formatPoints(undefined)
         }
         onChange={(value) => onScoresChange({ effort: value })}
         options={EFFORT_OPTIONS}
-        value={scores?.effort?.value}
+        value={scores?.effort?.score}
       />
       <ProgressRow
         line={formatProvenance(scores?.progress)}
         onCommit={(value) => onScoresChange({ progress: value })}
-        value={scores?.progress?.value}
+        value={scores?.progress?.score}
       />
     </section>
   );
@@ -141,7 +144,7 @@ function ProgressRow({
   );
 }
 
-function ScoreRow({
+function ScoreRow<T extends number | string>({
   label,
   options,
   value,
@@ -149,10 +152,10 @@ function ScoreRow({
   onChange,
 }: {
   label: string;
-  options: ReadonlyArray<SegmentOption<number>>;
-  value: number | undefined;
+  options: ReadonlyArray<SegmentOption<T>>;
+  value: T | undefined;
   line: string;
-  onChange: (value: number) => void;
+  onChange: (value: T) => void;
 }) {
   return (
     <div className="tr-score">

@@ -16,6 +16,7 @@ import type { ReactElement } from 'react';
 
 import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
+import { LEVEL_NAMES } from './level-names.ts';
 import { PaneScores, type SettableStatus } from './PaneScores.tsx';
 
 /** Why the pane shows its item: a hover or focus, a selection, or the next pick while nothing is selected. */
@@ -162,7 +163,7 @@ function AgentReview({
       </button>
       {origin ? (
         <p className="tr-pane-note">
-          Moved by the agent from urgency {origin.urgency}, impact {origin.impact}
+          Moved by the agent from {LEVEL_NAMES[origin.urgency]} urgency, {LEVEL_NAMES[origin.value]} value
         </p>
       ) : null}
     </div>

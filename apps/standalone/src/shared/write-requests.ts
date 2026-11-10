@@ -1,4 +1,12 @@
-import { isValidScore, SCORE_FIELDS, type ScoreField, type Scores } from '@top-right/model';
+import {
+  isValidScore,
+  SCORE_FIELDS,
+  type ScoreField,
+  type Scores,
+  type ScoreTypes,
+  URGENCY_LEVELS,
+  VALUE_LEVELS,
+} from '@top-right/model';
 import { z } from 'zod';
 
 import { itemScoresSchema, statusOverrideSchema } from './items-response.ts';
@@ -11,10 +19,10 @@ export const scoresRequestSchema = z.object({
   itemKey: z.string().min(1),
   scores: z
     .object({
-      urgency: scoreValueSchema('urgency'),
-      impact: scoreValueSchema('impact'),
-      effort: scoreValueSchema('effort'),
-      progress: scoreValueSchema('progress'),
+      urgency: z.enum(URGENCY_LEVELS, 'not a valid urgency score').optional(),
+      value: z.enum(VALUE_LEVELS, 'not a valid value score').optional(),
+      effort: buildPointsSchema('effort'),
+      progress: buildPointsSchema('progress'),
     })
     .strict()
     .refine((scores) => SCORE_FIELDS.some((field) => scores[field] !== undefined), 'expected at least one score'),
@@ -38,20 +46,22 @@ export type ScoresRequest = z.infer<typeof scoresRequestSchema>;
 export type StatusRequest = z.infer<typeof statusRequestSchema>;
 
 /** Returns the scores without the fields that a parsed request left undefined. */
-export function compactScores(scores: Readonly<Partial<Record<ScoreField, number | undefined>>>): Scores {
-  const compact: Scores = {};
-  for (const field of SCORE_FIELDS) {
-    const value = scores[field];
-    if (value !== undefined) compact[field] = value;
-  }
-  return compact;
+export function compactScores(scores: { readonly [F in ScoreField]?: ScoreTypes[F] | undefined }): Scores {
+  const { urgency, value, effort, progress } = scores;
+  return {
+    ...(urgency !== undefined && { urgency }),
+    ...(value !== undefined && { value }),
+    ...(effort !== undefined && { effort }),
+    ...(progress !== undefined && { progress }),
+  };
 }
 
 // region | Helpers
-function scoreValueSchema(field: ScoreField) {
+/** Returns the schema of a numeric score of `field`. */
+function buildPointsSchema(field: 'effort' | 'progress') {
   return z
     .number()
-    .refine((value) => isValidScore(field, value), `not a valid ${field} score`)
+    .refine((score) => isValidScore(field, score), `not a valid ${field} score`)
     .optional();
 }
 // endregion | Helpers

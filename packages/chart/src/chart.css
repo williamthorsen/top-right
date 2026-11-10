@@ -1012,6 +1012,10 @@
   white-space: nowrap;
 }
 
+.tr-table td.tr-table-level {
+  white-space: nowrap;
+}
+
 .tr-table td.tr-table-number {
   font-family: var(--tr-mono);
   font-size: 13px;
@@ -1236,6 +1240,7 @@
 
 .tr-scores {
   margin: 0 0 14px;
+  container-type: inline-size;
 }
 
 .tr-scores h3,
@@ -1267,8 +1272,20 @@
   font-size: 12px;
 }
 
+/* Stack each label above its control when the widest control, Value's, does not fit beside the labels. */
+@container (max-width: 480px) {
+  .tr-score {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tr-score-who {
+    grid-column: 1;
+  }
+}
+
 .tr-seg {
   display: inline-flex;
+  flex-wrap: wrap;
   justify-self: start;
   border: 1px solid var(--tr-control-line);
   border-radius: 7px;
@@ -1280,6 +1297,7 @@
   min-width: 28px;
   min-height: 28px;
   padding: 0 7px;
+  white-space: nowrap;
   border: 0;
   border-right: 1px solid var(--tr-control-line);
   background: transparent;
