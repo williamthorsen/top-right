@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import type { ScoreLabelMapping } from '@top-right/model';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -46,6 +47,16 @@ describe(Chart, () => {
       expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice-to-have' })).toBeChecked();
       expect(within(getPane()).queryByText('Label · value:must-have')).not.toBeInTheDocument();
       expect(within(getPane()).getByText('Label · urgency:high')).toBeInTheDocument();
+    });
+
+    it('moves an Unscored review on once the author scores the axis that a label leaves open', async () => {
+      const user = userEvent.setup();
+      renderChart([buildItem({ number: 1, labels: ['value:must-have'] }), buildItem({ number: 2 })]);
+
+      await user.click(screen.getByRole('button', { name: 'Review unscored (2)' }));
+      await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'High' }));
+
+      expect(await within(getPane()).findByText('Issue 2')).toBeInTheDocument();
     });
 
     it('offers no Keep for an item that labels alone score', () => {
