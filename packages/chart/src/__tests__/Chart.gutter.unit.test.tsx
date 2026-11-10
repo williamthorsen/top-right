@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
@@ -27,7 +28,6 @@ describe(Chart, () => {
   });
 
   it('scales the layer of gutter cells with the chart', async () => {
-    const { userEvent } = await import('@testing-library/user-event');
     renderChart([buildItem({ number: 1 })]);
 
     await userEvent.setup().keyboard('+');

@@ -189,7 +189,6 @@ function centreOf(u: number, i: number): { clientX: number; clientY: number } {
   };
 }
 
-/** Returns how many of a drag's marks the chart draws; the marks are decorative SVG, which has no role to query. */
 /** Counts the drag's marks in the chart's layers, which include the overlay that draws the proxy above the gutters. */
 function countMarks(selector: string): number {
   // eslint-disable-next-line testing-library/no-node-access -- the layers' shared box has no role to query.
