@@ -190,18 +190,67 @@
   outline-offset: -2px;
 }
 
+/* A flex container, so that the matrix's auto margins centre it while it is smaller and keep both edges reachable while it is larger. */
 .tr-chart-scroll {
+  display: flex;
   flex: 1;
   min-height: 0;
   overflow: auto;
   background: var(--tr-surface);
   border: 1px solid var(--tr-line);
   border-radius: 8px;
+  /* The chart handles a two-finger pinch itself, so the browser keeps only one-finger scrolling here. */
+  touch-action: pan-x pan-y;
+}
+
+.tr-chart-scroll[data-pannable='true'] {
+  cursor: grab;
+}
+
+.tr-chart-scroll[data-panning='true'] {
+  cursor: grabbing;
+}
+
+.tr-chart-scroll:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: -1px;
+}
+
+/* The matrix's layers share one box: the chart, the gutter cells over it, and the drag proxy over both. */
+.tr-canvas {
+  position: relative;
+  flex-shrink: 0;
+  margin: auto;
 }
 
 .tr-chart {
   display: block;
+  width: 100%;
+  height: 100%;
   font-family: var(--tr-font);
+}
+
+/* The layer lays its cells out in chart units, and its inline transform scales it to the chart. */
+.tr-gutters {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: var(--tr-font);
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+.tr-gutter-cell {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.tr-chart-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .tr-chart text {
@@ -683,8 +732,35 @@
   cursor: pointer;
 }
 
-.tr-menu-button:hover {
+.tr-menu-button:hover:not(:disabled) {
   background: var(--tr-surface-2);
+}
+
+.tr-menu-button:disabled {
+  border-color: var(--tr-line);
+  color: var(--tr-ink-2);
+  cursor: default;
+}
+
+/* The zoom control's buttons sit flush, so that the three read as one control. */
+.tr-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tr-zoom-step {
+  justify-content: center;
+  min-width: 32px;
+  padding-inline: 0;
+  font-size: 16px;
+}
+
+/* A fixed width keeps the control's size as the readout changes from 50 % to 400 %. */
+.tr-zoom-readout {
+  justify-content: center;
+  min-width: 9ch;
+  font-variant-numeric: tabular-nums;
 }
 
 .tr-menu-button[aria-expanded='true'] {
@@ -698,8 +774,8 @@
   text-align: center;
 }
 
-/* The More menu opens below its button, over the chart. */
-.tr-more {
+/* A menu opens below its button, over the chart. */
+.tr-menu-root {
   position: relative;
 }
 

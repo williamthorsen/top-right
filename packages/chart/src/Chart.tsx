@@ -1,11 +1,8 @@
 import {
   buildRelationGraph,
-  classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
-  deriveStatus,
   findNextPick,
   formatItemKey,
-  isAgentScored,
   type ItemFilter,
   type ItemScores,
   listBlockedKeys,
@@ -15,7 +12,7 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { Fragment, type ReactElement, useMemo, useRef, useState } from 'react';
+import { type ReactElement, useMemo, useRef, useState } from 'react';
 
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
@@ -25,19 +22,21 @@ import { Edges, focusItem, mergeChainEdges } from './Edges.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
-import { type Abbreviations, nameCircle } from './item-label.ts';
+import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
 import { layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
-import { ScoredCircle } from './ScoredCircle.tsx';
+import { ScoredCells } from './ScoredCells.tsx';
 import { listTrails, Trail } from './Trail.tsx';
 import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
+import { usePan } from './usePan.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
+import { useZoom } from './useZoom.ts';
 
 import './chart.css';
 
@@ -130,7 +129,11 @@ export function Chart({
     setHighlightedKey(undefined);
   }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
+  const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const zoom = useZoom({ scrollRef, contentRef: svgRef, keyRootRef: rootRef });
+  const scale = zoom.zoom.scale;
   const review = useReview({
     items: visibleItems,
     scores,
@@ -144,8 +147,7 @@ export function Chart({
   });
   const chainView = useChainView(visibleItems, review);
   if (isRevealing && review.kind !== undefined) review.end();
-  const svgRef = useRef<SVGSVGElement>(null);
-  const { drag, dragHandlersFor, selectItem } = useItemDrag({
+  const { drag, dragHandlersFor, selectItem, isHoldingPress } = useItemDrag({
     svgRef,
     scores,
     scopeMode,
@@ -153,6 +155,7 @@ export function Chart({
     onDrop: (key, cell) => review.changeScores(key, { urgency: cell.u, impact: cell.i }),
     onSelect: selection.push,
   });
+  usePan({ scrollRef, isHoldingPress });
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 
@@ -191,7 +194,7 @@ export function Chart({
   );
 
   return (
-    <div className="tr-root">
+    <div className="tr-root" ref={rootRef}>
       <div className="tr-work">
         <div className="tr-chart-area">
           <ChartStrip
@@ -203,95 +206,81 @@ export function Chart({
             scopeMode={scopeMode}
             settingsHref={settingsHref}
             showAllEdges={showAllEdges}
+            zoom={zoom}
           />
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
               <div className="tr-chart-scroll" ref={scrollRef}>
-                <svg
-                  aria-label="Items by urgency and impact"
-                  className="tr-chart"
-                  height={HEIGHT}
-                  ref={svgRef}
-                  role="group"
-                  viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                  width={WIDTH}
-                >
-                  <Grid />
-                  <g transform={MATRIX_TRANSFORM}>
-                    <DropTarget drag={drag} />
-                    {trails.map((trail) => (
-                      <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
-                    ))}
-                    <Edges edges={shownEdges} ends={ends} />
-                    {cells.map((cell) =>
-                      cell.isGutter ? null : (
-                        <g key={`${cell.u},${cell.i}`}>
-                          {cell.circles.map((circle) => {
-                            const item = itemsByKey.get(circle.id);
-                            if (!item) return null;
-                            const circleElement = (
-                              <ScoredCircle
-                                cellX={cell.x}
-                                cellY={cell.y}
-                                circle={circle}
-                                isAgentScored={isAgentScored(scores[circle.id])}
-                                isBlocked={blockedKeys.has(circle.id)}
-                                isHighlighted={circle.id === highlightedKey}
-                                isPick={circle.id === pickKey}
-                                isFaded={isFaded(circle.id)}
-                                isSelected={circle.id === selectedKey}
-                                dragHandlers={dragHandlersFor(circle.id, circle.r)}
-                                isDragging={circle.id === drag?.key}
-                                key={circle.id}
-                                name={nameCircle(labelOf(item), item.title, {
-                                  isBlocked: blockedKeys.has(circle.id),
-                                  isPick: circle.id === pickKey,
-                                })}
-                                onPreview={setPreviewKey}
-                                onSelect={selectItem}
-                                progress={scores[circle.id]?.progress?.value ?? 0}
-                                scopeMode={scopeMode}
-                                status={deriveStatus(item, overrides[circle.id])}
-                                workType={classifyWorkType(item.labels, workTypeMapping)}
-                              />
-                            );
-                            return (
-                              <Fragment key={circle.id}>
-                                {circleElement}
-                                {circle.id === ghostOwner ? ghostElements : null}
-                              </Fragment>
-                            );
-                          })}
-                        </g>
-                      ),
-                    )}
-                    {ghostOwner === undefined ? ghostElements : null}
-                  </g>
-                  {cells.map((cell) =>
-                    cell.isGutter ? (
-                      <GutterCell
+                <div className="tr-canvas" style={{ width: WIDTH * scale, height: HEIGHT * scale }}>
+                  <svg
+                    aria-label="Items by urgency and impact"
+                    className="tr-chart"
+                    height={HEIGHT * scale}
+                    ref={svgRef}
+                    role="group"
+                    viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                    width={WIDTH * scale}
+                  >
+                    <Grid />
+                    <g transform={MATRIX_TRANSFORM}>
+                      <DropTarget drag={drag} />
+                      {trails.map((trail) => (
+                        <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
+                      ))}
+                      <Edges edges={shownEdges} ends={ends} />
+                      <ScoredCells
                         blockedKeys={blockedKeys}
-                        cell={cell}
+                        cells={cells}
                         dragHandlersFor={dragHandlersFor}
                         draggingKey={drag?.key}
+                        ghostOwner={ghostOwner}
+                        ghosts={ghostElements}
                         highlightedKey={highlightedKey}
                         isFaded={isFaded}
                         itemsByKey={itemsByKey}
-                        key={`${cell.u},${cell.i}`}
                         labelOf={labelOf}
                         onPreview={setPreviewKey}
                         onSelect={selectItem}
-                        origin={MATRIX_ORIGIN}
+                        overrides={overrides}
+                        pickKey={pickKey}
+                        scopeMode={scopeMode}
                         scores={scores}
                         selectedKey={selectedKey}
                         workTypeMapping={workTypeMapping}
                       />
-                    ) : null,
-                  )}
-                  <g transform={MATRIX_TRANSFORM}>
-                    <DragProxy drag={drag} />
-                  </g>
-                </svg>
+                      {ghostOwner === undefined ? ghostElements : null}
+                    </g>
+                  </svg>
+                  {/* HTML rather than a foreignObject, which WebKit neither draws nor hit-tests at the SVG's scale. */}
+                  <div className="tr-gutters" style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})` }}>
+                    {cells.map((cell) =>
+                      cell.isGutter ? (
+                        <GutterCell
+                          blockedKeys={blockedKeys}
+                          cell={cell}
+                          dragHandlersFor={dragHandlersFor}
+                          draggingKey={drag?.key}
+                          highlightedKey={highlightedKey}
+                          isFaded={isFaded}
+                          itemsByKey={itemsByKey}
+                          key={`${cell.u},${cell.i}`}
+                          labelOf={labelOf}
+                          onPreview={setPreviewKey}
+                          onSelect={selectItem}
+                          origin={MATRIX_ORIGIN}
+                          scores={scores}
+                          selectedKey={selectedKey}
+                          workTypeMapping={workTypeMapping}
+                        />
+                      ) : null,
+                    )}
+                  </div>
+                  <svg aria-hidden="true" className="tr-chart-overlay" viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
+                    <g transform={MATRIX_TRANSFORM}>
+                      <DragProxy drag={drag} />
+                    </g>
+                  </svg>
+                </div>
               </div>
               <Legend settingsHref={settingsHref} workTypeMapping={workTypeMapping} />
             </div>

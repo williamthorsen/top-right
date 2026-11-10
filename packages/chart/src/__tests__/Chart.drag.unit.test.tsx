@@ -189,9 +189,11 @@ function centreOf(u: number, i: number): { clientX: number; clientY: number } {
   };
 }
 
-/** Returns how many of a drag's marks the chart draws; the marks are decorative SVG, which has no role to query. */
+/** Counts the drag's marks in the chart's layers, which include the overlay that draws the proxy above the gutters. */
 function countMarks(selector: string): number {
-  return screen.getByRole('group', { name: 'Items by urgency and impact' }).querySelectorAll(selector).length;
+  // eslint-disable-next-line testing-library/no-node-access -- the layers' shared box has no role to query.
+  const canvas = screen.getByRole('group', { name: 'Items by urgency and impact' }).closest('.tr-canvas');
+  return canvas?.querySelectorAll(selector).length ?? 0;
 }
 
 /** Returns the scored circle of the item numbered `number`, with its pointer capture stubbed. */

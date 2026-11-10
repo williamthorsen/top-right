@@ -8,6 +8,8 @@ import { SegmentedControl, type SegmentOption } from './SegmentedControl.tsx';
 import { Switch } from './Switch.tsx';
 import type { ChainView } from './useChainView.ts';
 import type { Review } from './useReview.ts';
+import type { ZoomState } from './useZoom.ts';
+import { ZoomControl } from './ZoomControl.tsx';
 
 export interface ChartStripProps {
   chainView: ChainView;
@@ -19,6 +21,7 @@ export interface ChartStripProps {
   onScopeModeChange: (scopeMode: ScopeMode) => void;
   /** Where the host's Settings page is; without it, the strip does not link to Settings. */
   settingsHref: string | undefined;
+  zoom: ZoomState;
 }
 
 /** The scope modes that the strip offers, in display order. */
@@ -28,8 +31,8 @@ const SCOPE_OPTIONS: ReadonlyArray<SegmentOption<ScopeMode>> = [
 ];
 
 /**
- * The strip above the chart: the filter, the review controls, the view controls and the More menu, the shown chain's
- * status, and the link to Settings.
+ * The strip above the chart: the filter, the review controls, the view controls with the zoom control and the More
+ * menu, the shown chain's status, and the link to Settings.
  */
 export function ChartStrip({
   chainView,
@@ -40,6 +43,7 @@ export function ChartStrip({
   scopeMode,
   onScopeModeChange,
   settingsHref,
+  zoom,
 }: ChartStripProps): ReactElement {
   return (
     <div className="tr-strip">
@@ -61,6 +65,7 @@ export function ChartStrip({
           </span>
           <SegmentedControl label="Scope" onChange={onScopeModeChange} options={SCOPE_OPTIONS} value={scopeMode} />
         </span>
+        <ZoomControl {...zoom} />
         <MoreMenu
           hasChain={chainView.chain.length > 0}
           isChainShown={chainView.isShown}
