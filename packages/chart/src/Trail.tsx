@@ -1,4 +1,4 @@
-import { type Cell, findTrailOrigin, type ResolvedItemScores, rankLevel } from '@top-right/model';
+import { type Cell, findTrailOrigin, rankLevel, type ResolvedItemScores } from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { CELL_SIZE, type CellLayout, GRID_SIZE } from './layout.ts';

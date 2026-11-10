@@ -3,7 +3,7 @@ import type { ScoreLabelMapping } from '@top-right/model';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
-import { buildItem, REPO, renderChart } from '../test-utils/chart-fixtures.tsx';
+import { buildItem, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getGroup, getPane } from '../test-utils/chart-queries.ts';
 
 import '@testing-library/jest-dom/vitest';

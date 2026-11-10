@@ -1,4 +1,4 @@
-import { type ResolvedItemScores, rankLevel, STATUS_ORDER, type StatusCategory, type WorkItem } from '@top-right/model';
+import { rankLevel, type ResolvedItemScores, STATUS_ORDER, type StatusCategory, type WorkItem } from '@top-right/model';
 
 /** A table column by which the items sort. */
 export type SortColumn = 'effort' | 'id' | 'progress' | 'status' | 'title' | 'type' | 'urgency' | 'value';

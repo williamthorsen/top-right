@@ -1,7 +1,7 @@
 import {
   isAgentScored,
-  type ResolvedItemScores,
   listReviewQueue,
+  type ResolvedItemScores,
   type ReviewQueueKind,
   type Scores,
   type WorkItem,
