@@ -13,7 +13,7 @@ cp apps/standalone/config.example.json apps/standalone/config.local.json   # the
 pnpm --filter @top-right/standalone start
 ```
 
-Open <http://localhost:4310/>. Set `PORT` to serve on another port. Each page load reads the issues afresh from GitHub.
+Open <http://localhost:4310/>. Set `PORT` to serve on another port. The host reads the issues from GitHub when it starts and serves each page load from its last read. When the issues are more than a minute old, the page reads them again in the background, and the Refresh button in the strip reads them again at once.
 
 ## Configure the first run
 
@@ -28,7 +28,7 @@ Open <http://localhost:4310/>. Set `PORT` to serve on another port. Each page lo
 }
 ```
 
-`closedWindowDays` sets how many days back from each page load the host reads closed issues, by the date each was closed. It defaults to 30, and 0 reads none. The chart hides closed items until the Done filter is on, and draws a ghost for one at the end of a shown edge.
+`closedWindowDays` sets how many days back from each read the host reads closed issues, by the date each was closed. It defaults to 30, and 0 reads none. The chart hides closed items until the Done filter is on, and draws a ghost for one at the end of a shown edge.
 
 A circle's id is the repository's abbreviation and the issue number, such as `t.11`. The abbreviation defaults to the first letter of the repository's name and is changed on the Settings page, which also edits the labels that assign each work type and the labels that supply each urgency level, value level, and effort. While two repositories share an abbreviation, the chart shows an alert that links to Settings. The host ignores an `abbreviation` field in the config file and names the repositories that still set one when it starts.
 
