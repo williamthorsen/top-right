@@ -73,6 +73,37 @@ describe(Settings, () => {
 
       expect(getLevelField('Urgency', 'High')).toHaveValue('urgency:high');
       expect(getLevelField('Value', 'Must-have')).toHaveValue('value:must-have');
+      expect(getLevelField('Effort', '13 points')).toHaveValue('effort:13');
+      expect(getLevelField('Effort', '1 point')).toHaveValue('effort:1');
+    });
+
+    it('saves the labels of each effort', async () => {
+      const onSaveScoreLabelMapping = vi.fn<SettingsProps['onSaveScoreLabelMapping']>(() => Promise.resolve(undefined));
+      renderSettings({ onSaveScoreLabelMapping });
+
+      const user = userEvent.setup();
+      await user.clear(getLevelField('Effort', '3 points'));
+      await user.type(getLevelField('Effort', '3 points'), 'size:m, effort:3');
+      await user.click(within(getSection('Score labels')).getByRole('button', { name: 'Save' }));
+
+      expect(onSaveScoreLabelMapping).toHaveBeenCalledWith({
+        ...DEFAULT_SCORE_LABEL_MAPPING,
+        effort: { ...DEFAULT_SCORE_LABEL_MAPPING.effort, 3: ['size:m', 'effort:3'] },
+      });
+    });
+
+    it('refuses a label under an effort and a level without saving', async () => {
+      const onSaveScoreLabelMapping = vi.fn<SettingsProps['onSaveScoreLabelMapping']>(() => Promise.resolve(undefined));
+      renderSettings({ onSaveScoreLabelMapping });
+
+      const user = userEvent.setup();
+      await user.type(getLevelField('Effort', '8 points'), ', Value:Must-Have');
+      await user.click(within(getSection('Score labels')).getByRole('button', { name: 'Save' }));
+
+      expect(onSaveScoreLabelMapping).not.toHaveBeenCalled();
+      expect(within(getSection('Score labels')).getByRole('alert')).toHaveTextContent(
+        '"value:must-have" is under value must-have and effort 8. Keep it under one level.',
+      );
     });
 
     it('saves the comma-separated labels of each level, trimmed', async () => {
