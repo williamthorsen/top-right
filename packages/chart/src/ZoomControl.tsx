@@ -6,12 +6,13 @@ import { formatScale, isAtEnd, ZOOM_STEPS } from './zoom.ts';
 
 /**
  * The strip's zoom control, after a document editor's: a zoom-out button, a readout that opens the steps and Fit, and a
- * zoom-in button.
+ * zoom-in button. The readout shows Fit while Fit is on, and the scale otherwise.
  */
 export function ZoomControl({ zoom, step, choose }: ZoomState): ReactElement {
-  const readout = formatScale(zoom.scale);
+  const scale = formatScale(zoom.scale);
+  const isFit = zoom.kind === 'fit';
   const items: MenuButtonItem[] = [
-    { label: 'Fit', role: 'menuitemradio', isChecked: zoom.kind === 'fit', onChoose: () => choose('fit') },
+    { label: 'Fit', role: 'menuitemradio', isChecked: isFit, onChoose: () => choose('fit') },
     ...ZOOM_STEPS.map((scale): MenuButtonItem => ({
       label: formatScale(scale),
       role: 'menuitemradio',
@@ -31,8 +32,13 @@ export function ZoomControl({ zoom, step, choose }: ZoomState): ReactElement {
       >
         −
       </button>
-      <MenuButton buttonLabel={`Zoom, ${readout}`} className="tr-zoom-readout" items={items} menuLabel="Zoom">
-        {readout}
+      <MenuButton
+        buttonLabel={isFit ? `Zoom, Fit, ${scale}` : `Zoom, ${scale}`}
+        className="tr-zoom-readout"
+        items={items}
+        menuLabel="Zoom"
+      >
+        {isFit ? 'Fit' : scale}
       </MenuButton>
       <button
         aria-label="Zoom in"

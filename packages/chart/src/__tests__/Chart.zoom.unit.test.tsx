@@ -16,6 +16,8 @@ describe('Chart zoom', () => {
     renderChart(ITEMS, {}, SCORES);
 
     expectScale(1);
+    expectReadoutText('Fit');
+    expect(getReadout()).toHaveAccessibleName('Zoom, Fit, 100\u{A0}%');
     await user.click(getReadout());
     expect(screen.getByRole('menuitemradio', { name: 'Fit' })).toBeChecked();
   });
@@ -178,6 +180,7 @@ describe('Chart zoom', () => {
 
     await user.click(zoomIn);
     expectScale(1.25);
+    expectReadoutText('125\u{A0}%');
     expect(getReadout()).toHaveAccessibleName('Zoom, 125\u{A0}%');
     for (const _ of [1.5, 2, 3, 4]) await user.click(zoomIn);
     expectScale(4);
@@ -209,7 +212,8 @@ describe('Chart zoom', () => {
     await user.click(getReadout());
     await user.click(screen.getByRole('menuitemradio', { name: 'Fit' }));
     expectScale(1.4);
-    expect(getReadout()).toHaveAccessibleName('Zoom, 140\u{A0}%');
+    expectReadoutText('Fit');
+    expect(getReadout()).toHaveAccessibleName('Zoom, Fit, 140\u{A0}%');
     await user.click(getReadout());
     expect(screen.getByRole('menuitemradio', { name: 'Fit' })).toBeChecked();
     await user.keyboard('{Escape}');
@@ -257,6 +261,11 @@ describe('Chart zoom', () => {
 async function chooseFromMenu(user: UserEvent, name: string): Promise<void> {
   await user.click(getReadout());
   await user.click(screen.getByRole('menuitemradio', { name }));
+}
+
+/** Asserts the readout's visible text, which the menu caret follows. */
+function expectReadoutText(text: string): void {
+  expect(getReadout().firstChild?.textContent).toBe(text);
 }
 
 function expectScale(scale: number): void {
