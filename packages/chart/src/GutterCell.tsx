@@ -25,7 +25,7 @@ export interface GutterCellProps {
   highlightedKey: string | undefined;
   onPreview: (key: string | undefined) => void;
   onSelect: (key: string) => void;
-  /** Where the matrix's origin sits in the SVG; the cell's coordinates are relative to it. */
+  /** Where the matrix's origin sits in the chart, in chart units; the cell's coordinates are relative to it. */
   origin: { x: number; y: number };
   /** Returns the handlers that let an item's row be dragged, which only the selected item has. */
   dragHandlersFor: (key: string) => DragHandlers | undefined;
@@ -33,7 +33,10 @@ export interface GutterCellProps {
   draggingKey: string | undefined;
 }
 
-/** A gutter cell's list of items, which scrolls within the cell when it is taller than the cell. */
+/**
+ * A gutter cell's list of items, which scrolls within the cell when it is taller than the cell. It is positioned in
+ * chart units within the layer of gutter cells over the chart.
+ */
 export function GutterCell({
   cell,
   scores,
@@ -50,9 +53,11 @@ export function GutterCell({
   dragHandlersFor,
   draggingKey,
 }: GutterCellProps): ReactElement {
-  // Position by `origin` rather than a transformed ancestor, whose offset WebKit drops from the scrolling list.
   return (
-    <foreignObject height={CELL_SIZE} width={CELL_SIZE} x={origin.x + cell.x} y={origin.y + cell.y}>
+    <div
+      className="tr-gutter-cell"
+      style={{ left: origin.x + cell.x, top: origin.y + cell.y, width: CELL_SIZE, height: CELL_SIZE }}
+    >
       <ul aria-label="Unscored items" className="tr-gutter-list" data-overflow={cell.overflow}>
         {cell.ids.map((key) => {
           const item = itemsByKey.get(key);
@@ -87,6 +92,6 @@ export function GutterCell({
           );
         })}
       </ul>
-    </foreignObject>
+    </div>
   );
 }

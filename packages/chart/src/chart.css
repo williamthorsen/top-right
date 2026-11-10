@@ -216,11 +216,41 @@
   outline-offset: -1px;
 }
 
-.tr-chart {
-  display: block;
+/* The matrix's layers share one box: the chart, the gutter cells over it, and the drag proxy over both. */
+.tr-canvas {
+  position: relative;
   flex-shrink: 0;
   margin: auto;
+}
+
+.tr-chart {
+  display: block;
+  width: 100%;
+  height: 100%;
   font-family: var(--tr-font);
+}
+
+/* The layer lays its cells out in chart units, and its inline transform scales it to the chart. */
+.tr-gutters {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: var(--tr-font);
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+.tr-gutter-cell {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.tr-chart-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .tr-chart text {

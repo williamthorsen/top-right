@@ -120,7 +120,7 @@ function getCircle(number: number): HTMLElement {
 
 function getScroll(): HTMLElement {
   // eslint-disable-next-line testing-library/no-node-access -- the scroll container has no role to query.
-  const scroll = getSvg().parentElement;
+  const scroll = getSvg().closest<HTMLElement>('.tr-chart-scroll');
   if (!scroll) throw new Error('The chart has no scroll container');
   stubPointerCapture(scroll);
   return scroll;

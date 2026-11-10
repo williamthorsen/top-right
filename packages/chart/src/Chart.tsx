@@ -211,69 +211,76 @@ export function Chart({
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
               <div className="tr-chart-scroll" ref={scrollRef}>
-                <svg
-                  aria-label="Items by urgency and impact"
-                  className="tr-chart"
-                  height={HEIGHT * scale}
-                  ref={svgRef}
-                  role="group"
-                  viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                  width={WIDTH * scale}
-                >
-                  <Grid />
-                  <g transform={MATRIX_TRANSFORM}>
-                    <DropTarget drag={drag} />
-                    {trails.map((trail) => (
-                      <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
-                    ))}
-                    <Edges edges={shownEdges} ends={ends} />
-                    <ScoredCells
-                      blockedKeys={blockedKeys}
-                      cells={cells}
-                      dragHandlersFor={dragHandlersFor}
-                      draggingKey={drag?.key}
-                      ghostOwner={ghostOwner}
-                      ghosts={ghostElements}
-                      highlightedKey={highlightedKey}
-                      isFaded={isFaded}
-                      itemsByKey={itemsByKey}
-                      labelOf={labelOf}
-                      onPreview={setPreviewKey}
-                      onSelect={selectItem}
-                      overrides={overrides}
-                      pickKey={pickKey}
-                      scopeMode={scopeMode}
-                      scores={scores}
-                      selectedKey={selectedKey}
-                      workTypeMapping={workTypeMapping}
-                    />
-                    {ghostOwner === undefined ? ghostElements : null}
-                  </g>
-                  {cells.map((cell) =>
-                    cell.isGutter ? (
-                      <GutterCell
+                <div className="tr-canvas" style={{ width: WIDTH * scale, height: HEIGHT * scale }}>
+                  <svg
+                    aria-label="Items by urgency and impact"
+                    className="tr-chart"
+                    height={HEIGHT * scale}
+                    ref={svgRef}
+                    role="group"
+                    viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                    width={WIDTH * scale}
+                  >
+                    <Grid />
+                    <g transform={MATRIX_TRANSFORM}>
+                      <DropTarget drag={drag} />
+                      {trails.map((trail) => (
+                        <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
+                      ))}
+                      <Edges edges={shownEdges} ends={ends} />
+                      <ScoredCells
                         blockedKeys={blockedKeys}
-                        cell={cell}
+                        cells={cells}
                         dragHandlersFor={dragHandlersFor}
                         draggingKey={drag?.key}
+                        ghostOwner={ghostOwner}
+                        ghosts={ghostElements}
                         highlightedKey={highlightedKey}
                         isFaded={isFaded}
                         itemsByKey={itemsByKey}
-                        key={`${cell.u},${cell.i}`}
                         labelOf={labelOf}
                         onPreview={setPreviewKey}
                         onSelect={selectItem}
-                        origin={MATRIX_ORIGIN}
+                        overrides={overrides}
+                        pickKey={pickKey}
+                        scopeMode={scopeMode}
                         scores={scores}
                         selectedKey={selectedKey}
                         workTypeMapping={workTypeMapping}
                       />
-                    ) : null,
-                  )}
-                  <g transform={MATRIX_TRANSFORM}>
-                    <DragProxy drag={drag} />
-                  </g>
-                </svg>
+                      {ghostOwner === undefined ? ghostElements : null}
+                    </g>
+                  </svg>
+                  {/* HTML rather than a foreignObject, which WebKit neither draws nor hit-tests at the SVG's scale. */}
+                  <div className="tr-gutters" style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})` }}>
+                    {cells.map((cell) =>
+                      cell.isGutter ? (
+                        <GutterCell
+                          blockedKeys={blockedKeys}
+                          cell={cell}
+                          dragHandlersFor={dragHandlersFor}
+                          draggingKey={drag?.key}
+                          highlightedKey={highlightedKey}
+                          isFaded={isFaded}
+                          itemsByKey={itemsByKey}
+                          key={`${cell.u},${cell.i}`}
+                          labelOf={labelOf}
+                          onPreview={setPreviewKey}
+                          onSelect={selectItem}
+                          origin={MATRIX_ORIGIN}
+                          scores={scores}
+                          selectedKey={selectedKey}
+                          workTypeMapping={workTypeMapping}
+                        />
+                      ) : null,
+                    )}
+                  </div>
+                  <svg aria-hidden="true" className="tr-chart-overlay" viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
+                    <g transform={MATRIX_TRANSFORM}>
+                      <DragProxy drag={drag} />
+                    </g>
+                  </svg>
+                </div>
               </div>
               <Legend settingsHref={settingsHref} workTypeMapping={workTypeMapping} />
             </div>

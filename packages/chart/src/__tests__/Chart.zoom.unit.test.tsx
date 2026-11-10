@@ -193,7 +193,7 @@ function getReadout(): HTMLElement {
 function getScroll(): HTMLElement {
   const svg = screen.getByRole('group', { name: 'Items by urgency and impact' });
   // eslint-disable-next-line testing-library/no-node-access -- the scroll container has no role to query.
-  const scroll = svg.parentElement;
+  const scroll = svg.closest<HTMLElement>('.tr-chart-scroll');
   if (!scroll) throw new Error('The chart has no scroll container');
   return scroll;
 }
