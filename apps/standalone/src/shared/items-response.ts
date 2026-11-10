@@ -50,12 +50,23 @@ export const itemsResponseSchema = z.object({
   overrides: z.record(z.string(), statusOverrideSchema),
   /** When the user's previous visit ended. */
   lastVisitAt: z.string().exactOptional(),
+  /** When the host started the read of the issues. */
+  readAt: z.string(),
+  /** Whether the issues are old enough that the page asks the host for a fresh read. */
+  isStale: z.boolean(),
+});
+
+/** The body of a successful `POST /api/items/refresh`: the issues of a fresh read, without the user's state. */
+export const refreshResponseSchema = z.object({
+  items: itemsResponseSchema.shape.items,
+  readAt: z.string(),
 });
 
 /** The body of a failed request to the host. */
 export const errorResponseSchema = z.object({ error: z.string() });
 
 export type ItemsResponse = z.infer<typeof itemsResponseSchema>;
+export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
 
 // region | Helpers
 /** Returns the schema of a score entry whose score and previous score match `score`. */

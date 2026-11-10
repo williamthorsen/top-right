@@ -22,7 +22,7 @@ import {
 import type { Store } from '@top-right/store';
 import type { z } from 'zod';
 
-import type { ItemsResponse } from '#src/shared/items-response.ts';
+import type { ItemsResponse, RefreshResponse } from '#src/shared/items-response.ts';
 import {
   abbreviationsRequestSchema,
   scoreLabelMappingRequestSchema,
@@ -36,8 +36,11 @@ import {
   statusRequestSchema,
 } from '#src/shared/write-requests.ts';
 
+import type { ItemsCache } from './items-cache.ts';
+
 export const ABBREVIATIONS_PATH = '/api/abbreviations';
 export const ITEMS_PATH = '/api/items';
+export const ITEMS_REFRESH_PATH = '/api/items/refresh';
 export const KEEP_PATH = '/api/keep';
 export const SCORE_LABEL_MAPPING_PATH = '/api/score-label-mapping';
 export const SCORES_PATH = '/api/scores';
@@ -50,8 +53,8 @@ export const WORK_TYPE_MAPPING_PATH = '/api/work-type-mapping';
 const MAX_BODY_BYTES = 16_384;
 
 export interface ApiOptions {
-  loadItems: () => Promise<WorkItem[]>;
-  /** The repositories (`owner/name`) whose open issues `loadItems` returns in full, with their recently closed ones. */
+  items: ItemsCache;
+  /** The repositories (`owner/name`) whose open issues `items` holds in full, with their recently closed ones. */
   repos: readonly string[];
   store: Store;
   /** The user whose scores the host reads and writes. */
@@ -60,7 +63,7 @@ export interface ApiOptions {
 }
 
 /** Returns a handler that answers the host's `/api/` routes and passes every other request to `next`. */
-export function createApiHandler({ loadItems, repos, store, userId, now = () => new Date() }: ApiOptions) {
+export function createApiHandler({ items: itemsCache, repos, store, userId, now = () => new Date() }: ApiOptions) {
   const configuredRepos = new Set(repos);
 
   type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
@@ -102,13 +105,9 @@ export function createApiHandler({ loadItems, repos, store, userId, now = () => 
     [ITEMS_PATH]: {
       method: 'GET',
       handle: async (_request, response) => {
-        let items: WorkItem[];
-        try {
-          items = await loadItems();
-        } catch (error) {
-          sendJson(response, 502, { error: describeError(error) });
-          return;
-        }
+        const cached = await readItems(itemsCache.get, response);
+        if (!cached) return;
+        const { items, readAt, isStale } = cached;
         const state = await store.readUserState(userId);
         const overrides = await dropVoidOverrides(items, state.overrides);
         const abbreviations = resolveAbbreviations(repos, state.abbreviations);
@@ -121,7 +120,20 @@ export function createApiHandler({ loadItems, repos, store, userId, now = () => 
           scores: state.scores,
           overrides,
           ...(state.lastVisitAt !== undefined && { lastVisitAt: state.lastVisitAt }),
+          readAt: readAt.toISOString(),
+          isStale,
         };
+        sendJson(response, 200, body);
+      },
+    },
+    [ITEMS_REFRESH_PATH]: {
+      method: 'POST',
+      handle: async (_request, response) => {
+        const read = await readItems(itemsCache.refresh, response);
+        if (!read) return;
+        const state = await store.readUserState(userId);
+        await dropVoidOverrides(read.items, state.overrides);
+        const body: RefreshResponse = { items: read.items, readAt: read.readAt.toISOString() };
         sendJson(response, 200, body);
       },
     },
@@ -271,6 +283,16 @@ function describeError(error: unknown): string {
 /** Returns the `owner/name` part of an item key, `owner/name#number`. */
 function readRepo(itemKey: string): string {
   return itemKey.slice(0, itemKey.lastIndexOf('#'));
+}
+
+/** Returns the result of a read of the issues, or answers 502 and resolves to `undefined`. */
+async function readItems<T>(read: () => Promise<T>, response: ServerResponse): Promise<T | undefined> {
+  try {
+    return await read();
+  } catch (error) {
+    sendJson(response, 502, { error: describeError(error) });
+    return undefined;
+  }
 }
 
 /** Reads and validates a JSON request body, or answers 400 and resolves to `undefined`. */

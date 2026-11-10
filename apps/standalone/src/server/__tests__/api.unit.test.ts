@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryStore } from '#src/test-utils/memory-store.ts';
 
 import { type ApiOptions, createApiHandler } from '../api.ts';
+import { createItemsCache } from '../items-cache.ts';
 
 const ITEM: WorkItem = {
   repo: 'williamthorsen/top-right',
@@ -67,6 +68,48 @@ describe(createApiHandler, () => {
         scores,
         overrides: { [ITEM_KEY]: IN_PROGRESS },
         lastVisitAt: EARLIER,
+        readAt: NOW.toISOString(),
+        isStale: false,
+      });
+    });
+
+    it('serves a second load from the issues that the host last read', async () => {
+      const loadItems = vi.fn(() => Promise.resolve([ITEM]));
+      const baseUrl = await startServer({ loadItems });
+
+      await fetch(`${baseUrl}/api/items`);
+      const response = await fetch(`${baseUrl}/api/items`);
+
+      expect(await response.json()).toMatchObject({ items: [ITEM] });
+      expect(loadItems).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports the issues as stale once they are older than the maximum age', async () => {
+      let now = NOW;
+      const items = createItemsCache({ load: () => Promise.resolve([ITEM]), maxAgeMs: 1000, now: () => now });
+      const baseUrl = await startServer({ items });
+
+      await fetch(`${baseUrl}/api/items`);
+      now = new Date(NOW.getTime() + 1001);
+      const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
+
+      expect(body).toMatchObject({ readAt: NOW.toISOString(), isStale: true });
+    });
+
+    it("reads the user's state afresh while it serves the issues from memory", async () => {
+      const store = createMemoryStore();
+      const baseUrl = await startServer({ store });
+
+      await fetch(`${baseUrl}/api/items`);
+      await post(`${baseUrl}/api/scores`, { itemKey: ITEM_KEY, scores: { urgency: 'high' } });
+      await post(`${baseUrl}/api/status`, { itemKey: ITEM_KEY, status: 'in-progress', sourceState: 'open' });
+      await post(`${baseUrl}/api/abbreviations`, { abbreviations: { [ITEM.repo]: 'tr' } });
+      const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
+
+      expect(body).toMatchObject({
+        abbreviations: { [ITEM.repo]: 'tr' },
+        scores: { [ITEM_KEY]: { urgency: { score: 'high', by: 'author' } } },
+        overrides: { [ITEM_KEY]: { status: 'in-progress' } },
       });
     });
 
@@ -132,6 +175,54 @@ describe(createApiHandler, () => {
 
       expect(response.status).toBe(502);
       expect(await response.json()).toStrictEqual({ error: 'GitHub rejected the token (401).' });
+    });
+  });
+
+  describe('POST /api/items/refresh', () => {
+    it('reads the issues afresh and answers with them and when the read started', async () => {
+      const renamed: WorkItem = { ...ITEM, title: 'Plot every issue' };
+      const loadItems = vi
+        .fn<() => Promise<WorkItem[]>>()
+        .mockResolvedValueOnce([ITEM])
+        .mockResolvedValueOnce([renamed]);
+      const baseUrl = await startServer({ loadItems });
+
+      await fetch(`${baseUrl}/api/items`);
+      const response = await post(`${baseUrl}/api/items/refresh`, {});
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual({ items: [renamed], readAt: NOW.toISOString() });
+      expect(await (await fetch(`${baseUrl}/api/items`)).json()).toMatchObject({ items: [renamed] });
+    });
+
+    it('deletes an override recorded against a state that the freshly read item no longer has', async () => {
+      const closed: WorkItem = { ...ITEM, state: 'closed' };
+      const loadItems = vi
+        .fn<() => Promise<WorkItem[]>>()
+        .mockResolvedValueOnce([ITEM])
+        .mockResolvedValueOnce([closed]);
+      const store = createMemoryStore({ overrides: { [ITEM_KEY]: IN_PROGRESS } });
+      const baseUrl = await startServer({ loadItems, store });
+
+      await fetch(`${baseUrl}/api/items`);
+      await post(`${baseUrl}/api/items/refresh`, {});
+
+      expect(store.state.overrides).toStrictEqual({});
+    });
+
+    it('if the read fails, responds 502 and keeps serving the last issues', async () => {
+      const loadItems = vi
+        .fn<() => Promise<WorkItem[]>>()
+        .mockResolvedValueOnce([ITEM])
+        .mockRejectedValueOnce(new Error('GitHub did not respond.'));
+      const baseUrl = await startServer({ loadItems });
+
+      await fetch(`${baseUrl}/api/items`);
+      const response = await post(`${baseUrl}/api/items/refresh`, {});
+
+      expect(response.status).toBe(502);
+      expect(await response.json()).toStrictEqual({ error: 'GitHub did not respond.' });
+      expect(await (await fetch(`${baseUrl}/api/items`)).json()).toMatchObject({ items: [ITEM] });
     });
   });
 
@@ -485,9 +576,13 @@ function post(url: string, body: unknown): Promise<Response> {
   return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 }
 
-async function startServer(overrides: Partial<ApiOptions>): Promise<string> {
+/** Starts the API on a free port, with an items cache over `loadItems` unless `overrides` supplies one. */
+async function startServer({
+  loadItems = () => Promise.resolve([ITEM]),
+  ...overrides
+}: Partial<ApiOptions> & { loadItems?: () => Promise<WorkItem[]> }): Promise<string> {
   const handle = createApiHandler({
-    loadItems: () => Promise.resolve([ITEM]),
+    items: createItemsCache({ load: loadItems, now: () => NOW }),
     repos: [ITEM.repo],
     store: createMemoryStore(),
     userId: 'github:author',

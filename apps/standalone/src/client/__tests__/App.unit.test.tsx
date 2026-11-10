@@ -48,6 +48,8 @@ const ITEMS: ItemsResponse = {
   scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
   scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'author', at: AT } } },
   overrides: {},
+  readAt: AT,
+  isStale: false,
 };
 
 afterEach(() => {
