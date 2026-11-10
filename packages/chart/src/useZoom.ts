@@ -167,6 +167,8 @@ export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): Zoo
       if (event.type === 'gesturestart') gestureScale = 1;
       else if (event.type === 'gestureend') gestureScale = undefined;
       if (event.type !== 'gesturechange' || !gesture || gestureScale === undefined) return;
+      // iOS sends a touch pinch as gesture events too, and the touch handler already steps it.
+      if (pinchDistance !== undefined) return;
       const direction = choosePinchDirection(gesture.scale / gestureScale, readScale());
       if (direction === undefined) return;
       gestureScale = gesture.scale;

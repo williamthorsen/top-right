@@ -70,6 +70,18 @@ describe('Chart zoom', () => {
     fireGesture(scroll, 'gestureend', 0.9);
   });
 
+  it('steps a touch pinch once when iOS also reports it as gesture events', () => {
+    renderChart(ITEMS, {}, SCORES);
+    const scroll = getScroll();
+
+    fireTouches(scroll, 'touchstart', 100);
+    fireGesture(scroll, 'gesturestart', 1);
+    fireTouches(scroll, 'touchmove', 130);
+    fireGesture(scroll, 'gesturechange', 1.3);
+
+    expectScale(1.25);
+  });
+
   it('steps once per Ctrl or Cmd wheel event past the threshold, and keeps the page from zooming', () => {
     renderChart(ITEMS, {}, SCORES);
     const scroll = getScroll();
@@ -203,6 +215,14 @@ function fireGesture(target: Element, type: string, scale: number): boolean {
   const event = new Event(type, { bubbles: true, cancelable: true });
   Object.defineProperties(event, { scale: { value: scale }, clientX: { value: 0 }, clientY: { value: 0 } });
   return fireEvent(target, event);
+}
+
+/** Dispatches a touch event whose two touches lie `distance` apart, as jsdom cannot construct real `Touch` objects. */
+function fireTouches(target: Element, type: string, distance: number): void {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  const touches = { length: 2, 0: { clientX: 0, clientY: 0 }, 1: { clientX: distance, clientY: 0 } };
+  Object.defineProperty(event, 'touches', { value: touches });
+  fireEvent(target, event);
 }
 
 /**
