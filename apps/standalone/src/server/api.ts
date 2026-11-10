@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import {
+  applyScoreWrite,
   DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
   describeAbbreviationClash,
@@ -13,6 +14,7 @@ import {
   formatItemKey,
   isOverrideVoid,
   isValidAbbreviation,
+  keepItemScores,
   normalizeScoreLabelMapping,
   normalizeWorkTypeMapping,
   parseItemKey,
@@ -21,7 +23,6 @@ import {
   type WorkItem,
 } from '@top-right/model';
 import type { Store } from '@top-right/store';
-import type { z } from 'zod';
 
 import type { ItemsResponse, RefreshResponse } from '#src/shared/items-response.ts';
 import {
@@ -37,7 +38,9 @@ import {
   statusRequestSchema,
 } from '#src/shared/write-requests.ts';
 
+import { describeError, readRequest, sendJson } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
+import { type LabelWriter, writeAuthorChange } from './label-write.ts';
 
 export const ABBREVIATIONS_PATH = '/api/abbreviations';
 export const ITEMS_PATH = '/api/items';
@@ -50,11 +53,10 @@ export const STATUS_PATH = '/api/status';
 export const VISIT_PATH = '/api/visit';
 export const WORK_TYPE_MAPPING_PATH = '/api/work-type-mapping';
 
-/** The largest request body that the host reads; a scores or status request is far smaller. */
-const MAX_BODY_BYTES = 16_384;
-
 export interface ApiOptions {
   items: ItemsCache;
+  /** Writes urgency, value, and effort to an issue's labels; without it, the host keeps every score in the store. */
+  labelWriter?: LabelWriter | undefined;
   /** The repositories (`owner/name`) whose open issues `items` holds in full, with their recently closed ones. */
   repos: readonly string[];
   store: Store;
@@ -64,8 +66,16 @@ export interface ApiOptions {
 }
 
 /** Returns a handler that answers the host's `/api/` routes and passes every other request to `next`. */
-export function createApiHandler({ items: itemsCache, repos, store, userId, now = () => new Date() }: ApiOptions) {
+export function createApiHandler({
+  items: itemsCache,
+  labelWriter,
+  repos,
+  store,
+  userId,
+  now = () => new Date(),
+}: ApiOptions) {
   const configuredRepos = new Set(repos);
+  const authorWrites = { items: itemsCache, labelWriter, store, userId };
 
   type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
 
@@ -143,8 +153,12 @@ export function createApiHandler({ items: itemsCache, repos, store, userId, now 
       handle: async (request, response) => {
         const body = await readRequest(request, response, keepRequestSchema);
         if (!body) return;
-        const scores = await store.keepScores(userId, body.itemKey, now().toISOString());
-        sendJson(response, 200, { itemKey: body.itemKey, scores });
+        const at = now().toISOString();
+        const answer = await writeAuthorChange(authorWrites, body.itemKey, {
+          apply: (stored) => keepItemScores(stored, at),
+          write: () => store.keepScores(userId, body.itemKey, at),
+        });
+        sendJson(response, answer.status, answer.body);
       },
     },
     [SCORE_LABEL_MAPPING_PATH]: {
@@ -167,14 +181,13 @@ export function createApiHandler({ items: itemsCache, repos, store, userId, now 
       handle: async (request, response) => {
         const body = await readRequest(request, response, scoresRequestSchema);
         if (!body) return;
-        const scores = await store.writeScores(
-          userId,
-          body.itemKey,
-          compactScores(body.scores),
-          'author',
-          now().toISOString(),
-        );
-        sendJson(response, 200, { itemKey: body.itemKey, scores });
+        const changed = compactScores(body.scores);
+        const at = now().toISOString();
+        const answer = await writeAuthorChange(authorWrites, body.itemKey, {
+          apply: (stored) => applyScoreWrite(stored, changed, 'author', at),
+          write: () => store.writeScores(userId, body.itemKey, changed, 'author', at),
+        });
+        sendJson(response, answer.status, answer.body);
       },
     },
     [SETTINGS_PATH]: {
@@ -277,10 +290,6 @@ export function createApiHandler({ items: itemsCache, repos, store, userId, now 
 }
 
 // region | Helpers
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 /** Returns the result of a read of the issues, or answers 502 and resolves to `undefined`. */
 async function readItems<T>(read: () => Promise<T>, response: ServerResponse): Promise<T | undefined> {
   try {
@@ -291,41 +300,4 @@ async function readItems<T>(read: () => Promise<T>, response: ServerResponse): P
   }
 }
 
-/** Reads and validates a JSON request body, or answers 400 and resolves to `undefined`. */
-async function readRequest<T>(
-  request: IncomingMessage,
-  response: ServerResponse,
-  schema: z.ZodType<T>,
-): Promise<T | undefined> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
-    size += buffer.length;
-    if (size > MAX_BODY_BYTES) {
-      sendJson(response, 413, { error: 'The request body is too large.' });
-      return undefined;
-    }
-    chunks.push(buffer);
-  }
-  let json: unknown;
-  try {
-    json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  } catch {
-    sendJson(response, 400, { error: 'The request body is not valid JSON.' });
-    return undefined;
-  }
-  const parsed = schema.safeParse(json);
-  if (!parsed.success) {
-    const issues = parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`);
-    sendJson(response, 400, { error: `Invalid request. ${issues.join('; ')}.` });
-    return undefined;
-  }
-  return parsed.data;
-}
-
-function sendJson(response: ServerResponse, status: number, body: unknown): void {
-  response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-  response.end(JSON.stringify(body));
-}
 // endregion | Helpers

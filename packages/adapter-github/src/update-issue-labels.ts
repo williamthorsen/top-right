@@ -118,7 +118,7 @@ async function readIssueLabels(
     throw new GitHubAdapterError(`${key}: unexpected response from GitHub`, { cause: lookups.error });
   const labelsToAdd = add.map((label, index) => {
     const found = lookups.data[`add${index}`];
-    if (!found) throw new GitHubAdapterError(`${repo} has no label "${label}". Create it at GitHub, then try again.`);
+    if (!found) throw new GitHubAdapterError(`${repo} has no label "${label}"; create it at GitHub`);
     return found;
   });
   return { id: repository.issue.id, labels: repository.issue.labels.nodes, labelsToAdd };

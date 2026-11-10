@@ -122,7 +122,7 @@ export function planLabelChange(levels: LabelLevels, mapping: ScoreLabelMapping)
   const remove: string[] = [];
   const effort = levels.effort === undefined ? undefined : EFFORT_SCALE.find((points) => points === levels.effort);
   if (levels.effort !== undefined && effort === undefined) {
-    return { kind: 'refused', message: `Effort ${levels.effort} is not on the scale.` };
+    return { kind: 'refused', message: `effort ${levels.effort} is not on the scale` };
   }
   const families = [
     planFamily('urgency', URGENCY_LEVELS, mapping.urgency, levels.urgency),
@@ -212,7 +212,7 @@ function planFamily<T extends EffortPoints | UrgencyLevel | ValueLevel>(
   if (level === undefined) return undefined;
   const [label] = levelLabels[level];
   if (label === undefined) {
-    return { kind: 'refused', message: `No label is mapped to ${dimension} ${level}. Add one in Settings.` };
+    return { kind: 'refused', message: `no label is mapped to ${dimension} ${level}; add one in Settings` };
   }
   const remove = levels.filter((other) => other !== level).flatMap((other) => levelLabels[other]);
   return { kind: 'change', add: [label], remove };

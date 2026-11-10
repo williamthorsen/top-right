@@ -35,8 +35,15 @@ export const statusRequestSchema = z.object({
   sourceState: z.enum(['closed', 'open']),
 });
 
-/** The body of a successful `POST /api/scores` or `POST /api/keep`: the item's resulting scores. */
-export const scoresResponseSchema = z.object({ itemKey: z.string(), scores: itemScoresSchema });
+/**
+ * The body of a successful `POST /api/scores` or `POST /api/keep`: the item's resulting scores, and its labels when the
+ * host wrote them.
+ */
+export const scoresResponseSchema = z.object({
+  itemKey: z.string(),
+  scores: itemScoresSchema,
+  labels: z.array(z.string()).exactOptional(),
+});
 
 /** The body of a successful `POST /api/status`: the item's resulting override, or `null` when it has none. */
 export const statusResponseSchema = z.object({ itemKey: z.string(), override: statusOverrideSchema.nullable() });

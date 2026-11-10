@@ -5,12 +5,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
-import { fetchIssuesOfRepos, fetchViewerLogin, type GraphqlRequest } from '@top-right/adapter-github';
+import {
+  fetchIssuesOfRepos,
+  fetchViewerLogin,
+  type GraphqlRequest,
+  updateIssueLabels,
+} from '@top-right/adapter-github';
 import type { WorkItem } from '@top-right/model';
 
 import { computeClosedSince, formatAbbreviationNotice, readConfig } from './config.ts';
 import { resolveDatabasePath } from './database-path.ts';
 import { createGithubRequest } from './github-request.ts';
+import type { LabelWriter } from './label-write.ts';
 import { openSqliteStore, type SqliteStore } from './sqlite-store.ts';
 import { StartupError } from './startup-error.ts';
 import { resolveToken } from './token.ts';
@@ -18,6 +24,8 @@ import { resolveToken } from './token.ts';
 /** What the host and the CLI read and write: the configured repositories, the user, and the user's store. */
 export interface HostContext {
   databasePath: string;
+  /** Writes an issue's labels through the GitHub adapter. */
+  labelWriter: LabelWriter;
   /** Reads the open issues of the configured repositories and those closed within the configured window. */
   loadItems: () => Promise<WorkItem[]>;
   /** The configured repositories, as `owner/name`. */
@@ -42,6 +50,7 @@ export async function openHostContext(): Promise<HostContext> {
   const store = openStore(databasePath);
   return {
     databasePath,
+    labelWriter: (ref, change) => updateIssueLabels(request, ref.repo, ref.number, change),
     loadItems: () =>
       fetchIssuesOfRepos(request, repos, { closedSince: computeClosedSince(new Date(), config.closedWindowDays) }),
     repos,
