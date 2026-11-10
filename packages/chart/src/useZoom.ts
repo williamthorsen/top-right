@@ -31,8 +31,9 @@ export const WHEEL_STEP_THRESHOLD = 60;
 const WHEEL_IDLE_MS = 200;
 /** The pixels that one line of a line-mode wheel event stands for. */
 const LINE_HEIGHT = 16;
-/** Targets in which the zoom keys keep their own meaning. */
+/** The WebKit events that report a trackpad pinch. */
 const GESTURE_EVENTS = ['gesturestart', 'gesturechange', 'gestureend'];
+/** Targets in which the zoom keys keep their own meaning. */
 const KEY_EXEMPT_SELECTOR =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="slider"]';
 
