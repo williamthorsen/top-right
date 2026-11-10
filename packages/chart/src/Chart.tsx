@@ -49,7 +49,7 @@ export interface ChartProps {
   /** Repository abbreviations keyed by `owner/name`; a repository without one takes its first letter. */
   abbreviations: Abbreviations;
   workTypeMapping?: WorkTypeMapping;
-  /** The labels that supply urgency and value where an item has no stored score for them. */
+  /** The labels that supply urgency, value, and effort where an item has no stored score for them. */
   scoreLabelMapping?: ScoreLabelMapping;
   /** Where the host's Settings page is; without it, the chart does not link to Settings. */
   settingsHref?: string | undefined;

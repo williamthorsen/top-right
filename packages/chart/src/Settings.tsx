@@ -53,8 +53,8 @@ export interface SettingsProps {
 }
 
 /**
- * The Settings page: the labels that assign each work type, the labels that supply each urgency and value level, and
- * each repository's abbreviation.
+ * The Settings page: the labels that assign each work type, the labels that supply each urgency level, value level,
+ * and effort, and each repository's abbreviation.
  */
 export function Settings({
   repos,
