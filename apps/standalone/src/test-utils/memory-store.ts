@@ -18,6 +18,7 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
       overrides: {},
       lastVisitAt: undefined,
       workTypeMapping: undefined,
+      scoreLabelMapping: undefined,
       abbreviations: {},
       ...initial,
     });
@@ -54,6 +55,10 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
       const itemScores = applyScoreWrite(state.scores[itemKey], values, by, at);
       state.scores[itemKey] = itemScores;
       return Promise.resolve(structuredClone(itemScores));
+    },
+    writeScoreLabelMapping: (userId, mapping) => {
+      stateOf(userId).scoreLabelMapping = mapping === undefined ? undefined : structuredClone(mapping);
+      return Promise.resolve();
     },
     writeStatusOverride: (userId, itemKey, override: StatusOverride | undefined) => {
       const state = stateOf(userId);

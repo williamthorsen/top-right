@@ -7,6 +7,7 @@ import {
   keepItemScores,
   SCORE_FIELDS,
   type ScoreEntry,
+  type ScoreLabelMapping,
   type ScoreField,
   type Scorer,
   type Scores,
@@ -87,6 +88,7 @@ const MIGRATIONS: readonly string[] = [
 
 /** The name of each setting in the `settings` table, whose `value` holds the setting as JSON. */
 const ABBREVIATIONS_SETTING = 'abbreviations';
+const SCORE_LABEL_MAPPING_SETTING = 'score-label-mapping';
 const WORK_TYPE_MAPPING_SETTING = 'work-type-mapping';
 
 /** How long a statement waits for another process's lock on the file before it fails. */
@@ -121,6 +123,16 @@ const workTypeMappingSchema = z.object({
   feature: labelsSchema,
   ops: labelsSchema,
   task: labelsSchema,
+});
+
+const scoreLabelMappingSchema = z.object({
+  urgency: z.object({ critical: labelsSchema, high: labelsSchema, low: labelsSchema, medium: labelsSchema }),
+  value: z.object({
+    'must-have': labelsSchema,
+    'nice-to-have': labelsSchema,
+    questionable: labelsSchema,
+    'should-have': labelsSchema,
+  }),
 });
 
 const abbreviationsSchema = z.record(z.string(), z.string());
@@ -216,6 +228,7 @@ export function openSqliteStore(path: string): SqliteStore {
         overrides,
         lastVisitAt: visit?.last_visit_at,
         workTypeMapping: readSetting(userId, WORK_TYPE_MAPPING_SETTING, workTypeMappingSchema),
+        scoreLabelMapping: readSetting(userId, SCORE_LABEL_MAPPING_SETTING, scoreLabelMappingSchema),
         abbreviations: readSetting(userId, ABBREVIATIONS_SETTING, abbreviationsSchema) ?? {},
       });
     },
@@ -229,6 +242,12 @@ export function openSqliteStore(path: string): SqliteStore {
       return Promise.resolve(
         updateItemScores(userId, itemKey, (existing) => applyScoreWrite(existing, values, by, at)),
       );
+    },
+
+    writeScoreLabelMapping(userId: string, mapping: ScoreLabelMapping | undefined): Promise<void> {
+      if (mapping) upsertSetting.run(userId, SCORE_LABEL_MAPPING_SETTING, JSON.stringify(mapping));
+      else deleteSetting.run(userId, SCORE_LABEL_MAPPING_SETTING);
+      return Promise.resolve();
     },
 
     writeStatusOverride(userId: string, itemKey: string, override: StatusOverride | undefined): Promise<void> {
