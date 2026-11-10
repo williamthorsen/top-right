@@ -528,6 +528,34 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A filter chip: a pill that, while on, shows a check on an accent tint inside an accent border. */
+.tr-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--tr-ink-2);
+  border-radius: 999px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tr-filter-chip:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-filter-chip[aria-pressed='true'] {
+  border-color: var(--tr-accent);
+  background: color-mix(in srgb, var(--tr-accent) 14%, var(--tr-surface));
+}
+
+.tr-filter-chip[aria-pressed='true']:hover {
+  background: color-mix(in srgb, var(--tr-accent) 22%, var(--tr-surface));
+}
+
 .tr-select {
   min-height: 32px;
   padding: 0 6px;
