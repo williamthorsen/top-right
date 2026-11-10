@@ -101,6 +101,15 @@ export function keepItemScores(existing: ItemScores | undefined, at: string): It
   return applyScoreWrite(existing, {}, 'author', at);
 }
 
+/** Returns `values` without each field whose resolved score already equals it, so that only a change remains. */
+export function omitUnchangedScores(values: Scores, resolved: ResolvedItemScores | undefined): Scores {
+  const changed: Scores = {};
+  for (const field of SCORE_FIELDS) {
+    if (values[field] !== resolved?.[field]?.score) copyValue(changed, field, values[field]);
+  }
+  return changed;
+}
+
 /** Returns the values of `scores` without their provenance. */
 export function readScoreValues(scores: ItemScores | undefined): Scores {
   const values: Scores = {};
@@ -116,6 +125,10 @@ export function rankLevel(level: UrgencyLevel | ValueLevel): number {
 // region | Helpers
 function copyScore<F extends ScoreField>(values: Scores, field: F, entry: ScoreEntry<ScoreTypes[F]> | undefined): void {
   if (entry) values[field] = entry.score;
+}
+
+function copyValue<F extends ScoreField>(target: Scores, field: F, value: ScoreTypes[F] | undefined): void {
+  if (value !== undefined) target[field] = value;
 }
 
 function isProgressStep(value: number): boolean {

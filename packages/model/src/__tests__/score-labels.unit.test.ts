@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { findTrailOrigin } from '../review.ts';
 import {
   DEFAULT_SCORE_LABEL_MAPPING,
   describeDuplicateScoreLabel,
@@ -72,7 +73,7 @@ describe(resolveItemScores, () => {
 
   it('keeps a stored score over the label, and fills only the dimension without one', () => {
     const stored: ItemScores = {
-      value: { score: 'nice-to-have', by: 'agent', at: AT },
+      value: { score: 'nice-to-have', by: 'author', at: AT },
       effort: { score: 3, by: 'author', at: AT },
     };
 
@@ -109,6 +110,34 @@ describe(resolveItemScores, () => {
     const stored: ItemScores = { effort: { score: 2, by: 'author', at: AT } };
 
     expect(resolveItemScores(stored, ['effort:13'], DEFAULT_SCORE_LABEL_MAPPING)).toEqual(stored);
+  });
+
+  it("gives an agent entry without a previous score the label's level as its previous one", () => {
+    const stored: ItemScores = {
+      urgency: { score: 'critical', by: 'agent', at: AT },
+      value: { score: 'must-have', by: 'agent', at: AT, previous: 'questionable' },
+      effort: { score: 8, by: 'agent', at: AT },
+    };
+
+    expect(
+      resolveItemScores(stored, ['urgency:low', 'value:should-have', 'effort:2'], DEFAULT_SCORE_LABEL_MAPPING),
+    ).toEqual({
+      urgency: { ...stored.urgency, previous: 'low' },
+      value: stored.value,
+      effort: { ...stored.effort, previous: 2 },
+    });
+  });
+
+  it('when an agent moved an item off its labelled cell, draws the trail from that cell', () => {
+    const stored: ItemScores = {
+      urgency: { score: 'critical', by: 'agent', at: AT },
+      value: { score: 'must-have', by: 'agent', at: AT },
+    };
+
+    const resolved = resolveItemScores(stored, ['urgency:low', 'value:nice-to-have'], DEFAULT_SCORE_LABEL_MAPPING);
+
+    expect(findTrailOrigin(resolved)).toEqual({ urgency: 'low', value: 'nice-to-have' });
+    expect(findTrailOrigin(resolveItemScores(stored, [], DEFAULT_SCORE_LABEL_MAPPING))).toBeUndefined();
   });
 
   it('ignores an unmapped label', () => {

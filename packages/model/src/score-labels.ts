@@ -4,6 +4,9 @@ import {
   type ItemScores,
   type LabelScoreEntry,
   type ResolvedItemScores,
+  type ScoreEntry,
+  type ScoreField,
+  type ScoreTypes,
   URGENCY_LEVELS,
   type UrgencyLevel,
   VALUE_LEVELS,
@@ -137,16 +140,17 @@ export function planLabelChange(levels: LabelLevels, mapping: ScoreLabelMapping)
 
 /**
  * Returns an item's stored scores with, for urgency, value, and effort where none is stored, the score of the highest
- * entry whose labels include one of the item's labels. Labels compare case-insensitively.
+ * entry whose labels include one of the item's labels. Labels compare case-insensitively. A label's level is the score
+ * that the author holds, so an agent entry without a previous score takes the label's level as its previous one.
  */
 export function resolveItemScores(
   stored: ItemScores | undefined,
   labels: readonly string[],
   mapping: ScoreLabelMapping,
 ): ResolvedItemScores {
-  const urgency = stored?.urgency ?? findLabelScore(URGENCY_LEVELS, mapping.urgency, labels);
-  const value = stored?.value ?? findLabelScore(VALUE_LEVELS, mapping.value, labels);
-  const effort = stored?.effort ?? findLabelScore(EFFORT_SCALE, mapping.effort, labels);
+  const urgency = resolveEntry(stored?.urgency, findLabelScore(URGENCY_LEVELS, mapping.urgency, labels));
+  const value = resolveEntry(stored?.value, findLabelScore(VALUE_LEVELS, mapping.value, labels));
+  const effort = resolveEntry(stored?.effort, findLabelScore(EFFORT_SCALE, mapping.effort, labels));
   return {
     ...stored,
     ...(urgency && { urgency }),
@@ -212,5 +216,17 @@ function planFamily<T extends EffortPoints | UrgencyLevel | ValueLevel>(
   }
   const remove = levels.filter((other) => other !== level).flatMap((other) => levelLabels[other]);
   return { kind: 'change', add: [label], remove };
+}
+/**
+ * Returns the stored entry, or the label score when none is stored. An agent entry without a previous score takes the
+ * label's level as its previous one.
+ */
+function resolveEntry<T extends ScoreTypes[ScoreField], L extends T & (EffortPoints | UrgencyLevel | ValueLevel)>(
+  stored: ScoreEntry<T> | undefined,
+  label: LabelScoreEntry<L> | undefined,
+): LabelScoreEntry<L> | ScoreEntry<T> | undefined {
+  if (!stored) return label;
+  if (stored.by !== 'agent' || stored.previous !== undefined || !label) return stored;
+  return { ...stored, previous: label.score };
 }
 // endregion | Helpers

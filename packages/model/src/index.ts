@@ -42,6 +42,7 @@ export {
   type ItemScores,
   keepItemScores,
   type LabelScoreEntry,
+  omitUnchangedScores,
   PROGRESS_STEP,
   rankLevel,
   readScoreValues,
@@ -61,8 +62,8 @@ export { deriveStatus, isOverrideVoid, STATUS_ORDER, type StatusCategory, type S
 export {
   formatItemKey,
   type ItemRef,
-  parseItemKey,
   type ItemState,
+  parseItemKey,
   type Relation,
   type RelationKind,
   type WorkItem,
