@@ -118,6 +118,9 @@ export function MoreMenu({ isChainShown, hasChain, onChainShownChange }: MoreMen
         type="button"
       >
         More
+        <span aria-hidden="true" className="tr-menu-caret">
+          {isOpen ? '▴' : '▾'}
+        </span>
       </button>
       <div
         aria-label="More"

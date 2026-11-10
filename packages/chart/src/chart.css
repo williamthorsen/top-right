@@ -668,7 +668,7 @@
   }
 }
 
-/* A menu button outside a toolbar: bordered at rest; open shows an inverted fill. */
+/* A menu button outside a toolbar: bordered at rest; open shows a raised fill and a flipped caret. */
 .tr-menu-button {
   display: inline-flex;
   align-items: center;
@@ -689,13 +689,13 @@
 
 .tr-menu-button[aria-expanded='true'] {
   border-color: var(--tr-ink);
-  background: var(--tr-ink);
-  color: var(--tr-surface);
+  background: var(--tr-surface-2);
 }
 
-.tr-menu-button[aria-expanded='true']:hover {
-  border-color: var(--tr-ink-2);
-  background: var(--tr-ink-2);
+/* A fixed width keeps the button's size when the caret flips. */
+.tr-menu-caret {
+  width: 1ch;
+  text-align: center;
 }
 
 /* The More menu opens below its button, over the chart. */

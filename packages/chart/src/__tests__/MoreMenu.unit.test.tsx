@@ -6,17 +6,20 @@ import { describe, expect, it, vi } from 'vitest';
 import { MoreMenu } from '../MoreMenu.tsx';
 
 describe(MoreMenu, () => {
-  it('opens on a click and focuses the chain item', async () => {
+  it('opens on a click, flips its caret, and focuses the chain item', async () => {
     const user = userEvent.setup();
     render(<StatefulMenu />);
     const button = screen.getByRole('button', { name: 'More' });
     expect(button).toHaveAttribute('aria-haspopup', 'menu');
     expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveTextContent('▾');
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 
     await user.click(button);
 
     expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(button).toHaveTextContent('▴');
+    expect(button).toHaveAccessibleName('More');
     expect(screen.getByRole('menu', { name: 'More' })).toBeVisible();
     expect(screen.getByRole('menuitemcheckbox', { name: 'Longest blocker chain' })).toHaveFocus();
   });
