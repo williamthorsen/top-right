@@ -4,6 +4,7 @@ import { FilterBar, type FilterBarProps } from './FilterBar.tsx';
 import type { ScopeMode } from './layout.ts';
 import { MoreMenu } from './MoreMenu.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
+import { Switch } from './Switch.tsx';
 import { Toggle } from './Toggle.tsx';
 import type { ChainView } from './useChainView.ts';
 import type { Review } from './useReview.ts';
@@ -45,9 +46,9 @@ export function ChartStrip({
         running={review.kind === undefined ? undefined : { kind: review.kind, position: review.position }}
       />
       <div className="tr-view-toggles">
-        <Toggle isPressed={showAllEdges} onToggle={() => onShowAllEdgesChange(!showAllEdges)}>
+        <Switch isChecked={showAllEdges} onChange={onShowAllEdgesChange}>
           All edges
-        </Toggle>
+        </Switch>
         <Toggle
           isPressed={scopeMode === 'remaining'}
           onToggle={() => onScopeModeChange(scopeMode === 'remaining' ? 'original' : 'remaining')}

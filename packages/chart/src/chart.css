@@ -592,6 +592,65 @@
   min-height: 36px;
 }
 
+/* A switch: its whole label is the target, and the track's thumb moves right while on. */
+.tr-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 8px 0 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--tr-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tr-switch:hover {
+  background: var(--tr-surface-2);
+}
+
+.tr-switch-track {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 16px;
+  padding: 1px;
+  border: 1px solid var(--tr-ink-2);
+  border-radius: 999px;
+  background: var(--tr-surface);
+}
+
+.tr-switch:hover .tr-switch-track {
+  border-color: var(--tr-ink);
+}
+
+.tr-switch-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tr-ink-2);
+  transition: transform 120ms ease-out;
+}
+
+.tr-switch[aria-checked='true'] .tr-switch-track {
+  border-color: var(--tr-ink);
+  background: var(--tr-ink);
+}
+
+.tr-switch[aria-checked='true'] .tr-switch-thumb {
+  background: var(--tr-surface);
+  transform: translateX(12px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-switch-thumb {
+    transition: none;
+  }
+}
+
 /* A toggle or menu button outside a toolbar: bordered at rest; pressed or open shows an inverted fill. */
 .tr-toggle,
 .tr-menu-button {

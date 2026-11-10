@@ -416,14 +416,14 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^t\.4:/ })).toBePressed();
     });
 
-    it('with All edges pressed, draws every edge once, faintly when nothing is focused', async () => {
+    it('with All edges on, draws every edge once, faintly when nothing is focused', async () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
-      const toggle = screen.getByRole('button', { name: 'All edges' });
+      const allEdges = screen.getByRole('switch', { name: 'All edges' });
 
-      await user.click(toggle);
+      await user.click(allEdges);
 
-      expect(toggle).toBePressed();
+      expect(allEdges).toBeChecked();
       expect(listEdges()).toStrictEqual(['blocker:1>2:faint', 'blocker:2>3:faint', 'sub-issue:4>2:faint']);
     });
 
