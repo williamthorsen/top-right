@@ -203,7 +203,7 @@ export function openSqliteStore(path: string): SqliteStore {
       const scores: Record<string, ItemScores> = {};
       const scoreRows = z.array(scoreRowSchema).parse(selectScores.all(userId));
       for (const row of scoreRows) {
-        scores[row.item_key] = { ...scores[row.item_key], [row.field]: readEntry(row.field, row) };
+        scores[row.item_key] = addEntry(scores[row.item_key], row);
       }
       const overrides: Record<string, StatusOverride> = {};
       const overrideRows = z.array(overrideRowSchema).parse(selectOverrides.all(userId));
@@ -255,6 +255,20 @@ export function openSqliteStore(path: string): SqliteStore {
 }
 
 // region | Helpers
+/** Returns `scores` with the entry that `row` holds. */
+function addEntry(scores: ItemScores | undefined, row: z.infer<typeof scoreRowSchema>): ItemScores {
+  switch (row.field) {
+    case 'effort':
+      return { ...scores, effort: readEntry('effort', row) };
+    case 'progress':
+      return { ...scores, progress: readEntry('progress', row) };
+    case 'urgency':
+      return { ...scores, urgency: readEntry('urgency', row) };
+    case 'value':
+      return { ...scores, value: readEntry('value', row) };
+  }
+}
+
 /** Applies each migration that the database's `user_version` has not reached, each in its own transaction. */
 function migrate(db: DatabaseSync): void {
   const { user_version: version } = userVersionSchema.parse(db.prepare('PRAGMA user_version').get());
@@ -275,9 +289,10 @@ function readEntry<F extends ScoreField>(field: F, row: z.infer<typeof scoreRowS
   return { score, by: row.scored_by, at: row.scored_at, ...(previous !== null && { previous }) };
 }
 
+/** Returns the scores of the rows' item. */
 function readItemScores(rows: ReadonlyArray<z.infer<typeof scoreRowSchema>>): ItemScores {
   let itemScores: ItemScores = {};
-  for (const row of rows) itemScores = { ...itemScores, [row.field]: readEntry(row.field, row) };
+  for (const row of rows) itemScores = addEntry(itemScores, row);
   return itemScores;
 }
 

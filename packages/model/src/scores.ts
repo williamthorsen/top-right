@@ -52,9 +52,16 @@ export const SCORE_FIELDS: readonly ScoreField[] = ['urgency', 'value', 'effort'
  * changed one records the score that the author last held, which survives later agent writes until a review.
  */
 export function applyScoreWrite(existing: ItemScores | undefined, values: Scores, by: Scorer, at: string): ItemScores {
-  let result: ItemScores = {};
-  for (const field of SCORE_FIELDS) result = writeField(result, field, existing?.[field], values[field], by, at);
-  return result;
+  const urgency = writeEntry(existing?.urgency, values.urgency, by, at);
+  const value = writeEntry(existing?.value, values.value, by, at);
+  const effort = writeEntry(existing?.effort, values.effort, by, at);
+  const progress = writeEntry(existing?.progress, values.progress, by, at);
+  return {
+    ...(urgency && { urgency }),
+    ...(value && { value }),
+    ...(effort && { effort }),
+    ...(progress && { progress }),
+  };
 }
 
 /** Returns effort × (1 − progress), with a missing progress as none done, or undefined when the effort is unknown. */
@@ -136,20 +143,13 @@ function writeAuthorEntry<T extends ScoreTypes[ScoreField]>(
     : { score: entry.score, by: 'author', at: entry.at };
 }
 
-/** Returns `result` with the entry that `by` writes to `field`, typed per field. */
-function writeField<F extends ScoreField>(
-  result: ItemScores,
-  field: F,
-  entry: ScoreEntry<ScoreTypes[F]> | undefined,
-  score: ScoreTypes[F] | undefined,
+/** Returns the entry that `by` writes over `entry`. */
+function writeEntry<T extends ScoreTypes[ScoreField]>(
+  entry: ScoreEntry<T> | undefined,
+  score: T | undefined,
   by: Scorer,
   at: string,
-): ItemScores {
-  const written =
-    by === 'author'
-      ? writeAuthorEntry<ScoreTypes[F]>(entry, score, at)
-      : writeAgentEntry<ScoreTypes[F]>(entry, score, at);
-  // TypeScript refuses a write to `result[field]` for a generic field, so the entry is spread in.
-  return written ? { ...result, [field]: written } : result;
+): ScoreEntry<T> | undefined {
+  return by === 'author' ? writeAuthorEntry(entry, score, at) : writeAgentEntry(entry, score, at);
 }
 // endregion | Helpers

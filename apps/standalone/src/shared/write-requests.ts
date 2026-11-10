@@ -47,12 +47,13 @@ export type StatusRequest = z.infer<typeof statusRequestSchema>;
 
 /** Returns the scores without the fields that a parsed request left undefined. */
 export function compactScores(scores: { readonly [F in ScoreField]?: ScoreTypes[F] | undefined }): Scores {
-  let compact: Scores = {};
-  for (const field of SCORE_FIELDS) {
-    const score = scores[field];
-    if (score !== undefined) compact = { ...compact, [field]: score };
-  }
-  return compact;
+  const { urgency, value, effort, progress } = scores;
+  return {
+    ...(urgency !== undefined && { urgency }),
+    ...(value !== undefined && { value }),
+    ...(effort !== undefined && { effort }),
+    ...(progress !== undefined && { progress }),
+  };
 }
 
 // region | Helpers
