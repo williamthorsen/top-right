@@ -1,9 +1,15 @@
-import type { ItemScores } from '@top-right/model';
+import type { ItemScores, ResolvedItemScores } from '@top-right/model';
 import { describe, expect, it } from 'vitest';
 
 import { createMemoryStore } from '#src/test-utils/memory-store.ts';
 
-import { parseScoreBatch, planScoreChanges, renderChangesText, writeScoreBatch } from '../write-scores.ts';
+import {
+  omitHeldScores,
+  parseScoreBatch,
+  planScoreChanges,
+  renderChangesText,
+  writeScoreBatch,
+} from '../write-scores.ts';
 
 const OPEN = new Set(['o/r#1', 'o/r#2']);
 const AT = '2026-11-08T09:00:00.000Z';
@@ -65,6 +71,7 @@ describe(planScoreChanges, () => {
         { itemKey: 'o/r#2', scores: { effort: 3 } },
       ],
       scores,
+      scores,
       AT,
     );
 
@@ -72,6 +79,35 @@ describe(planScoreChanges, () => {
       { itemKey: 'o/r#1', field: 'value', from: undefined, to: 'must-have' },
       { itemKey: 'o/r#2', field: 'effort', from: undefined, to: 3 },
     ]);
+  });
+
+  it("reports a change from the level that the item's label supplies", () => {
+    const resolved: Record<string, ResolvedItemScores> = {
+      'o/r#1': { urgency: { score: 'low', by: 'label', label: 'urgency:low' } },
+    };
+
+    expect(planScoreChanges([{ itemKey: 'o/r#1', scores: { urgency: 'high' } }], {}, resolved, AT)).toStrictEqual([
+      { itemKey: 'o/r#1', field: 'urgency', from: 'low', to: 'high' },
+    ]);
+  });
+});
+
+describe(omitHeldScores, () => {
+  it('drops each score that the item already resolves to, and an entry left with none', () => {
+    const resolved: Record<string, ResolvedItemScores> = {
+      'o/r#1': { urgency: { score: 'high', by: 'label', label: 'urgency:high' } },
+      'o/r#2': { value: { score: 'must-have', by: 'label', label: 'value:must-have' } },
+    };
+
+    expect(
+      omitHeldScores(
+        [
+          { itemKey: 'o/r#1', scores: { urgency: 'high', effort: 3 } },
+          { itemKey: 'o/r#2', scores: { value: 'must-have' } },
+        ],
+        resolved,
+      ),
+    ).toStrictEqual([{ itemKey: 'o/r#1', scores: { effort: 3 } }]);
   });
 });
 
