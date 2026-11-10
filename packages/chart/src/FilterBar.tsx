@@ -1,9 +1,9 @@
 import type { ItemFilter, StatusCategory } from '@top-right/model';
 import { type ReactElement, useId } from 'react';
 
+import { FilterChip } from './FilterChip.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { STATUS_NAMES } from './status-names.ts';
-import { Toggle } from './Toggle.tsx';
 
 export interface FilterBarProps {
   filter: ItemFilter;
@@ -14,10 +14,10 @@ export interface FilterBarProps {
   onChange: (filter: ItemFilter) => void;
 }
 
-/** The statuses that the filter offers as toggles, in display order. */
-const STATUS_TOGGLES: readonly StatusCategory[] = ['to-do', 'in-progress', 'done'];
+/** The statuses that the filter offers as chips, in display order. */
+const STATUS_CHIPS: readonly StatusCategory[] = ['to-do', 'in-progress', 'done'];
 
-/** The Filter group at the chart's top edge: a repo select and one toggle per status, each with its count. */
+/** The Filter group at the chart's top edge: a repo select and one filter chip per status, each with its count. */
 export function FilterBar({ filter, abbreviations, counts, onChange }: FilterBarProps): ReactElement {
   const labelId = useId();
   const repos = Object.keys(abbreviations).toSorted(
@@ -50,10 +50,10 @@ export function FilterBar({ filter, abbreviations, counts, onChange }: FilterBar
         ))}
       </select>
       <div aria-label="Status" className="tr-filter-statuses" role="group">
-        {STATUS_TOGGLES.map((status) => (
-          <Toggle isPressed={filter.statuses.has(status)} key={status} onToggle={() => toggleStatus(status)}>
+        {STATUS_CHIPS.map((status) => (
+          <FilterChip isPressed={filter.statuses.has(status)} key={status} onToggle={() => toggleStatus(status)}>
             {STATUS_NAMES[status]} <span className="tr-filter-count">{counts[status]}</span>
-          </Toggle>
+          </FilterChip>
         ))}
       </div>
     </div>

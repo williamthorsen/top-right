@@ -168,22 +168,25 @@ describe(Chart, () => {
         { [`${REPO}#1`]: { status: 'in-progress', sourceState: 'open', at } },
       );
       const circle = screen.getByRole('button', { name: /^t\.1:/ });
-      const toggle = screen.getByRole('button', { name: 'Remaining scope' });
+      const scope = screen.getByRole('radiogroup', { name: 'Scope' });
+      const original = within(scope).getByRole('radio', { name: 'Original' });
+      const remaining = within(scope).getByRole('radio', { name: 'Remaining' });
       // eslint-disable-next-line testing-library/no-node-access -- the circle's shapes are decorative SVG, which has no role to query.
       const readRadius = () => Number(circle.querySelector('.tr-node-main')?.getAttribute('r') ?? NaN);
       // eslint-disable-next-line testing-library/no-node-access -- the pie is decorative SVG, which has no role to query.
       const readPieTag = () => circle.querySelector('.tr-node-pie')?.tagName;
 
-      expect(toggle).not.toBePressed();
+      expect(original).toBeChecked();
       expect(readRadius()).toBeCloseTo(sizeCircle(8).r);
       expect(readPieTag()).toBe('path');
 
-      await user.click(toggle);
-      expect(toggle).toBePressed();
+      await user.click(remaining);
+      expect(remaining).toBeChecked();
       expect(readRadius()).toBeCloseTo(sizeCircle(4).r);
       expect(readPieTag()).toBe('circle');
 
-      await user.click(toggle);
+      await user.click(original);
+      expect(original).toBeChecked();
       expect(readRadius()).toBeCloseTo(sizeCircle(8).r);
     });
 
@@ -416,14 +419,14 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^t\.4:/ })).toBePressed();
     });
 
-    it('with All edges pressed, draws every edge once, faintly when nothing is focused', async () => {
+    it('with All edges on, draws every edge once, faintly when nothing is focused', async () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
-      const toggle = screen.getByRole('button', { name: 'All edges' });
+      const allEdges = screen.getByRole('switch', { name: 'All edges' });
 
-      await user.click(toggle);
+      await user.click(allEdges);
 
-      expect(toggle).toBePressed();
+      expect(allEdges).toBeChecked();
       expect(listEdges()).toStrictEqual(['blocker:1>2:faint', 'blocker:2>3:faint', 'sub-issue:4>2:faint']);
     });
 
