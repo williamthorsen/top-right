@@ -98,6 +98,43 @@ export function normalizeScoreLabelMapping(mapping: ScoreLabelMapping): ScoreLab
   };
 }
 
+/** The levels that a label write sets, by dimension; an absent dimension keeps its labels. */
+export interface LabelLevels {
+  urgency?: UrgencyLevel | undefined;
+  value?: ValueLevel | undefined;
+  effort?: number | undefined;
+}
+
+/** The labels that a write adds and removes, or the reason that the mapping refuses it. */
+export type LabelChangePlan =
+  { kind: 'change'; add: string[]; remove: string[] } | { kind: 'refused'; message: string };
+
+/**
+ * Returns the label change that sets `levels`: For each dimension, the first label that the mapping lists for the level
+ * is added, and every label listed under the dimension's other levels is removed. A level for which the mapping lists
+ * no label refuses the write.
+ */
+export function planLabelChange(levels: LabelLevels, mapping: ScoreLabelMapping): LabelChangePlan {
+  const add: string[] = [];
+  const remove: string[] = [];
+  const effort = levels.effort === undefined ? undefined : EFFORT_SCALE.find((points) => points === levels.effort);
+  if (levels.effort !== undefined && effort === undefined) {
+    return { kind: 'refused', message: `Effort ${levels.effort} is not on the scale.` };
+  }
+  const families = [
+    planFamily('urgency', URGENCY_LEVELS, mapping.urgency, levels.urgency),
+    planFamily('value', VALUE_LEVELS, mapping.value, levels.value),
+    planFamily('effort', EFFORT_SCALE, mapping.effort, effort),
+  ];
+  for (const family of families) {
+    if (family === undefined) continue;
+    if (family.kind === 'refused') return family;
+    add.push(...family.add);
+    remove.push(...family.remove);
+  }
+  return { kind: 'change', add, remove };
+}
+
 /**
  * Returns an item's stored scores with, for urgency, value, and effort where none is stored, the score of the highest
  * entry whose labels include one of the item's labels. Labels compare case-insensitively.
@@ -159,5 +196,21 @@ interface LevelLabels {
 
 function normalizeLabels(labels: readonly string[]): string[] {
   return labels.map((label) => label.trim()).filter((label) => label !== '');
+}
+
+/** Returns the change that sets one dimension to `level`, or `undefined` when `level` is absent. */
+function planFamily<T extends EffortPoints | UrgencyLevel | ValueLevel>(
+  dimension: LabelDimension,
+  levels: readonly T[],
+  levelLabels: Readonly<Record<T, readonly string[]>>,
+  level: T | undefined,
+): LabelChangePlan | undefined {
+  if (level === undefined) return undefined;
+  const [label] = levelLabels[level];
+  if (label === undefined) {
+    return { kind: 'refused', message: `No label is mapped to ${dimension} ${level}. Add one in Settings.` };
+  }
+  const remove = levels.filter((other) => other !== level).flatMap((other) => levelLabels[other]);
+  return { kind: 'change', add: [label], remove };
 }
 // endregion | Helpers

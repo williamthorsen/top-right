@@ -15,6 +15,7 @@ import {
   isValidAbbreviation,
   normalizeScoreLabelMapping,
   normalizeWorkTypeMapping,
+  parseItemKey,
   resolveAbbreviations,
   type StatusOverride,
   type WorkItem,
@@ -249,7 +250,7 @@ export function createApiHandler({ items: itemsCache, repos, store, userId, now 
     const applying: Record<string, StatusOverride> = {};
     for (const [itemKey, override] of Object.entries(overrides)) {
       const item = itemsByKey.get(itemKey);
-      const isVoid = item ? isOverrideVoid(item, override) : configuredRepos.has(readRepo(itemKey));
+      const isVoid = item ? isOverrideVoid(item, override) : configuredRepos.has(parseItemKey(itemKey)?.repo ?? '');
       if (isVoid) await store.writeStatusOverride(userId, itemKey, undefined);
       else applying[itemKey] = override;
     }
@@ -278,11 +279,6 @@ export function createApiHandler({ items: itemsCache, repos, store, userId, now 
 // region | Helpers
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-/** Returns the `owner/name` part of an item key, `owner/name#number`. */
-function readRepo(itemKey: string): string {
-  return itemKey.slice(0, itemKey.lastIndexOf('#'));
 }
 
 /** Returns the result of a read of the issues, or answers 502 and resolves to `undefined`. */

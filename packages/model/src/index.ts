@@ -25,8 +25,11 @@ export {
   describeDuplicateScoreLabel,
   type DuplicateScoreLabel,
   findDuplicateScoreLabels,
+  type LabelChangePlan,
   type LabelDimension,
+  type LabelLevels,
   normalizeScoreLabelMapping,
+  planLabelChange,
   resolveItemScores,
   type ScoreLabelMapping,
 } from './score-labels.ts';
@@ -58,6 +61,7 @@ export { deriveStatus, isOverrideVoid, STATUS_ORDER, type StatusCategory, type S
 export {
   formatItemKey,
   type ItemRef,
+  parseItemKey,
   type ItemState,
   type Relation,
   type RelationKind,
