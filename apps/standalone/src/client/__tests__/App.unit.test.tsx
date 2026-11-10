@@ -3,7 +3,7 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { DEFAULT_WORK_TYPE_MAPPING } from '@top-right/model';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ItemsResponse } from '#src/shared/items-response.ts';
 
@@ -13,6 +13,19 @@ import '@testing-library/jest-dom/vitest';
 
 // jsdom does not implement scrolling, which the chart's table calls on each selection.
 Element.prototype.scrollIntoView = () => {};
+
+// jsdom does not implement `ResizeObserver`, to which the chart's zoom subscribes; these tests do not resize the chart.
+// The stub is installed per test because `afterEach` unstubs every global.
+beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    },
+  );
+});
 
 const ITEM_KEY = 'williamthorsen/top-right#12';
 const AT = '2026-11-08T10:00:00.000Z';

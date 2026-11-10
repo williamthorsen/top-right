@@ -7,7 +7,10 @@ export type ZoomDirection = 'in' | 'out';
 
 /** The scales that the zoom control offers, where 1 is the matrix's natural size. */
 export const ZOOM_STEPS: readonly number[] = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
-export const DEFAULT_ZOOM: Zoom = { kind: 'step', scale: 1 };
+/** The page opens in Fit, at the natural size until the chart area is measured. */
+export const DEFAULT_ZOOM: Zoom = { kind: 'fit', scale: 1 };
+/** The natural size, to which the `0` key returns. */
+export const NATURAL_SCALE = 1;
 
 const MIN_STEP = 0.5;
 const MAX_STEP = 4;
