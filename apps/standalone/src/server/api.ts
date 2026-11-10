@@ -1,15 +1,19 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import {
+  DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
   describeAbbreviationClash,
   describeDuplicateLabel,
+  describeDuplicateScoreLabel,
   describeInvalidAbbreviation,
   findAbbreviationClashes,
   findDuplicateLabels,
+  findDuplicateScoreLabels,
   formatItemKey,
   isOverrideVoid,
   isValidAbbreviation,
+  normalizeScoreLabelMapping,
   normalizeWorkTypeMapping,
   resolveAbbreviations,
   type StatusOverride,
@@ -21,6 +25,7 @@ import type { z } from 'zod';
 import type { ItemsResponse } from '#src/shared/items-response.ts';
 import {
   abbreviationsRequestSchema,
+  scoreLabelMappingRequestSchema,
   type SettingsResponse,
   workTypeMappingRequestSchema,
 } from '#src/shared/settings.ts';
@@ -34,6 +39,7 @@ import {
 export const ABBREVIATIONS_PATH = '/api/abbreviations';
 export const ITEMS_PATH = '/api/items';
 export const KEEP_PATH = '/api/keep';
+export const SCORE_LABEL_MAPPING_PATH = '/api/score-label-mapping';
 export const SCORES_PATH = '/api/scores';
 export const SETTINGS_PATH = '/api/settings';
 export const STATUS_PATH = '/api/status';
@@ -111,6 +117,7 @@ export function createApiHandler({ loadItems, repos, store, userId, now = () => 
           abbreviations,
           abbreviationClashes: findAbbreviationClashes(abbreviations),
           workTypeMapping: state.workTypeMapping ?? DEFAULT_WORK_TYPE_MAPPING,
+          scoreLabelMapping: state.scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING,
           scores: state.scores,
           overrides,
           ...(state.lastVisitAt !== undefined && { lastVisitAt: state.lastVisitAt }),
@@ -125,6 +132,21 @@ export function createApiHandler({ loadItems, repos, store, userId, now = () => 
         if (!body) return;
         const scores = await store.keepScores(userId, body.itemKey, now().toISOString());
         sendJson(response, 200, { itemKey: body.itemKey, scores });
+      },
+    },
+    [SCORE_LABEL_MAPPING_PATH]: {
+      method: 'POST',
+      handle: async (request, response) => {
+        const body = await readRequest(request, response, scoreLabelMappingRequestSchema);
+        if (!body) return;
+        const mapping = body.mapping === null ? undefined : normalizeScoreLabelMapping(body.mapping);
+        const [duplicate] = mapping ? findDuplicateScoreLabels(mapping) : [];
+        if (duplicate) {
+          sendJson(response, 400, { error: describeDuplicateScoreLabel(duplicate) });
+          return;
+        }
+        await store.writeScoreLabelMapping(userId, mapping);
+        sendJson(response, 200, { mapping: mapping ?? null });
       },
     },
     [SCORES_PATH]: {
@@ -150,6 +172,7 @@ export function createApiHandler({ loadItems, repos, store, userId, now = () => 
           repos: [...repos],
           abbreviations: state.abbreviations,
           workTypeMapping: state.workTypeMapping ?? null,
+          scoreLabelMapping: state.scoreLabelMapping ?? null,
         };
         sendJson(response, 200, body);
       },

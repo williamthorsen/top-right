@@ -14,6 +14,7 @@ const SETTINGS: SettingsResponse = {
   repos: ['w/codeassembly', 'w/top-right'],
   abbreviations: { 'w/codeassembly': 'ca' },
   workTypeMapping: null,
+  scoreLabelMapping: null,
 };
 
 afterEach(() => {
