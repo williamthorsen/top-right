@@ -10,7 +10,7 @@ Work items as sized bubbles on urgency and importance axes, with adapters for Gi
 - `packages/_workspace` — scaffold for new libraries (no-op build)
 - `packages/adapter-github` — reads GitHub issues as work items
 - `packages/chart` — the chart as a React component that takes props and never fetches
-- `packages/model` — work items, relations, scores and status, and the work-type classifier
+- `packages/model` — work items, relations, scores and status, the work-type classifier, and the score-label mapping
 - `packages/store` — the store interface for scores, status overrides, visits, and settings, with its conformance tests
 - `.config/release-kit.config.ts` — release-kit configuration
 - `.config/readyup.config.ts` — readyup configuration
