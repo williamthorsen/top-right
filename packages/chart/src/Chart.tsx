@@ -1,11 +1,8 @@
 import {
   buildRelationGraph,
-  classifyWorkType,
   DEFAULT_WORK_TYPE_MAPPING,
-  deriveStatus,
   findNextPick,
   formatItemKey,
-  isAgentScored,
   type ItemFilter,
   type ItemScores,
   listBlockedKeys,
@@ -15,7 +12,7 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { Fragment, type ReactElement, useMemo, useRef, useState } from 'react';
+import { type ReactElement, useMemo, useRef, useState } from 'react';
 
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
@@ -25,12 +22,12 @@ import { Edges, focusItem, mergeChainEdges } from './Edges.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
-import { type Abbreviations, nameCircle } from './item-label.ts';
+import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
 import { layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
-import { ScoredCircle } from './ScoredCircle.tsx';
+import { ScoredCells } from './ScoredCells.tsx';
 import { listTrails, Trail } from './Trail.tsx';
 import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
@@ -228,48 +225,26 @@ export function Chart({
                       <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
                     ))}
                     <Edges edges={shownEdges} ends={ends} />
-                    {cells.map((cell) =>
-                      cell.isGutter ? null : (
-                        <g key={`${cell.u},${cell.i}`}>
-                          {cell.circles.map((circle) => {
-                            const item = itemsByKey.get(circle.id);
-                            if (!item) return null;
-                            const circleElement = (
-                              <ScoredCircle
-                                cellX={cell.x}
-                                cellY={cell.y}
-                                circle={circle}
-                                isAgentScored={isAgentScored(scores[circle.id])}
-                                isBlocked={blockedKeys.has(circle.id)}
-                                isHighlighted={circle.id === highlightedKey}
-                                isPick={circle.id === pickKey}
-                                isFaded={isFaded(circle.id)}
-                                isSelected={circle.id === selectedKey}
-                                dragHandlers={dragHandlersFor(circle.id, circle.r)}
-                                isDragging={circle.id === drag?.key}
-                                key={circle.id}
-                                name={nameCircle(labelOf(item), item.title, {
-                                  isBlocked: blockedKeys.has(circle.id),
-                                  isPick: circle.id === pickKey,
-                                })}
-                                onPreview={setPreviewKey}
-                                onSelect={selectItem}
-                                progress={scores[circle.id]?.progress?.value ?? 0}
-                                scopeMode={scopeMode}
-                                status={deriveStatus(item, overrides[circle.id])}
-                                workType={classifyWorkType(item.labels, workTypeMapping)}
-                              />
-                            );
-                            return (
-                              <Fragment key={circle.id}>
-                                {circleElement}
-                                {circle.id === ghostOwner ? ghostElements : null}
-                              </Fragment>
-                            );
-                          })}
-                        </g>
-                      ),
-                    )}
+                    <ScoredCells
+                      blockedKeys={blockedKeys}
+                      cells={cells}
+                      dragHandlersFor={dragHandlersFor}
+                      draggingKey={drag?.key}
+                      ghostOwner={ghostOwner}
+                      ghosts={ghostElements}
+                      highlightedKey={highlightedKey}
+                      isFaded={isFaded}
+                      itemsByKey={itemsByKey}
+                      labelOf={labelOf}
+                      onPreview={setPreviewKey}
+                      onSelect={selectItem}
+                      overrides={overrides}
+                      pickKey={pickKey}
+                      scopeMode={scopeMode}
+                      scores={scores}
+                      selectedKey={selectedKey}
+                      workTypeMapping={workTypeMapping}
+                    />
                     {ghostOwner === undefined ? ghostElements : null}
                   </g>
                   {cells.map((cell) =>
