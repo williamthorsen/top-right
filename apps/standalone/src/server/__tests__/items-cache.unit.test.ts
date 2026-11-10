@@ -92,6 +92,19 @@ describe(createItemsCache, () => {
     expect((await cache.get()).items).toStrictEqual([ITEM]);
     expect(load).toHaveBeenCalledTimes(2);
   });
+
+  it('if the loader throws before returning a promise, reads again on the next load', async () => {
+    const load = vi
+      .fn<() => Promise<WorkItem[]>>()
+      .mockImplementationOnce(() => {
+        throw new Error('The config could not be read.');
+      })
+      .mockResolvedValueOnce([ITEM]);
+    const cache = createItemsCache({ load, now: () => START });
+
+    await expect(cache.refresh()).rejects.toThrow('The config could not be read.');
+    expect((await cache.get()).items).toStrictEqual([ITEM]);
+  });
 });
 
 // region | Helpers

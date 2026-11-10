@@ -40,11 +40,9 @@ export function createItemsCache({
 
   function refresh(): Promise<ItemsRead> {
     pending ??= (async () => {
-      const readAt = now();
       try {
-        const read = { items: await load(), readAt };
-        last = read;
-        return read;
+        // `read` is async, so even a `load` that throws at once suspends here, and the `finally` runs after `??=`.
+        return await read();
       } finally {
         pending = undefined;
       }
@@ -52,9 +50,17 @@ export function createItemsCache({
     return pending;
   }
 
+  /** Reads the issues and keeps them as the last read. */
+  async function read(): Promise<ItemsRead> {
+    const readAt = now();
+    const result = { items: await load(), readAt };
+    last = result;
+    return result;
+  }
+
   async function get(): Promise<CachedItems> {
-    const read = last ?? (await refresh());
-    return { ...read, isStale: now().getTime() - read.readAt.getTime() > maxAgeMs };
+    const latest = last ?? (await refresh());
+    return { ...latest, isStale: now().getTime() - latest.readAt.getTime() > maxAgeMs };
   }
 
   return { get, refresh };
