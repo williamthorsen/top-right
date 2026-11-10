@@ -56,16 +56,24 @@ describe('Chart zoom', () => {
     expectScale(1);
   });
 
-  it('steps with a Ctrl or Cmd wheel and keeps the page from zooming, one step per threshold', () => {
+  it('steps once per Ctrl or Cmd wheel event past the threshold, and keeps the page from zooming', () => {
     renderChart(ITEMS, {}, SCORES);
     const scroll = getScroll();
 
     expect(fireEvent.wheel(scroll, { ctrlKey: true, deltaY: -WHEEL_STEP_THRESHOLD })).toBe(false);
     expectScale(1.25);
-    fireEvent.wheel(scroll, { metaKey: true, deltaY: WHEEL_STEP_THRESHOLD * 2 });
-    expectScale(0.75);
+    fireEvent.wheel(scroll, { metaKey: true, deltaY: WHEEL_STEP_THRESHOLD * 4 });
+    expectScale(1);
+  });
+
+  it('adds up small wheel deltas, as a trackpad pinch sends them, until they pass the threshold', () => {
+    renderChart(ITEMS, {}, SCORES);
+    const scroll = getScroll();
+
     fireEvent.wheel(scroll, { ctrlKey: true, deltaY: -WHEEL_STEP_THRESHOLD / 2 });
-    expectScale(0.75);
+    expectScale(1);
+    fireEvent.wheel(scroll, { ctrlKey: true, deltaY: -WHEEL_STEP_THRESHOLD / 2 });
+    expectScale(1.25);
   });
 
   it('leaves a plain wheel to scroll the chart', () => {

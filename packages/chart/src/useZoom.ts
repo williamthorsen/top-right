@@ -20,7 +20,10 @@ export interface ZoomState {
   choose: (choice: ZoomChoice) => void;
 }
 
-/** How far a Ctrl or Cmd wheel scrolls, in pixels, per step; one mouse-wheel notch is about 100. */
+/**
+ * How far a Ctrl or Cmd wheel scrolls, in pixels, before it steps. A mouse-wheel notch passes it in one event, whatever
+ * delta the platform reports, and a trackpad pinch's small deltas add up to it.
+ */
 export const WHEEL_STEP_THRESHOLD = 60;
 /** How long a wheel gesture may pause, in milliseconds, before its accumulated scroll is dropped. */
 const WHEEL_IDLE_MS = 200;
@@ -133,11 +136,11 @@ export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
       idleTimer = setTimeout(() => {
         accumulated = 0;
       }, WHEEL_IDLE_MS);
-      while (Math.abs(accumulated) >= WHEEL_STEP_THRESHOLD) {
-        const direction = accumulated < 0 ? 'in' : 'out';
-        accumulated -= Math.sign(accumulated) * WHEEL_STEP_THRESHOLD;
-        stepAt(direction, toLocal(event.clientX, event.clientY));
-      }
+      if (Math.abs(accumulated) < WHEEL_STEP_THRESHOLD) return;
+      // One event steps once at most, so that a notch is one step however large the platform's delta.
+      const direction = accumulated < 0 ? 'in' : 'out';
+      accumulated = 0;
+      stepAt(direction, toLocal(event.clientX, event.clientY));
     }
 
     function handleTouchStart(event: TouchEvent): void {
