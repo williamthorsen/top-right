@@ -32,7 +32,7 @@ const KEY_EXEMPT_SELECTOR =
 
 /**
  * Holds the matrix's zoom and wires its inputs: Ctrl or Cmd with the wheel (which a trackpad pinch also sends) and a
- * two-finger touch pinch over the scroll container, and the `+`, `-`, and `0` keys within the key root. Each change keeps an anchor point in
+ * two-finger touch pinch over the scroll container, and the `+`, `-`, and `0` keys. Each change keeps an anchor point in
  * place by correcting the container's scroll: the pointer for the wheel and the pinch, the visible centre otherwise.
  */
 export function useZoom({ scrollRef, keyRootRef }: ZoomOptions): ZoomState {
