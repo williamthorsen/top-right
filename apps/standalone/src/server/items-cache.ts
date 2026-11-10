@@ -1,4 +1,4 @@
-import type { WorkItem } from '@top-right/model';
+import { formatItemKey, type WorkItem } from '@top-right/model';
 
 /** How long the last read's issues stay fresh before a load reports them as stale. */
 export const MAX_ITEMS_AGE_MS = 60_000;
@@ -21,6 +21,8 @@ export interface ItemsCache {
   get: () => Promise<CachedItems>;
   /** Reads the issues afresh, sharing a read in progress; a failed read keeps the last issues. */
   refresh: () => Promise<ItemsRead>;
+  /** Replaces an item's labels after a write, in the last read and in a read already in progress. */
+  setLabels: (itemKey: string, labels: readonly string[]) => void;
 }
 
 export interface ItemsCacheOptions {
@@ -37,6 +39,8 @@ export function createItemsCache({
 }: ItemsCacheOptions): ItemsCache {
   let last: ItemsRead | undefined;
   let pending: Promise<ItemsRead> | undefined;
+  // A read in progress started before these writes, so its issues carry the labels from before them.
+  let patches = new Map<string, readonly string[]>();
 
   function refresh(): Promise<ItemsRead> {
     pending ??= (async () => {
@@ -53,9 +57,15 @@ export function createItemsCache({
   /** Reads the issues and keeps them as the last read. */
   async function read(): Promise<ItemsRead> {
     const readAt = now();
-    const result = { items: await load(), readAt };
+    patches = new Map();
+    const result = { items: applyPatches(await load(), patches), readAt };
     last = result;
     return result;
+  }
+
+  function setLabels(itemKey: string, labels: readonly string[]): void {
+    if (pending) patches.set(itemKey, labels);
+    if (last) last = { ...last, items: applyPatches(last.items, new Map([[itemKey, labels]])) };
   }
 
   async function get(): Promise<CachedItems> {
@@ -63,5 +73,15 @@ export function createItemsCache({
     return { ...latest, isStale: now().getTime() - latest.readAt.getTime() > maxAgeMs };
   }
 
-  return { get, refresh };
+  return { get, refresh, setLabels };
 }
+
+// region | Helpers
+/** Returns `items` with the labels of each patched item replaced. */
+function applyPatches(items: readonly WorkItem[], patches: ReadonlyMap<string, readonly string[]>): WorkItem[] {
+  return items.map((item) => {
+    const labels = patches.get(formatItemKey(item));
+    return labels ? { ...item, labels: [...labels] } : item;
+  });
+}
+// endregion | Helpers
