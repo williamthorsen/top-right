@@ -44,7 +44,7 @@ pnpm --filter @top-right/standalone top-right write-scores --dry-run scores.json
 pnpm --filter @top-right/standalone top-right write-scores scores.json                   # write the scores as the agent's
 ```
 
-`scores.json` is a JSON array of `{ "itemKey": "owner/name#number", "scores": { "urgency": 4, "impact": 3 } }`. `top-right write-scores --help` lists the accepted values. Set `TOP_RIGHT_DB` to trial a run on a copy of the store.
+`scores.json` is a JSON array of `{ "itemKey": "owner/name#number", "scores": { "urgency": "high", "value": "should-have" } }`. `top-right write-scores --help` lists the accepted values. Set `TOP_RIGHT_DB` to trial a run on a copy of the store.
 
 ## Where the scores live
 
