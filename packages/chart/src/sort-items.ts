@@ -1,4 +1,4 @@
-import { type ItemScores, rankLevel, STATUS_ORDER, type StatusCategory, type WorkItem } from '@top-right/model';
+import { type ResolvedItemScores, rankLevel, STATUS_ORDER, type StatusCategory, type WorkItem } from '@top-right/model';
 
 /** A table column by which the items sort. */
 export type SortColumn = 'effort' | 'id' | 'progress' | 'status' | 'title' | 'type' | 'urgency' | 'value';
@@ -10,7 +10,7 @@ export interface ItemSort {
 
 /** What a sort reads beyond the item itself. */
 export interface SortContext {
-  scores: Readonly<Record<string, ItemScores>>;
+  scores: Readonly<Record<string, ResolvedItemScores>>;
   statusOf: (item: WorkItem) => StatusCategory;
   typeNameOf: (item: WorkItem) => string;
   keyOf: (item: WorkItem) => string;

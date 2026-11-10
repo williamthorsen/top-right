@@ -1,7 +1,7 @@
 import {
   classifyWorkType,
   isAgentScored,
-  type ItemScores,
+  type ResolvedItemScores,
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
@@ -13,7 +13,7 @@ import type { DragHandlers } from './useItemDrag.ts';
 
 export interface GutterCellProps {
   cell: CellLayout;
-  scores: Readonly<Record<string, ItemScores>>;
+  scores: Readonly<Record<string, ResolvedItemScores>>;
   isFaded: (key: string) => boolean;
   itemsByKey: ReadonlyMap<string, WorkItem>;
   labelOf: (item: WorkItem) => string;

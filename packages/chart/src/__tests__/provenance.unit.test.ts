@@ -16,6 +16,12 @@ describe(formatProvenance, () => {
     expect(formatProvenance({ score: 3, by: 'agent', at: '2025-03-02T09:00:00' }, NOW)).toMatch(/^Agent · .*2025/);
   });
 
+  it('names the label that supplies a score', () => {
+    expect(formatProvenance({ score: 'must-have', by: 'label', label: 'value:must-have' }, NOW)).toBe(
+      'Label · value:must-have',
+    );
+  });
+
   it('reads Unscored for an absent score', () => {
     expect(formatProvenance(undefined, NOW)).toBe('Unscored');
   });

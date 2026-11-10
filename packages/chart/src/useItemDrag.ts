@@ -1,4 +1,4 @@
-import type { ItemScores } from '@top-right/model';
+import type { ResolvedItemScores } from '@top-right/model';
 import { type PointerEvent, type RefObject, useRef, useState } from 'react';
 
 import { HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
@@ -26,7 +26,7 @@ export interface DragHandlers {
 export interface ItemDragOptions {
   svgRef: RefObject<SVGSVGElement | null>;
   /** The scores that place each item in its cell and size its circle. */
-  scores: Readonly<Record<string, ItemScores>>;
+  scores: Readonly<Record<string, ResolvedItemScores>>;
   scopeMode: ScopeMode;
   /** The selected item, the only one that drags. */
   selectedKey: string | undefined;

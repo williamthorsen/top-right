@@ -1,4 +1,4 @@
-import { type Cell, findTrailOrigin, type ItemScores, rankLevel } from '@top-right/model';
+import { type Cell, findTrailOrigin, type ResolvedItemScores, rankLevel } from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { CELL_SIZE, type CellLayout, GRID_SIZE } from './layout.ts';
@@ -27,7 +27,7 @@ export function Trail({ origin, x, y, r }: TrailProps): ReactElement {
 /** Returns a trail for each circle that the agent moved within the matrix and for which `isShown` holds. */
 export function listTrails(
   cells: readonly CellLayout[],
-  scores: Readonly<Record<string, ItemScores>>,
+  scores: Readonly<Record<string, ResolvedItemScores>>,
   isShown: (key: string) => boolean,
 ): Array<TrailProps & { id: string }> {
   const trails: Array<TrailProps & { id: string }> = [];

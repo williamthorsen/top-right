@@ -2,7 +2,7 @@ import {
   deriveStatus,
   type Edge,
   type ItemRef,
-  type ItemScores,
+  type ResolvedItemScores,
   type StatusOverride,
   type WorkItem,
 } from '@top-right/model';
@@ -33,7 +33,7 @@ export interface GhostsProps {
 interface GhostBoard {
   itemsByKey: ReadonlyMap<string, WorkItem>;
   overrides: Readonly<Record<string, StatusOverride>>;
-  scores: Readonly<Record<string, ItemScores>>;
+  scores: Readonly<Record<string, ResolvedItemScores>>;
   /** The scope that circle areas show, which a ghost's area follows. */
   scopeMode: ScopeMode;
   visibleKeys: ReadonlySet<string>;
