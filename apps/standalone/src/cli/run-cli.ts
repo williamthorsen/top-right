@@ -91,7 +91,8 @@ Usage: top-right write-scores [--dry-run] <file>
 
 Arguments:
   <file>         A JSON array of { "itemKey": "owner/name#number", "scores": { ... } }, or - to read stdin.
-                 Scores: urgency and impact 1-5; effort 1, 2, 3, 5, 8, or 13; progress 0-1 in steps of 0.05.
+                 Scores: urgency critical, high, medium, or low; value must-have, should-have,
+                 nice-to-have, or questionable; effort 1, 2, 3, 5, 8, or 13; progress 0-1 in steps of 0.05.
 
 Options:
   -n, --dry-run  Report each change, and write nothing

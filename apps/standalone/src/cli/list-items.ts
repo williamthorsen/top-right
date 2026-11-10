@@ -31,7 +31,7 @@ export function listItems(items: readonly WorkItem[], scores: Readonly<Record<st
 export function renderItemsText(items: readonly ListedItem[]): string {
   return items
     .map((item) => {
-      const values = TEXT_FIELDS.map(([field, letter]) => `${letter}:${item.scores[field]?.value ?? '-'}`);
+      const values = TEXT_FIELDS.map(([field, letter]) => `${letter}:${item.scores[field]?.score ?? '-'}`);
       return `${item.itemKey}  ${values.join(' ')}  ${item.title}\n`;
     })
     .join('');
@@ -40,7 +40,7 @@ export function renderItemsText(items: readonly ListedItem[]): string {
 // region | Helpers
 const TEXT_FIELDS: ReadonlyArray<[ScoreField, string]> = [
   ['urgency', 'u'],
-  ['impact', 'i'],
+  ['value', 'v'],
   ['effort', 'e'],
   ['progress', 'p'],
 ];

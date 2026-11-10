@@ -1,3 +1,4 @@
+import { URGENCY_LEVELS, VALUE_LEVELS } from '@top-right/model';
 import { z } from 'zod';
 
 import { abbreviationClashSchema, workTypeMappingSchema } from './settings.ts';
@@ -10,19 +11,12 @@ const itemRefSchema = z.object({
   state: z.enum(['closed', 'open']),
 });
 
-const scoreEntrySchema = z.object({
-  value: z.number(),
-  by: z.enum(['agent', 'author']),
-  at: z.string(),
-  previous: z.number().exactOptional(),
-});
-
 /** An item's scores with their provenance. */
 export const itemScoresSchema = z.object({
-  urgency: scoreEntrySchema.exactOptional(),
-  impact: scoreEntrySchema.exactOptional(),
-  effort: scoreEntrySchema.exactOptional(),
-  progress: scoreEntrySchema.exactOptional(),
+  urgency: buildScoreEntrySchema(z.enum(URGENCY_LEVELS)).exactOptional(),
+  value: buildScoreEntrySchema(z.enum(VALUE_LEVELS)).exactOptional(),
+  effort: buildScoreEntrySchema(z.number()).exactOptional(),
+  progress: buildScoreEntrySchema(z.number()).exactOptional(),
 });
 
 /** A stored status override. */
@@ -60,3 +54,15 @@ export const itemsResponseSchema = z.object({
 export const errorResponseSchema = z.object({ error: z.string() });
 
 export type ItemsResponse = z.infer<typeof itemsResponseSchema>;
+
+// region | Helpers
+/** Returns the schema of a score entry whose score and previous score match `score`. */
+function buildScoreEntrySchema<T extends z.ZodType>(score: T) {
+  return z.object({
+    score,
+    by: z.enum(['agent', 'author']),
+    at: z.string(),
+    previous: score.exactOptional(),
+  });
+}
+// endregion | Helpers
