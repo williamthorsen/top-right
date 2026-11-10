@@ -31,6 +31,7 @@ import { ItemTable } from './ItemTable.tsx';
 import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
+import type { ChartRefresh } from './RefreshControl.tsx';
 import { ScoredCells } from './ScoredCells.tsx';
 import { listTrails, Trail } from './Trail.tsx';
 import { useChainView } from './useChainView.ts';
@@ -53,6 +54,8 @@ export interface ChartProps {
   scoreLabelMapping?: ScoreLabelMapping;
   /** Where the host's Settings page is; without it, the chart does not link to Settings. */
   settingsHref?: string | undefined;
+  /** The host's read of the items; without it, the chart shows neither the read time nor Refresh. */
+  refresh?: ChartRefresh | undefined;
   /** The user's stored scores by item key; an item without an entry is unscored unless its labels supply a score. */
   scores?: Readonly<Record<string, ItemScores>>;
   /** The user's status overrides by item key. */
@@ -94,6 +97,7 @@ export function Chart({
   workTypeMapping = DEFAULT_WORK_TYPE_MAPPING,
   scoreLabelMapping = DEFAULT_SCORE_LABEL_MAPPING,
   settingsHref,
+  refresh,
   scores: storedScores = NO_SCORES,
   overrides = NO_OVERRIDES,
   onScoresChange,
@@ -216,6 +220,7 @@ export function Chart({
             filterBar={{ abbreviations, counts: statusCounts, filter, onChange: changeFilter }}
             onScopeModeChange={setScopeMode}
             onShowAllEdgesChange={setShowAllEdges}
+            refresh={refresh}
             review={chainView.review}
             scopeMode={scopeMode}
             settingsHref={settingsHref}

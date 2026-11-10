@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { FilterBar, type FilterBarProps } from './FilterBar.tsx';
 import type { ScopeMode } from './layout.ts';
 import { MoreMenu } from './MoreMenu.tsx';
+import { type ChartRefresh, RefreshControl } from './RefreshControl.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
 import { SegmentedControl, type SegmentOption } from './SegmentedControl.tsx';
 import { Switch } from './Switch.tsx';
@@ -14,6 +15,8 @@ import { ZoomControl } from './ZoomControl.tsx';
 export interface ChartStripProps {
   chainView: ChainView;
   filterBar: FilterBarProps;
+  /** The host's read of the items; without it, the strip shows neither the read time nor Refresh. */
+  refresh: ChartRefresh | undefined;
   review: Review;
   showAllEdges: boolean;
   onShowAllEdgesChange: (showAllEdges: boolean) => void;
@@ -32,11 +35,12 @@ const SCOPE_OPTIONS: ReadonlyArray<SegmentOption<ScopeMode>> = [
 
 /**
  * The strip above the chart: the filter, the review controls, the view controls with the zoom control and the More
- * menu, the shown chain's status, and the link to Settings.
+ * menu, the shown chain's status, and, at its end, the items' read time with Refresh and the link to Settings.
  */
 export function ChartStrip({
   chainView,
   filterBar,
+  refresh,
   review,
   showAllEdges,
   onShowAllEdgesChange,
@@ -82,10 +86,15 @@ export function ChartStrip({
           </button>
         </div>
       ) : null}
-      {settingsHref === undefined ? null : (
-        <a className="tr-strip-link" href={settingsHref}>
-          Settings
-        </a>
+      {refresh === undefined && settingsHref === undefined ? null : (
+        <div className="tr-strip-end">
+          {refresh === undefined ? null : <RefreshControl {...refresh} />}
+          {settingsHref === undefined ? null : (
+            <a className="tr-strip-link" href={settingsHref}>
+              Settings
+            </a>
+          )}
+        </div>
       )}
     </div>
   );

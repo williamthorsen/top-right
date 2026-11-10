@@ -650,7 +650,8 @@
 }
 
 .tr-review,
-.tr-chain {
+.tr-chain,
+.tr-issues {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -884,11 +885,11 @@
   cursor: pointer;
 }
 
-.tr-review-button:hover:not(:disabled) {
+.tr-review-button:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--tr-surface-2);
 }
 
-.tr-review-button:disabled {
+.tr-review-button:is(:disabled, [aria-disabled='true']) {
   color: var(--tr-ink-2);
   cursor: default;
 }
@@ -970,6 +971,18 @@
 }
 .tr-mapping-list dd {
   margin: 0 0 0 22px;
+  color: var(--tr-ink-2);
+}
+
+/* The items' read time with Refresh, and the link to Settings, stay together at the strip's end. */
+.tr-strip-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.tr-issues-status {
   color: var(--tr-ink-2);
 }
 

@@ -104,9 +104,15 @@ An agent's score places an item for the pick as the author's does, because it is
 
 The GitHub adapter comes first, because using the tool on real data on the development machine is what keeps it from staying an idea. The local host reads its GitHub token from `GITHUB_TOKEN` or from `gh auth token`, so that the first run needs nothing beyond `gh auth login`. The Jira adapter comes second. It is built against a personal Atlassian site seeded by a script, and it depends on `@williamthorsen/atlassian-tools` for auth and transport.
 
-The local host reads closed issues only within a window, `closedWindowDays` in its config file, measured back from each refresh by the date each issue was closed, because Done is hidden by default and an unbounded read would fetch years of closed issues on every refresh. The window is in the config file rather than in Settings, because it bounds the adapter's read as the repository list does, rather than being the user's state. The adapter narrows the read with the API's `since` filter, which compares the update time, and drops the issues closed before the window. Decided at the closed-items iteration (#16).
+The local host reads closed issues only within a window, `closedWindowDays` in its config file, measured back from each read by the date each issue was closed, because Done is hidden by default and an unbounded read would fetch years of closed issues on every read. The window is in the config file rather than in Settings, because it bounds the adapter's read as the repository list does, rather than being the user's state. The adapter narrows the read with the API's `since` filter, which compares the update time, and drops the issues closed before the window. Decided at the closed-items iteration (#16).
 
 Revised after the developer evaluation: The decision did not say where the local host gets its GitHub token, and whether it is a pasted personal access token or the one that `gh` already holds decides the first hour.
+
+### When the host reads GitHub
+
+The local host reads the issues of the configured repositories when it starts, and keeps the issues of its last successful read in memory. A load of the chart is served from that copy at once, and waits only when no read has finished yet. When the issues are more than a minute old, the page asks the host for a fresh read in the background and replaces the issues when it arrives; concurrent requests share one read. The strip shows when the issues were last read, with a Refresh button that reads them again at once. A failed read keeps the last issues on the chart, and the page says that the refresh failed.
+
+Only the issues are kept in memory. Scores, status overrides, the last visit, and settings are the app's own data, so every load reads them from the store, and a refresh leaves the page's copies alone so that it cannot overwrite a write in progress. The CLI is a separate process and reads GitHub on each run. Moving between the chart and Settings stays a page load, because the cache also covers a reload. Decided at #47: Every load read every repository before it drew, so returning from Settings showed "Loading issues" for seconds although the issues had rarely changed.
 
 ### Status is a derived category with an override, and Done is read-only
 
@@ -294,6 +300,6 @@ The package split is settled for the MVP, whose epic is #10. It follows the base
 - `packages/chart`: the browser chart, its detail pane, the table, and the Settings forms, which take props only, with the cell packing and the gutters inside it, and the selection that the chart and the table share
 - `packages/adapter-github`: the GitHub adapter
 - `packages/store`: the store interface, with scores, status overrides, the last visit, and the settings that Settings edits (the type mapping, the score-label mapping, and the repo abbreviations), each per user, and the conformance tests that every store runs
-- `apps/standalone`: the local host, which implements the store on SQLite, serves the page, and keeps the selection in the page's URL
+- `apps/standalone`: the local host, which implements the store on SQLite, keeps the last read of the issues in memory, serves the page, and keeps the selection in the page's URL
 
 The Jira adapter, `packages/adapter-jira`, is added after the MVP, when its iteration starts. Every package under `packages/` is part of the published core. `apps/standalone` stays in this repository and is not published.

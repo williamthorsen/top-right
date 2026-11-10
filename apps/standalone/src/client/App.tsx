@@ -8,9 +8,9 @@ import {
   type Scores,
   type StatusOverride,
 } from '@top-right/model';
-import { type ReactElement, useEffect, useRef, useState } from 'react';
+import { type ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 
-import { type ItemsResponse, itemsResponseSchema } from '#src/shared/items-response.ts';
+import { type ItemsResponse, itemsResponseSchema, refreshResponseSchema } from '#src/shared/items-response.ts';
 import { scoresResponseSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
 
 import { describeError, getJson, postJson } from './host-requests.ts';
@@ -27,9 +27,29 @@ export function App(): ReactElement {
   const [scores, setScores] = useState<Record<string, ItemScores>>({});
   const [overrides, setOverrides] = useState<Record<string, StatusOverride>>({});
   const [failure, setFailure] = useState<string>();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedKey, changeSelectedKey] = useUrlSelection();
   // Writes for one item run in order, so that a late response cannot overwrite a newer change.
   const writeQueues = useRef(new Map<string, Promise<void>>());
+  const refreshRunning = useRef(false);
+
+  // Replaces only the issues, so that a refresh cannot overwrite a score or status write in progress.
+  const refreshIssues = useCallback(async (): Promise<void> => {
+    if (refreshRunning.current) return;
+    refreshRunning.current = true;
+    setIsRefreshing(true);
+    try {
+      const { items, readAt } = await postJson('/api/items/refresh', {}, refreshResponseSchema);
+      setState((current) =>
+        current.kind === 'loaded' ? { ...current, data: { ...current.data, items, readAt } } : current,
+      );
+    } catch (error) {
+      setFailure(`Issues not refreshed: ${endSentence(describeError(error))}`);
+    } finally {
+      refreshRunning.current = false;
+      setIsRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     void (async () => {
@@ -38,11 +58,12 @@ export function App(): ReactElement {
         setScores(data.scores);
         setOverrides(data.overrides);
         setState({ kind: 'loaded', data });
+        if (data.isStale) void refreshIssues();
       } catch (error) {
         setState({ kind: 'error', message: describeError(error) });
       }
     })();
-  }, []);
+  }, [refreshIssues]);
 
   useEffect(() => {
     function recordVisitEnd(): void {
@@ -144,6 +165,7 @@ export function App(): ReactElement {
           if (item) changeStatus(itemKey, status, item.state);
         }}
         overrides={overrides}
+        refresh={{ readAt: data.readAt, isRefreshing, onRefresh: () => void refreshIssues() }}
         scoreLabelMapping={data.scoreLabelMapping}
         scores={scores}
         selectedKey={selectedKey}
@@ -158,6 +180,11 @@ export function App(): ReactElement {
 /** Returns the Settings page's URL, carrying the selected item so that the page's link back restores it. */
 function buildSettingsHref(selectedKey: string | undefined): string {
   return selectedKey === undefined ? SETTINGS_PATH : `${SETTINGS_PATH}?${new URLSearchParams({ item: selectedKey })}`;
+}
+
+/** Returns `text` ending in a period, unless it already ends a sentence, as the host's GitHub messages do. */
+function endSentence(text: string): string {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
 }
 
 /** Returns `record` with `key` set to `value`, or without `key` when `value` is undefined. */
