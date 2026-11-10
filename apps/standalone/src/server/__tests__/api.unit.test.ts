@@ -2,8 +2,10 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import {
+  DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
   type ItemScores,
+  type ScoreLabelMapping,
   type StatusOverride,
   type WorkItem,
   type WorkTypeMapping,
@@ -28,6 +30,10 @@ const ITEM_KEY = 'williamthorsen/top-right#11';
 const NOW = new Date('2026-11-08T12:00:00.000Z');
 const EARLIER = '2026-11-01T09:00:00.000Z';
 const MAPPING: WorkTypeMapping = { bug: ['defect'], feature: ['feat'], ops: [], task: ['chore'] };
+const LABEL_MAPPING: ScoreLabelMapping = {
+  urgency: { critical: [], high: ['priority:high'], low: [], medium: [] },
+  value: { 'must-have': ['value:must-have'], 'nice-to-have': [], questionable: [], 'should-have': [] },
+};
 const IN_PROGRESS: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
 
 const servers: Server[] = [];
@@ -56,6 +62,7 @@ describe(createApiHandler, () => {
         abbreviations: { [ITEM.repo]: 't' },
         abbreviationClashes: [],
         workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
+        scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
         scores,
         overrides: { [ITEM_KEY]: IN_PROGRESS },
         lastVisitAt: EARLIER,
@@ -71,14 +78,15 @@ describe(createApiHandler, () => {
       expect(body).toMatchObject({ abbreviations: { [ITEM.repo]: 'tr', 'w/codeassembly': 'c' } });
     });
 
-    it("answers with the user's mapping and the repositories that share an abbreviation", async () => {
-      const store = createMemoryStore({ workTypeMapping: MAPPING });
+    it("answers with the user's mappings and the repositories that share an abbreviation", async () => {
+      const store = createMemoryStore({ workTypeMapping: MAPPING, scoreLabelMapping: LABEL_MAPPING });
       const baseUrl = await startServer({ store, repos: [ITEM.repo, 'w/tools'] });
 
       const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
 
       expect(body).toMatchObject({
         workTypeMapping: MAPPING,
+        scoreLabelMapping: LABEL_MAPPING,
         abbreviationClashes: [{ abbreviation: 't', repos: [ITEM.repo, 'w/tools'] }],
       });
     });
@@ -289,20 +297,28 @@ describe(createApiHandler, () => {
 
   describe('GET /api/settings', () => {
     it("answers with the configured repositories and the user's stored settings", async () => {
-      const store = createMemoryStore({ abbreviations: { [ITEM.repo]: 'tr' }, workTypeMapping: MAPPING });
+      const store = createMemoryStore({
+        abbreviations: { [ITEM.repo]: 'tr' },
+        workTypeMapping: MAPPING,
+        scoreLabelMapping: LABEL_MAPPING,
+      });
       const baseUrl = await startServer({ store });
 
       expect(await (await fetch(`${baseUrl}/api/settings`)).json()).toStrictEqual({
         repos: [ITEM.repo],
         abbreviations: { [ITEM.repo]: 'tr' },
         workTypeMapping: MAPPING,
+        scoreLabelMapping: LABEL_MAPPING,
       });
     });
 
     it('answers a null mapping when the user keeps the default', async () => {
       const baseUrl = await startServer({});
 
-      expect(await (await fetch(`${baseUrl}/api/settings`)).json()).toMatchObject({ workTypeMapping: null });
+      expect(await (await fetch(`${baseUrl}/api/settings`)).json()).toMatchObject({
+        workTypeMapping: null,
+        scoreLabelMapping: null,
+      });
     });
   });
 
@@ -337,6 +353,57 @@ describe(createApiHandler, () => {
       expect(response.status).toBe(400);
       expect(await response.json()).toStrictEqual({ error: '"defect" is in Bug and Task. Keep it in one type.' });
       expect(store.state.workTypeMapping).toBeUndefined();
+    });
+  });
+
+  describe('POST /api/score-label-mapping', () => {
+    it('saves the mapping with its labels trimmed and empty ones dropped', async () => {
+      const store = createMemoryStore();
+      const baseUrl = await startServer({ store });
+
+      const response = await post(`${baseUrl}/api/score-label-mapping`, {
+        mapping: { ...LABEL_MAPPING, urgency: { ...LABEL_MAPPING.urgency, low: [' later ', ''] } },
+      });
+
+      expect(response.status).toBe(200);
+      expect(store.state.scoreLabelMapping).toStrictEqual({
+        ...LABEL_MAPPING,
+        urgency: { ...LABEL_MAPPING.urgency, low: ['later'] },
+      });
+    });
+
+    it('restores the default on a null mapping', async () => {
+      const store = createMemoryStore({ scoreLabelMapping: LABEL_MAPPING });
+      const baseUrl = await startServer({ store });
+
+      await post(`${baseUrl}/api/score-label-mapping`, { mapping: null });
+
+      expect(store.state.scoreLabelMapping).toBeUndefined();
+    });
+
+    it('refuses a label under two levels and saves nothing', async () => {
+      const store = createMemoryStore();
+      const baseUrl = await startServer({ store });
+
+      const response = await post(`${baseUrl}/api/score-label-mapping`, {
+        mapping: { ...LABEL_MAPPING, value: { ...LABEL_MAPPING.value, questionable: ['Priority:High'] } },
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toStrictEqual({
+        error: '"priority:high" is under urgency high and value questionable. Keep it under one level.',
+      });
+      expect(store.state.scoreLabelMapping).toBeUndefined();
+    });
+
+    it('refuses a mapping that omits a level', async () => {
+      const baseUrl = await startServer({});
+
+      const response = await post(`${baseUrl}/api/score-label-mapping`, {
+        mapping: { ...LABEL_MAPPING, urgency: { critical: [], high: [], low: [] } },
+      });
+
+      expect(response.status).toBe(400);
     });
   });
 

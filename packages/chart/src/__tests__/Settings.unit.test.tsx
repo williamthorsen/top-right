@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { DEFAULT_WORK_TYPE_MAPPING, type WorkTypeMapping } from '@top-right/model';
+import { DEFAULT_SCORE_LABEL_MAPPING, DEFAULT_WORK_TYPE_MAPPING, type WorkTypeMapping } from '@top-right/model';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Settings, type SettingsProps } from '../Settings.tsx';
@@ -52,7 +52,7 @@ describe(Settings, () => {
       const onSaveWorkTypeMapping = vi.fn<SettingsProps['onSaveWorkTypeMapping']>(() => Promise.resolve(undefined));
       renderSettings({ workTypeMapping: MAPPING, onSaveWorkTypeMapping });
 
-      await userEvent.setup().click(screen.getByRole('button', { name: 'Restore defaults' }));
+      await userEvent.setup().click(within(getSection('Work types')).getByRole('button', { name: 'Restore defaults' }));
 
       expect(onSaveWorkTypeMapping).toHaveBeenCalledWith(undefined);
       expect(getField('Work types', 'Bug')).toHaveValue(DEFAULT_WORK_TYPE_MAPPING.bug.join(', '));
@@ -64,6 +64,63 @@ describe(Settings, () => {
       await userEvent.setup().click(within(getSection('Work types')).getByRole('button', { name: 'Save' }));
 
       expect(within(getSection('Work types')).getByRole('alert')).toHaveTextContent('The host did not respond.');
+    });
+  });
+
+  describe('score labels', () => {
+    it('shows the default label of each level while the user keeps the default', () => {
+      renderSettings();
+
+      expect(getLevelField('Urgency', 'High')).toHaveValue('urgency:high');
+      expect(getLevelField('Value', 'Must-have')).toHaveValue('value:must-have');
+    });
+
+    it('saves the comma-separated labels of each level, trimmed', async () => {
+      const onSaveScoreLabelMapping = vi.fn<SettingsProps['onSaveScoreLabelMapping']>(() => Promise.resolve(undefined));
+      renderSettings({ onSaveScoreLabelMapping });
+
+      const user = userEvent.setup();
+      await user.type(getLevelField('Urgency', 'High'), ', priority:high ,');
+      await user.click(within(getSection('Score labels')).getByRole('button', { name: 'Save' }));
+
+      expect(onSaveScoreLabelMapping).toHaveBeenCalledWith({
+        ...DEFAULT_SCORE_LABEL_MAPPING,
+        urgency: { ...DEFAULT_SCORE_LABEL_MAPPING.urgency, high: ['urgency:high', 'priority:high'] },
+      });
+      expect(within(getSection('Score labels')).getByRole('status')).toHaveTextContent('Saved.');
+    });
+
+    it('refuses a label under two levels without saving', async () => {
+      const onSaveScoreLabelMapping = vi.fn<SettingsProps['onSaveScoreLabelMapping']>(() => Promise.resolve(undefined));
+      renderSettings({ onSaveScoreLabelMapping });
+
+      const user = userEvent.setup();
+      await user.type(getLevelField('Value', 'Questionable'), ', Urgency:Low');
+      await user.click(within(getSection('Score labels')).getByRole('button', { name: 'Save' }));
+
+      expect(onSaveScoreLabelMapping).not.toHaveBeenCalled();
+      expect(within(getSection('Score labels')).getByRole('alert')).toHaveTextContent(
+        '"urgency:low" is under urgency low and value questionable. Keep it under one level.',
+      );
+    });
+
+    it('restores the default mapping', async () => {
+      const onSaveScoreLabelMapping = vi.fn<SettingsProps['onSaveScoreLabelMapping']>(() => Promise.resolve(undefined));
+      renderSettings({
+        scoreLabelMapping: {
+          ...DEFAULT_SCORE_LABEL_MAPPING,
+          urgency: { ...DEFAULT_SCORE_LABEL_MAPPING.urgency, high: ['priority:high'] },
+        },
+        onSaveScoreLabelMapping,
+      });
+      expect(getLevelField('Urgency', 'High')).toHaveValue('priority:high');
+
+      await userEvent
+        .setup()
+        .click(within(getSection('Score labels')).getByRole('button', { name: 'Restore defaults' }));
+
+      expect(onSaveScoreLabelMapping).toHaveBeenCalledWith(undefined);
+      expect(getLevelField('Urgency', 'High')).toHaveValue('urgency:high');
     });
   });
 
@@ -129,6 +186,11 @@ function getField(section: string, label: string): HTMLElement {
   return within(getSection(section)).getByRole('textbox', { name: label });
 }
 
+function getLevelField(dimension: string, level: string): HTMLElement {
+  const group = within(getSection('Score labels')).getByRole('group', { name: dimension });
+  return within(group).getByRole('textbox', { name: level });
+}
+
 function getSection(name: string): HTMLElement {
   return screen.getByRole('form', { name });
 }
@@ -139,8 +201,10 @@ function renderSettings(overrides: Partial<SettingsProps> = {}): void {
       abbreviations={{}}
       chartHref="/"
       onSaveAbbreviations={() => Promise.resolve(undefined)}
+      onSaveScoreLabelMapping={() => Promise.resolve(undefined)}
       onSaveWorkTypeMapping={() => Promise.resolve(undefined)}
       repos={REPOS}
+      scoreLabelMapping={undefined}
       workTypeMapping={undefined}
       {...overrides}
     />,

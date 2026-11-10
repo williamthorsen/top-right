@@ -2,6 +2,7 @@
 // eslint-disable-next-line testing-library/no-manual-cleanup -- Vitest runs without globals, so Testing Library cannot register its own cleanup.
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
+import { DEFAULT_SCORE_LABEL_MAPPING } from '@top-right/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { SettingsResponse } from '#src/shared/settings.ts';
@@ -14,6 +15,7 @@ const SETTINGS: SettingsResponse = {
   repos: ['w/codeassembly', 'w/top-right'],
   abbreviations: { 'w/codeassembly': 'ca' },
   workTypeMapping: null,
+  scoreLabelMapping: null,
 };
 
 afterEach(() => {
@@ -78,14 +80,33 @@ describe(SettingsPage, () => {
       Promise.resolve(Response.json(path === '/api/work-type-mapping' ? { mapping: null } : SETTINGS)),
     );
     render(<SettingsPage />);
+    const section = await screen.findByRole('form', { name: 'Work types' });
 
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Restore defaults' }));
+    await userEvent.setup().click(within(section).getByRole('button', { name: 'Restore defaults' }));
 
     expect(fetch).toHaveBeenCalledWith(
       '/api/work-type-mapping',
       expect.objectContaining({ body: JSON.stringify({ mapping: null }) }),
     );
-    expect(await screen.findByRole('status')).toHaveTextContent('Saved.');
+    expect(await within(section).findByRole('status')).toHaveTextContent('Saved.');
+  });
+
+  it('saves the score-label mapping through its own route', async () => {
+    const fetch = stubFetch((path) =>
+      Promise.resolve(
+        Response.json(path === '/api/score-label-mapping' ? { mapping: DEFAULT_SCORE_LABEL_MAPPING } : SETTINGS),
+      ),
+    );
+    render(<SettingsPage />);
+    const section = await screen.findByRole('form', { name: 'Score labels' });
+
+    await userEvent.setup().click(within(section).getByRole('button', { name: 'Save' }));
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/score-label-mapping',
+      expect.objectContaining({ body: JSON.stringify({ mapping: DEFAULT_SCORE_LABEL_MAPPING }) }),
+    );
+    expect(await within(section).findByRole('status')).toHaveTextContent('Saved.');
   });
 });
 

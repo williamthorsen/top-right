@@ -1,8 +1,7 @@
 import {
-  applyScoreWrite,
   isAgentScored,
-  type ItemScores,
   listReviewQueue,
+  type ResolvedItemScores,
   type ReviewQueueKind,
   type Scores,
   type WorkItem,
@@ -20,7 +19,7 @@ import {
 
 export interface ReviewOptions {
   items: readonly WorkItem[];
-  scores: Readonly<Record<string, ItemScores>>;
+  scores: Readonly<Record<string, ResolvedItemScores>>;
   selectedKey: string | undefined;
   /** Selects in place of the current history entry. */
   setSelectedKey: Dispatch<SetStateAction<string | undefined>>;
@@ -120,8 +119,10 @@ export function useReview({
     setSelectedKey(itemKey);
     onScoresChange?.(itemKey, changed);
     if (kind !== 'unscored' || itemKey !== selectedKey || !queueKeys.has(itemKey)) return;
-    const after = applyScoreWrite(scores[itemKey], changed, 'author', '');
-    if (after.urgency === undefined || after.value === undefined) return;
+    const isPlaced =
+      (changed.urgency ?? scores[itemKey]?.urgency) !== undefined &&
+      (changed.value ?? scores[itemKey]?.value) !== undefined;
+    if (!isPlaced) return;
     const next = findNext(itemKey, true);
     clearTimeout(pendingAdvance.current);
     pendingAdvance.current = setTimeout(() => {

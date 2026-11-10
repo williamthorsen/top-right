@@ -1,7 +1,7 @@
 import { URGENCY_LEVELS, VALUE_LEVELS } from '@top-right/model';
 import { z } from 'zod';
 
-import { abbreviationClashSchema, workTypeMappingSchema } from './settings.ts';
+import { abbreviationClashSchema, scoreLabelMappingSchema, workTypeMappingSchema } from './settings.ts';
 
 const itemRefSchema = z.object({
   repo: z.string(),
@@ -42,7 +42,9 @@ export const itemsResponseSchema = z.object({
   abbreviationClashes: z.array(abbreviationClashSchema),
   /** The user's work-type mapping, or the default. */
   workTypeMapping: workTypeMappingSchema,
-  /** The user's scores by item key. */
+  /** The user's score-label mapping, or the default. */
+  scoreLabelMapping: scoreLabelMappingSchema,
+  /** The user's stored scores by item key, without the scores that labels supply. */
   scores: z.record(z.string(), itemScoresSchema),
   /** The user's status overrides that still apply, by item key. */
   overrides: z.record(z.string(), statusOverrideSchema),

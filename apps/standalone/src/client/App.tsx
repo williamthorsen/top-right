@@ -144,6 +144,7 @@ export function App(): ReactElement {
           if (item) changeStatus(itemKey, status, item.state);
         }}
         overrides={overrides}
+        scoreLabelMapping={data.scoreLabelMapping}
         scores={scores}
         selectedKey={selectedKey}
         settingsHref={buildSettingsHref(selectedKey)}

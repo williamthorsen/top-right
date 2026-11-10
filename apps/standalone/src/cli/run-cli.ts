@@ -1,7 +1,7 @@
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
 
 import { GitHubAdapterError } from '@top-right/adapter-github';
-import { formatItemKey, type WorkItem } from '@top-right/model';
+import { DEFAULT_SCORE_LABEL_MAPPING, formatItemKey, type WorkItem } from '@top-right/model';
 import type { Store } from '@top-right/store';
 
 import { StartupError } from '#src/server/startup-error.ts';
@@ -74,6 +74,7 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
 const USAGE_ERROR = 2;
 
 const LIST_ITEMS_HELP = `Print the open issues of the configured repositories with the user's current scores.
+A score that a label supplies, where none is stored, is marked "(label)" in the text and by: "label" in the JSON.
 
 Usage: top-right list-items [--json]
 
@@ -191,8 +192,8 @@ async function runListItems(args: readonly string[], io: CliIo): Promise<number>
   if (positionals.length > 0) throw new UsageError(`takes no arguments, got ${positionals.join(' ')}`);
   await withContext(io, async (context) => {
     const items = await loadOpenItems(context);
-    const { scores } = await context.store.readUserState(context.userId);
-    const listed = listItems(items, scores);
+    const { scores, scoreLabelMapping } = await context.store.readUserState(context.userId);
+    const listed = listItems(items, scores, scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING);
     io.stdout(values.json ? `${JSON.stringify({ items: listed }, undefined, 2)}\n` : renderItemsText(listed));
   });
   return 0;

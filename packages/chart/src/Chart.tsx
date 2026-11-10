@@ -1,12 +1,16 @@
 import {
   buildRelationGraph,
+  DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
   findNextPick,
   formatItemKey,
   type ItemFilter,
   type ItemScores,
   listBlockedKeys,
+  type ResolvedItemScores,
+  resolveItemScores,
   revealItem,
+  type ScoreLabelMapping,
   type Scores,
   type StatusOverride,
   type WorkItem,
@@ -45,9 +49,11 @@ export interface ChartProps {
   /** Repository abbreviations keyed by `owner/name`; a repository without one takes its first letter. */
   abbreviations: Abbreviations;
   workTypeMapping?: WorkTypeMapping;
+  /** The labels that supply urgency and value where an item has no stored score for them. */
+  scoreLabelMapping?: ScoreLabelMapping;
   /** Where the host's Settings page is; without it, the chart does not link to Settings. */
   settingsHref?: string | undefined;
-  /** The user's scores by item key; an item without an entry is unscored. */
+  /** The user's stored scores by item key; an item without an entry is unscored unless its labels supply a score. */
   scores?: Readonly<Record<string, ItemScores>>;
   /** The user's status overrides by item key. */
   overrides?: Readonly<Record<string, StatusOverride>>;
@@ -86,8 +92,9 @@ export function Chart({
   items,
   abbreviations,
   workTypeMapping = DEFAULT_WORK_TYPE_MAPPING,
+  scoreLabelMapping = DEFAULT_SCORE_LABEL_MAPPING,
   settingsHref,
-  scores = NO_SCORES,
+  scores: storedScores = NO_SCORES,
   overrides = NO_OVERRIDES,
   onScoresChange,
   onStatusChange,
@@ -103,6 +110,10 @@ export function Chart({
   const [highlightOwner, setHighlightOwner] = useState<string>();
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
+  const scores = useMemo(
+    () => resolveScores(items, storedScores, scoreLabelMapping),
+    [items, storedScores, scoreLabelMapping],
+  );
   const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
   const graph = useMemo(() => buildRelationGraph(items), [items]);
   const { filter, setFilter, visibleItems, visibleKeys, statusCounts, labelOf } = useItemFilter(
@@ -327,3 +338,19 @@ export function Chart({
     </div>
   );
 }
+
+// region | Helpers
+/** Returns each item's stored scores with the scores that its labels supply, by item key. */
+function resolveScores(
+  items: readonly WorkItem[],
+  scores: Readonly<Record<string, ItemScores>>,
+  mapping: ScoreLabelMapping,
+): Record<string, ResolvedItemScores> {
+  const resolved: Record<string, ResolvedItemScores> = {};
+  for (const item of items) {
+    const key = formatItemKey(item);
+    resolved[key] = resolveItemScores(scores[key], item.labels, mapping);
+  }
+  return resolved;
+}
+// endregion | Helpers

@@ -1,17 +1,17 @@
 import { isBlocked } from './relations.ts';
-import { computeRemainingScope, type ItemScores, rankLevel } from './scores.ts';
+import { computeRemainingScope, rankLevel, type ResolvedItemScores } from './scores.ts';
 import { deriveStatus, type StatusOverride } from './status.ts';
 import { formatItemKey, type WorkItem } from './work-item.ts';
 
 /**
  * Returns the key of the next pick: among the open items that both axes place and that no open item blocks, the
  * highest rank of urgency plus value, then value, then in progress before to do, then the least remaining scope, then
- * the oldest. An agent's score places an item as the author's does. An item without effort sorts after every item with
- * one, because an unknown scope is not assumed to be small. The key breaks any tie that remains.
+ * the oldest. An agent's score or a label's places an item as the author's does. An item without effort sorts after
+ * every item with one, because an unknown scope is not assumed to be small. The key breaks any tie that remains.
  */
 export function findNextPick(
   items: readonly WorkItem[],
-  scores: Readonly<Record<string, ItemScores>>,
+  scores: Readonly<Record<string, ResolvedItemScores>>,
   overrides: Readonly<Record<string, StatusOverride>>,
 ): string | undefined {
   const candidates: Candidate[] = [];

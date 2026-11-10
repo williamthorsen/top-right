@@ -2,7 +2,7 @@ import {
   classifyWorkType,
   deriveStatus,
   isAgentScored,
-  type ItemScores,
+  type ResolvedItemScores,
   type StatusOverride,
   type WorkItem,
   type WorkTypeMapping,
@@ -17,7 +17,7 @@ import type { DragHandlers } from './useItemDrag.ts';
 export interface ScoredCellsProps {
   cells: readonly CellLayout[];
   itemsByKey: ReadonlyMap<string, WorkItem>;
-  scores: Readonly<Record<string, ItemScores>>;
+  scores: Readonly<Record<string, ResolvedItemScores>>;
   overrides: Readonly<Record<string, StatusOverride>>;
   scopeMode: ScopeMode;
   workTypeMapping: WorkTypeMapping;

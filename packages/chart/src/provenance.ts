@@ -1,8 +1,12 @@
-import type { ScoreEntry } from '@top-right/model';
+import type { LabelScoreEntry, ScoreEntry } from '@top-right/model';
 
-/** Returns a score's provenance line, such as `Author · 8 Nov`, adding the year when it is not `now`'s. */
-export function formatProvenance(entry: ScoreEntry | undefined, now: Date = new Date()): string {
+/**
+ * Returns a score's provenance line: who set it and when, such as `Author · 8 Nov`, adding the year when it is not
+ * `now`'s, or the label that supplies it, such as `Label · value:must-have`.
+ */
+export function formatProvenance(entry: LabelScoreEntry | ScoreEntry | undefined, now: Date = new Date()): string {
   if (!entry) return 'Unscored';
+  if (entry.by === 'label') return `Label · ${entry.label}`;
   const at = new Date(entry.at);
   const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
   if (at.getFullYear() !== now.getFullYear()) options.year = 'numeric';

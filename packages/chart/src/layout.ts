@@ -2,8 +2,8 @@ import {
   type Cell,
   computeRemainingScope,
   formatItemKey,
-  type ItemScores,
   rankLevel,
+  type ResolvedItemScores,
   URGENCY_LEVELS,
   VALUE_LEVELS,
   type WorkItem,
@@ -94,7 +94,7 @@ export function findCellLevels(u: number, v: number): Cell | undefined {
 }
 
 /** Returns the cell of an item's scores: each axis its level's rank, or 0 when unscored. */
-export function findItemCell(scores: ItemScores | undefined): { u: number; v: number } {
+export function findItemCell(scores: ResolvedItemScores | undefined): { u: number; v: number } {
   const urgency = scores?.urgency?.score;
   const value = scores?.value?.score;
   return { u: urgency === undefined ? 0 : rankLevel(urgency), v: value === undefined ? 0 : rankLevel(value) };
@@ -170,7 +170,7 @@ export function placeGhosts(cells: readonly CellLayout[], placements: readonly P
 /** Returns each item's placement: its cell from its scores, each axis 0 when unscored, and its size in `mode`. */
 export function placeItems(
   items: readonly WorkItem[],
-  scores: Readonly<Record<string, ItemScores>>,
+  scores: Readonly<Record<string, ResolvedItemScores>>,
   mode: ScopeMode,
 ): Placement[] {
   return items.map((item) => {
@@ -188,7 +188,7 @@ export function sizeCircle(points: number | undefined): CircleSize {
 }
 
 /** Returns the radius of an item's circle for the scope that `mode` shows, on the one area scale of `sizeCircle`. */
-export function sizeItem(scores: ItemScores | undefined, mode: ScopeMode): CircleSize {
+export function sizeItem(scores: ResolvedItemScores | undefined, mode: ScopeMode): CircleSize {
   return sizeCircle(mode === 'remaining' ? computeRemainingScope(scores) : scores?.effort?.score);
 }
 

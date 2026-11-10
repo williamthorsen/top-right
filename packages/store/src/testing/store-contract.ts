@@ -1,4 +1,4 @@
-import type { StatusOverride, WorkTypeMapping } from '@top-right/model';
+import type { ScoreLabelMapping, StatusOverride, WorkTypeMapping } from '@top-right/model';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { Store } from '#src/store.ts';
@@ -36,6 +36,7 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
         overrides: {},
         lastVisitAt: undefined,
         workTypeMapping: undefined,
+        scoreLabelMapping: undefined,
         abbreviations: {},
       });
     });
@@ -154,6 +155,29 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
       await opened.store.writeWorkTypeMapping(USER, empty);
 
       expect((await opened.store.readUserState(USER)).workTypeMapping).toEqual(empty);
+    });
+
+    it('sets a score-label mapping per user and restores the default', async () => {
+      const mapping: ScoreLabelMapping = {
+        urgency: { critical: ['p0'], high: ['priority:high'], low: [], medium: [] },
+        value: { 'must-have': ['value:must-have'], 'nice-to-have': [], questionable: [], 'should-have': [] },
+      };
+      await opened.store.writeScoreLabelMapping(USER, mapping);
+      expect((await opened.store.readUserState(USER)).scoreLabelMapping).toEqual(mapping);
+      expect((await opened.store.readUserState(OTHER_USER)).scoreLabelMapping).toBeUndefined();
+
+      await opened.store.writeScoreLabelMapping(USER, undefined);
+      expect((await opened.store.readUserState(USER)).scoreLabelMapping).toBeUndefined();
+    });
+
+    it('tells a saved score-label mapping whose levels are all empty from no saved mapping', async () => {
+      const empty: ScoreLabelMapping = {
+        urgency: { critical: [], high: [], low: [], medium: [] },
+        value: { 'must-have': [], 'nice-to-have': [], questionable: [], 'should-have': [] },
+      };
+      await opened.store.writeScoreLabelMapping(USER, empty);
+
+      expect((await opened.store.readUserState(USER)).scoreLabelMapping).toEqual(empty);
     });
 
     it('replaces the abbreviations per user', async () => {

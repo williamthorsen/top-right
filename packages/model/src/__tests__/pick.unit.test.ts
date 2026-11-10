@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { findNextPick } from '../pick.ts';
-import type { ItemScores, Scorer, Scores } from '../scores.ts';
+import type { ItemScores, ResolvedItemScores, Scorer, Scores } from '../scores.ts';
 import type { StatusOverride } from '../status.ts';
 import type { WorkItem } from '../work-item.ts';
 
@@ -64,6 +64,19 @@ describe(findNextPick, () => {
     const scores = {
       'o/r#1': score({ urgency: 'high', value: 'should-have' }),
       'o/r#2': score({ urgency: 'high', value: 'should-have' }),
+    };
+
+    expect(findNextPick(items, scores, {})).toBe('o/r#2');
+  });
+
+  it('places an item by a label score as by a stored one', () => {
+    const items = [buildItem(1), buildItem(2)];
+    const scores = {
+      'o/r#1': score({ urgency: 'medium', value: 'should-have' }),
+      'o/r#2': {
+        urgency: { score: 'critical', by: 'label', label: 'urgency:critical' },
+        value: { score: 'must-have', by: 'label', label: 'value:must-have' },
+      } satisfies ResolvedItemScores,
     };
 
     expect(findNextPick(items, scores, {})).toBe('o/r#2');

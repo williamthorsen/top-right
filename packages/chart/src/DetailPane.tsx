@@ -3,9 +3,9 @@ import {
   findTrailOrigin,
   formatItemKey,
   isAgentScored,
-  type ItemScores,
   type Relation,
   type RelationKind,
+  type ResolvedItemScores,
   type Scores,
   type StatusOverride,
   WORK_TYPE_NAMES,
@@ -29,7 +29,7 @@ export interface DetailPaneProps {
   workTypeMapping: WorkTypeMapping;
   /** The keys of the open items that an open item blocks, for tagging relation rows. */
   blockedKeys: ReadonlySet<string>;
-  scores: ItemScores | undefined;
+  scores: ResolvedItemScores | undefined;
   override: StatusOverride | undefined;
   /** Whether a review queue is running, in which Enter keeps the selected item. */
   isReviewing: boolean;
@@ -146,7 +146,7 @@ function AgentReview({
   isReviewing,
   onKeep,
 }: {
-  scores: ItemScores | undefined;
+  scores: ResolvedItemScores | undefined;
   isReviewing: boolean;
   onKeep: () => void;
 }) {

@@ -2,8 +2,8 @@ import {
   deriveStatus,
   EFFORT_SCALE,
   type ItemRef,
-  type ItemScores,
   PROGRESS_STEP,
+  type ResolvedItemScores,
   type Scores,
   type StatusOverride,
   URGENCY_LEVELS,
@@ -21,7 +21,7 @@ export type SettableStatus = 'in-progress' | 'to-do';
 
 export interface PaneScoresProps {
   item: Pick<ItemRef, 'state'>;
-  scores: ItemScores | undefined;
+  scores: ResolvedItemScores | undefined;
   override: StatusOverride | undefined;
   onScoresChange: (scores: Scores) => void;
   onStatusChange: (status: SettableStatus) => void;

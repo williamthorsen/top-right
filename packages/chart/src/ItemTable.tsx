@@ -3,7 +3,7 @@ import {
   deriveStatus,
   formatItemKey,
   type ItemRef,
-  type ItemScores,
+  type ResolvedItemScores,
   type StatusCategory,
   type StatusOverride,
   type UrgencyLevel,
@@ -24,7 +24,7 @@ import { STATUS_NAMES } from './status-names.ts';
 
 export interface ItemTableProps {
   items: readonly WorkItem[];
-  scores: Readonly<Record<string, ItemScores>>;
+  scores: Readonly<Record<string, ResolvedItemScores>>;
   overrides: Readonly<Record<string, StatusOverride>>;
   workTypeMapping: WorkTypeMapping;
   labelOf: (ref: Pick<ItemRef, 'number' | 'repo'>) => string;

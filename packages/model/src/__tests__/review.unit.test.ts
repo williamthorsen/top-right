@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { findTrailOrigin, isAgentScored, listReviewQueue } from '../review.ts';
-import type { ItemScores, ScoreEntry, UrgencyLevel, ValueLevel } from '../scores.ts';
+import type {
+  ItemScores,
+  LabelScoreEntry,
+  ResolvedItemScores,
+  ScoreEntry,
+  UrgencyLevel,
+  ValueLevel,
+} from '../scores.ts';
 
 const AT = '2026-11-02T09:00:00.000Z';
 
@@ -72,6 +79,16 @@ describe(listReviewQueue, () => {
   it('lists the open items that lack urgency or value', () => {
     expect(listReviewQueue('unscored', items, scores)).toEqual(['o/r#5']);
   });
+
+  it('counts a label score as placing the item, and never as the agent’s', () => {
+    const labelled: Record<string, ResolvedItemScores> = {
+      'o/r#1': { urgency: label('high'), value: label('must-have') },
+      'o/r#2': { urgency: label('high') },
+    };
+
+    expect(listReviewQueue('agent', items.slice(0, 2), labelled)).toEqual([]);
+    expect(listReviewQueue('unscored', items.slice(0, 2), labelled)).toEqual(['o/r#2']);
+  });
 });
 
 // region | Helpers
@@ -81,5 +98,9 @@ function agent<T extends number | UrgencyLevel | ValueLevel>(score: T, previous?
 
 function author<T extends number | UrgencyLevel | ValueLevel>(score: T): ScoreEntry<T> {
   return { score, by: 'author', at: AT };
+}
+
+function label<T extends UrgencyLevel | ValueLevel>(score: T): LabelScoreEntry<T> {
+  return { score, by: 'label', label: score };
 }
 // endregion | Helpers
