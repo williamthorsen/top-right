@@ -4,8 +4,8 @@ import { FilterBar, type FilterBarProps } from './FilterBar.tsx';
 import type { ScopeMode } from './layout.ts';
 import { MoreMenu } from './MoreMenu.tsx';
 import { ReviewStrip } from './ReviewStrip.tsx';
+import { SegmentedControl, type SegmentOption } from './SegmentedControl.tsx';
 import { Switch } from './Switch.tsx';
-import { Toggle } from './Toggle.tsx';
 import type { ChainView } from './useChainView.ts';
 import type { Review } from './useReview.ts';
 
@@ -21,8 +21,14 @@ export interface ChartStripProps {
   settingsHref: string | undefined;
 }
 
+/** The scope modes that the strip offers, in display order. */
+const SCOPE_OPTIONS: ReadonlyArray<SegmentOption<ScopeMode>> = [
+  { value: 'original', label: 'Original' },
+  { value: 'remaining', label: 'Remaining' },
+];
+
 /**
- * The strip above the chart: the filter, the review controls, the view toggles and the More menu, the shown chain's
+ * The strip above the chart: the filter, the review controls, the view controls and the More menu, the shown chain's
  * status, and the link to Settings.
  */
 export function ChartStrip({
@@ -49,12 +55,12 @@ export function ChartStrip({
         <Switch isChecked={showAllEdges} onChange={onShowAllEdgesChange}>
           All edges
         </Switch>
-        <Toggle
-          isPressed={scopeMode === 'remaining'}
-          onToggle={() => onScopeModeChange(scopeMode === 'remaining' ? 'original' : 'remaining')}
-        >
-          Remaining scope
-        </Toggle>
+        <span className="tr-scope">
+          <span aria-hidden="true" className="tr-scope-label">
+            Scope
+          </span>
+          <SegmentedControl label="Scope" onChange={onScopeModeChange} options={SCOPE_OPTIONS} value={scopeMode} />
+        </span>
         <MoreMenu
           hasChain={chainView.chain.length > 0}
           isChainShown={chainView.isShown}

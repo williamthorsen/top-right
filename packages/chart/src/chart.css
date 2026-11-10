@@ -576,11 +576,28 @@
   outline-offset: 2px;
 }
 
-/* The view toggles stay together when the strip wraps. */
+/* The view controls stay together when the strip wraps. */
 .tr-view-toggles {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px 8px;
+}
+
+/* The scope control keeps its label beside it, and its segments take the strip's target height. */
+.tr-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tr-scope-label {
+  color: var(--tr-ink-2);
+}
+
+.tr-root .tr-strip .tr-seg-option {
+  min-height: 32px;
+  padding: 0 10px;
 }
 
 .tr-review,
@@ -651,8 +668,7 @@
   }
 }
 
-/* A toggle or menu button outside a toolbar: bordered at rest; pressed or open shows an inverted fill. */
-.tr-toggle,
+/* A menu button outside a toolbar: bordered at rest; open shows an inverted fill. */
 .tr-menu-button {
   display: inline-flex;
   align-items: center;
@@ -667,19 +683,16 @@
   cursor: pointer;
 }
 
-.tr-toggle:hover,
 .tr-menu-button:hover {
   background: var(--tr-surface-2);
 }
 
-.tr-toggle[aria-pressed='true'],
 .tr-menu-button[aria-expanded='true'] {
   border-color: var(--tr-ink);
   background: var(--tr-ink);
   color: var(--tr-surface);
 }
 
-.tr-toggle[aria-pressed='true']:hover,
 .tr-menu-button[aria-expanded='true']:hover {
   border-color: var(--tr-ink-2);
   background: var(--tr-ink-2);
