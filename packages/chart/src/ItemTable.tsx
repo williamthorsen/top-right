@@ -177,8 +177,8 @@ export function ItemTable({
                   {STATUS_NAMES[status]}
                 </span>
               </td>
-              <td>{formatLevel(itemScores?.urgency?.score)}</td>
-              <td>{formatLevel(itemScores?.value?.score)}</td>
+              <td className="tr-table-level">{formatLevel(itemScores?.urgency?.score)}</td>
+              <td className="tr-table-level">{formatLevel(itemScores?.value?.score)}</td>
               <td className="tr-table-number">{formatScore(itemScores?.effort?.score)}</td>
               <td className="tr-table-number">
                 {itemScores?.progress === undefined ? '–' : `${Math.round(itemScores.progress.score * 100)} %`}
