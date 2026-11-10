@@ -217,6 +217,7 @@ function planFamily<T extends EffortPoints | UrgencyLevel | ValueLevel>(
   const remove = levels.filter((other) => other !== level).flatMap((other) => levelLabels[other]);
   return { kind: 'change', add: [label], remove };
 }
+
 /**
  * Returns the stored entry, or the label score when none is stored. An agent entry without a previous score takes the
  * label's level as its previous one.

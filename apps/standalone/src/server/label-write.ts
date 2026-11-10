@@ -12,15 +12,6 @@ import type { Store } from '@top-right/store';
 import { describeError } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
 
-/** Adds and removes an issue's labels at its source, and resolves to the issue's resulting labels. */
-export type LabelWriter = (
-  ref: Pick<ItemRef, 'number' | 'repo'>,
-  change: { add: readonly string[]; remove: readonly string[] },
-) => Promise<string[]>;
-
-/** The scores that live in an item's labels where the host writes them. */
-export const LABELLED_FIELDS: readonly ScoreField[] = ['urgency', 'value', 'effort'];
-
 /** What a host needs to answer an author's write. */
 export interface AuthorWriteContext {
   items: ItemsCache;
@@ -28,6 +19,12 @@ export interface AuthorWriteContext {
   store: Store;
   userId: string;
 }
+
+/** Adds and removes an issue's labels at its source, and resolves to the issue's resulting labels. */
+export type LabelWriter = (
+  ref: Pick<ItemRef, 'number' | 'repo'>,
+  change: { add: readonly string[]; remove: readonly string[] },
+) => Promise<string[]>;
 
 /**
  * Writes an author's change and returns the HTTP answer. Where the host writes labels, the urgency, value, and effort
@@ -58,6 +55,9 @@ export async function writeAuthorChange(
 }
 
 // region | Helpers
+/** The scores that live in an item's labels where the host writes them. */
+const LABELLED_FIELDS: readonly ScoreField[] = ['urgency', 'value', 'effort'];
+
 /** The outcome of writing an item's levels to its labels. */
 type LabelWriteResult =
   { kind: 'none' } | { kind: 'refused'; status: 400 | 502; error: string } | { kind: 'written'; labels: string[] };

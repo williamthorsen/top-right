@@ -10,8 +10,8 @@ export function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export /** Reads and validates a JSON request body, or answers 400 and resolves to `undefined`. */
-async function readRequest<T>(
+/** Reads and validates a JSON request body, or answers 400 and resolves to `undefined`. */
+export async function readRequest<T>(
   request: IncomingMessage,
   response: ServerResponse,
   schema: z.ZodType<T>,
