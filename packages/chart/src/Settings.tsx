@@ -7,6 +7,7 @@ import {
   describeDuplicateScoreLabel,
   describeInvalidAbbreviation,
   EFFORT_SCALE,
+  type EffortPoints,
   findAbbreviationClashes,
   findDuplicateLabels,
   findDuplicateScoreLabels,
@@ -18,7 +19,9 @@ import {
   resolveAbbreviations,
   type ScoreLabelMapping,
   URGENCY_LEVELS,
+  type UrgencyLevel,
   VALUE_LEVELS,
+  type ValueLevel,
   WORK_TYPE_NAMES,
   type WorkTypeMapping,
 } from '@top-right/model';
@@ -174,9 +177,9 @@ function parseLabels(text: string): string[] {
 }
 
 /** Returns the mapping that the score-label form's fields state, before normalization. */
-function parseScoreLabelTexts(texts: Readonly<Record<string, string>>): ScoreLabelMapping {
-  function read(key: string): string[] {
-    return parseLabels(texts[key] ?? '');
+function parseScoreLabelTexts(texts: Readonly<Record<ScoreLabelKey, string>>): ScoreLabelMapping {
+  function read(key: ScoreLabelKey): string[] {
+    return parseLabels(texts[key]);
   }
   return {
     urgency: {
@@ -203,20 +206,37 @@ function parseScoreLabelTexts(texts: Readonly<Record<string, string>>): ScoreLab
 }
 
 /** The score-label form's fields by dimension, each keyed `<dimension>:<entry>` and in descending rank. */
-const SCORE_LABEL_GROUPS: ReadonlyArray<{ legend: string; fields: ReadonlyArray<{ key: string; name: string }> }> = [
+const SCORE_LABEL_GROUPS: ReadonlyArray<{ legend: string; fields: readonly ScoreLabelField[] }> = [
   {
     legend: 'Urgency',
-    fields: URGENCY_LEVELS.toReversed().map((level) => ({ key: `urgency:${level}`, name: LEVEL_NAMES[level] })),
+    fields: URGENCY_LEVELS.toReversed().map((level): ScoreLabelField => ({
+      key: `urgency:${level}`,
+      name: LEVEL_NAMES[level],
+    })),
   },
   {
     legend: 'Value',
-    fields: VALUE_LEVELS.toReversed().map((level) => ({ key: `value:${level}`, name: LEVEL_NAMES[level] })),
+    fields: VALUE_LEVELS.toReversed().map((level): ScoreLabelField => ({
+      key: `value:${level}`,
+      name: LEVEL_NAMES[level],
+    })),
   },
   {
     legend: 'Effort',
-    fields: EFFORT_SCALE.toReversed().map((points) => ({ key: `effort:${points}`, name: formatPoints(points) })),
+    fields: EFFORT_SCALE.toReversed().map((points): ScoreLabelField => ({
+      key: `effort:${points}`,
+      name: formatPoints(points),
+    })),
   },
 ];
+
+interface ScoreLabelField {
+  key: ScoreLabelKey;
+  name: string;
+}
+
+/** A field of the score-label form, named `<dimension>:<entry>`. */
+type ScoreLabelKey = `effort:${EffortPoints}` | `urgency:${UrgencyLevel}` | `value:${ValueLevel}`;
 
 /** The labels that supply each urgency level, value level, and effort, refused while one label is under two entries. */
 function ScoreLabelMappingForm({
@@ -271,7 +291,7 @@ function ScoreLabelMappingForm({
                 aria-describedby={hintId}
                 className="tr-input"
                 onChange={(event) => setTexts((current) => ({ ...current, [key]: event.target.value }))}
-                value={texts[key] ?? ''}
+                value={texts[key]}
               />
             </label>
           ))}
@@ -291,13 +311,23 @@ function ScoreLabelMappingForm({
 }
 
 /** Returns each entry's labels as the comma-separated text of its field, keyed `<dimension>:<entry>`. */
-function toScoreLabelTexts(mapping: ScoreLabelMapping): Record<string, string> {
-  const entries: Array<[string, string]> = [
-    ...URGENCY_LEVELS.map((level): [string, string] => [`urgency:${level}`, mapping.urgency[level].join(', ')]),
-    ...VALUE_LEVELS.map((level): [string, string] => [`value:${level}`, mapping.value[level].join(', ')]),
-    ...EFFORT_SCALE.map((points): [string, string] => [`effort:${points}`, mapping.effort[points].join(', ')]),
-  ];
-  return Object.fromEntries(entries);
+function toScoreLabelTexts({ urgency, value, effort }: ScoreLabelMapping): Record<ScoreLabelKey, string> {
+  return {
+    'urgency:critical': urgency.critical.join(', '),
+    'urgency:high': urgency.high.join(', '),
+    'urgency:low': urgency.low.join(', '),
+    'urgency:medium': urgency.medium.join(', '),
+    'value:must-have': value['must-have'].join(', '),
+    'value:nice-to-have': value['nice-to-have'].join(', '),
+    'value:questionable': value.questionable.join(', '),
+    'value:should-have': value['should-have'].join(', '),
+    'effort:1': effort[1].join(', '),
+    'effort:2': effort[2].join(', '),
+    'effort:3': effort[3].join(', '),
+    'effort:5': effort[5].join(', '),
+    'effort:8': effort[8].join(', '),
+    'effort:13': effort[13].join(', '),
+  };
 }
 
 /** Returns each work type's labels as the comma-separated text of its field. */
