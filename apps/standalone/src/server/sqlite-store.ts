@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 
 import {
   applyScoreWrite,
+  DEFAULT_SCORE_LABEL_MAPPING,
   isValidScore,
   type ItemScores,
   keepItemScores,
@@ -125,15 +126,21 @@ const workTypeMappingSchema = z.object({
   task: labelsSchema,
 });
 
-const scoreLabelMappingSchema = z.object({
-  urgency: z.object({ critical: labelsSchema, high: labelsSchema, low: labelsSchema, medium: labelsSchema }),
-  value: z.object({
-    'must-have': labelsSchema,
-    'nice-to-have': labelsSchema,
-    questionable: labelsSchema,
-    'should-have': labelsSchema,
-  }),
-});
+/** A stored score-label mapping; one without effort entries reads with the default effort labels. */
+const scoreLabelMappingSchema = z
+  .object({
+    urgency: z.object({ critical: labelsSchema, high: labelsSchema, low: labelsSchema, medium: labelsSchema }),
+    value: z.object({
+      'must-have': labelsSchema,
+      'nice-to-have': labelsSchema,
+      questionable: labelsSchema,
+      'should-have': labelsSchema,
+    }),
+    effort: z
+      .object({ 1: labelsSchema, 2: labelsSchema, 3: labelsSchema, 5: labelsSchema, 8: labelsSchema, 13: labelsSchema })
+      .optional(),
+  })
+  .transform(({ effort, ...mapping }) => ({ ...mapping, effort: effort ?? DEFAULT_SCORE_LABEL_MAPPING.effort }));
 
 const abbreviationsSchema = z.record(z.string(), z.string());
 

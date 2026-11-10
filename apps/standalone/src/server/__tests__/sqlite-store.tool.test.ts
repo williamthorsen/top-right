@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
+import { DEFAULT_SCORE_LABEL_MAPPING } from '@top-right/model';
 import { describeStoreContract } from '@top-right/store/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -95,6 +96,25 @@ describe('SqliteStore on a file', () => {
         .prepare('INSERT INTO scores (user_id, item_key, field, score, scored_by, scored_at) VALUES (?, ?, ?, ?, ?, ?)')
         .run('github:author', 'owner/repo#1', field, score, 'author', at),
     ).toThrow(/CHECK constraint failed/);
+  });
+
+  it('reads a score-label mapping saved without effort with the default effort labels', async () => {
+    const store = openSqliteStore(file);
+    await store.writeScoreLabelMapping('github:author', {
+      ...DEFAULT_SCORE_LABEL_MAPPING,
+      urgency: { ...DEFAULT_SCORE_LABEL_MAPPING.urgency, high: ['priority:high'] },
+    });
+    store.close();
+    {
+      using db = new DatabaseSync(file);
+      db.prepare("UPDATE settings SET value = json_remove(value, '$.effort') WHERE name = 'score-label-mapping'").run();
+    }
+
+    const reopened = openSqliteStore(file);
+    const { scoreLabelMapping } = await reopened.readUserState('github:author');
+    reopened.close();
+    expect(scoreLabelMapping?.urgency.high).toEqual(['priority:high']);
+    expect(scoreLabelMapping?.effort).toEqual(DEFAULT_SCORE_LABEL_MAPPING.effort);
   });
 
   it('ignores a stored setting that is not valid, with a warning', async () => {

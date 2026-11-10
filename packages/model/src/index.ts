@@ -34,6 +34,7 @@ export {
   applyScoreWrite,
   computeRemainingScope,
   EFFORT_SCALE,
+  type EffortPoints,
   isValidScore,
   type ItemScores,
   keepItemScores,

@@ -8,7 +8,7 @@ export interface UserState {
   lastVisitAt: string | undefined;
   /** The user's work-type mapping; undefined when the user keeps the default. */
   workTypeMapping: WorkTypeMapping | undefined;
-  /** The user's mapping from labels to urgency and value levels; undefined when the user keeps the default. */
+  /** The user's mapping from labels to urgency levels, value levels, and efforts; undefined for the default. */
   scoreLabelMapping: ScoreLabelMapping | undefined;
   /** The user's repository abbreviations, keyed by `owner/name`; a repository without one takes its default. */
   abbreviations: Record<string, string>;
@@ -26,7 +26,7 @@ export interface Store {
   /** Replaces the user's repository abbreviations with `abbreviations`. */
   writeAbbreviations(userId: string, abbreviations: Readonly<Record<string, string>>): Promise<void>;
   writeLastVisit(userId: string, at: string): Promise<void>;
-  /** Sets the user's label mapping for urgency and value, or restores the default when `mapping` is undefined. */
+  /** Sets the user's score-label mapping, or restores the default when `mapping` is undefined. */
   writeScoreLabelMapping(userId: string, mapping: ScoreLabelMapping | undefined): Promise<void>;
   /** Sets the user's work-type mapping, or restores the default when `mapping` is undefined. */
   writeWorkTypeMapping(userId: string, mapping: WorkTypeMapping | undefined): Promise<void>;

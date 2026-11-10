@@ -6,6 +6,8 @@ import {
   describeDuplicateLabel,
   describeDuplicateScoreLabel,
   describeInvalidAbbreviation,
+  EFFORT_SCALE,
+  type EffortPoints,
   findAbbreviationClashes,
   findDuplicateLabels,
   findDuplicateScoreLabels,
@@ -27,6 +29,7 @@ import { type ReactElement, type SubmitEvent, useId, useState } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
 import { LEVEL_NAMES } from './level-names.ts';
+import { formatPoints } from './provenance.ts';
 
 import './chart.css';
 
@@ -53,8 +56,8 @@ export interface SettingsProps {
 }
 
 /**
- * The Settings page: the labels that assign each work type, the labels that supply each urgency and value level, and
- * each repository's abbreviation.
+ * The Settings page: the labels that assign each work type, the labels that supply each urgency level, value level,
+ * and effort, and each repository's abbreviation.
  */
 export function Settings({
   repos,
@@ -173,7 +176,69 @@ function parseLabels(text: string): string[] {
   return text.split(',');
 }
 
-/** The labels that supply each urgency and value level, refused while one label is under two levels. */
+/** Returns the mapping that the score-label form's fields state, before normalization. */
+function parseScoreLabelTexts(texts: Readonly<Record<ScoreLabelKey, string>>): ScoreLabelMapping {
+  function read(key: ScoreLabelKey): string[] {
+    return parseLabels(texts[key]);
+  }
+  return {
+    urgency: {
+      critical: read('urgency:critical'),
+      high: read('urgency:high'),
+      low: read('urgency:low'),
+      medium: read('urgency:medium'),
+    },
+    value: {
+      'must-have': read('value:must-have'),
+      'nice-to-have': read('value:nice-to-have'),
+      questionable: read('value:questionable'),
+      'should-have': read('value:should-have'),
+    },
+    effort: {
+      1: read('effort:1'),
+      2: read('effort:2'),
+      3: read('effort:3'),
+      5: read('effort:5'),
+      8: read('effort:8'),
+      13: read('effort:13'),
+    },
+  };
+}
+
+/** The score-label form's fields by dimension, each keyed `<dimension>:<entry>` and in descending rank. */
+const SCORE_LABEL_GROUPS: ReadonlyArray<{ legend: string; fields: readonly ScoreLabelField[] }> = [
+  {
+    legend: 'Urgency',
+    fields: URGENCY_LEVELS.toReversed().map((level): ScoreLabelField => ({
+      key: `urgency:${level}`,
+      name: LEVEL_NAMES[level],
+    })),
+  },
+  {
+    legend: 'Value',
+    fields: VALUE_LEVELS.toReversed().map((level): ScoreLabelField => ({
+      key: `value:${level}`,
+      name: LEVEL_NAMES[level],
+    })),
+  },
+  {
+    legend: 'Effort',
+    fields: EFFORT_SCALE.toReversed().map((points): ScoreLabelField => ({
+      key: `effort:${points}`,
+      name: formatPoints(points),
+    })),
+  },
+];
+
+interface ScoreLabelField {
+  key: ScoreLabelKey;
+  name: string;
+}
+
+/** A field of the score-label form, named `<dimension>:<entry>`. */
+type ScoreLabelKey = `effort:${EffortPoints}` | `urgency:${UrgencyLevel}` | `value:${ValueLevel}`;
+
+/** The labels that supply each urgency level, value level, and effort, refused while one label is under two entries. */
 function ScoreLabelMappingForm({
   saved,
   onSave,
@@ -183,7 +248,7 @@ function ScoreLabelMappingForm({
 }) {
   const headingId = useId();
   const hintId = useId();
-  const [texts, setTexts] = useState(() => toLevelTexts(saved ?? DEFAULT_SCORE_LABEL_MAPPING));
+  const [texts, setTexts] = useState(() => toScoreLabelTexts(saved ?? DEFAULT_SCORE_LABEL_MAPPING));
   const [outcome, setOutcome] = useState<Outcome>();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -196,25 +261,12 @@ function ScoreLabelMappingForm({
       return;
     }
     setOutcome({ kind: 'saved' });
-    setTexts(toLevelTexts(mapping ?? DEFAULT_SCORE_LABEL_MAPPING));
+    setTexts(toScoreLabelTexts(mapping ?? DEFAULT_SCORE_LABEL_MAPPING));
   }
 
   async function save(event: SubmitEvent): Promise<void> {
     event.preventDefault();
-    const mapping = normalizeScoreLabelMapping({
-      urgency: {
-        critical: parseLabels(texts.critical),
-        high: parseLabels(texts.high),
-        low: parseLabels(texts.low),
-        medium: parseLabels(texts.medium),
-      },
-      value: {
-        'must-have': parseLabels(texts['must-have']),
-        'nice-to-have': parseLabels(texts['nice-to-have']),
-        questionable: parseLabels(texts.questionable),
-        'should-have': parseLabels(texts['should-have']),
-      },
-    });
+    const mapping = normalizeScoreLabelMapping(parseScoreLabelTexts(texts));
     const [duplicate] = findDuplicateScoreLabels(mapping);
     if (duplicate) {
       setOutcome({ kind: 'error', message: describeDuplicateScoreLabel(duplicate) });
@@ -223,33 +275,28 @@ function ScoreLabelMappingForm({
     await submit(mapping);
   }
 
-  function renderLevels(legend: string, levels: ReadonlyArray<UrgencyLevel | ValueLevel>) {
-    return (
-      <fieldset className="tr-settings-group">
-        <legend>{legend}</legend>
-        {levels.toReversed().map((level) => (
-          <label className="tr-settings-field" key={level}>
-            <span>{LEVEL_NAMES[level]}</span>
-            <input
-              aria-describedby={hintId}
-              className="tr-input"
-              onChange={(event) => setTexts((current) => ({ ...current, [level]: event.target.value }))}
-              value={texts[level]}
-            />
-          </label>
-        ))}
-      </fieldset>
-    );
-  }
-
   return (
     <form aria-labelledby={headingId} className="tr-settings-section" onSubmit={(event) => void save(event)}>
       <h2 id={headingId}>Score labels</h2>
       <p className="tr-settings-hint" id={hintId}>
         Comma-separated labels. Case is ignored.
       </p>
-      {renderLevels('Urgency', URGENCY_LEVELS)}
-      {renderLevels('Value', VALUE_LEVELS)}
+      {SCORE_LABEL_GROUPS.map(({ legend, fields }) => (
+        <fieldset className="tr-settings-group" key={legend}>
+          <legend>{legend}</legend>
+          {fields.map(({ key, name }) => (
+            <label className="tr-settings-field" key={key}>
+              <span>{name}</span>
+              <input
+                aria-describedby={hintId}
+                className="tr-input"
+                onChange={(event) => setTexts((current) => ({ ...current, [key]: event.target.value }))}
+                value={texts[key]}
+              />
+            </label>
+          ))}
+        </fieldset>
+      ))}
       <OutcomeMessage outcome={outcome} />
       <div className="tr-settings-actions">
         <button className="tr-button" disabled={isSaving} type="submit">
@@ -263,17 +310,23 @@ function ScoreLabelMappingForm({
   );
 }
 
-/** Returns each level's labels as the comma-separated text of its field. */
-function toLevelTexts(mapping: ScoreLabelMapping): Record<UrgencyLevel | ValueLevel, string> {
+/** Returns each entry's labels as the comma-separated text of its field, keyed `<dimension>:<entry>`. */
+function toScoreLabelTexts({ urgency, value, effort }: ScoreLabelMapping): Record<ScoreLabelKey, string> {
   return {
-    critical: mapping.urgency.critical.join(', '),
-    high: mapping.urgency.high.join(', '),
-    low: mapping.urgency.low.join(', '),
-    medium: mapping.urgency.medium.join(', '),
-    'must-have': mapping.value['must-have'].join(', '),
-    'nice-to-have': mapping.value['nice-to-have'].join(', '),
-    questionable: mapping.value.questionable.join(', '),
-    'should-have': mapping.value['should-have'].join(', '),
+    'urgency:critical': urgency.critical.join(', '),
+    'urgency:high': urgency.high.join(', '),
+    'urgency:low': urgency.low.join(', '),
+    'urgency:medium': urgency.medium.join(', '),
+    'value:must-have': value['must-have'].join(', '),
+    'value:nice-to-have': value['nice-to-have'].join(', '),
+    'value:questionable': value.questionable.join(', '),
+    'value:should-have': value['should-have'].join(', '),
+    'effort:1': effort[1].join(', '),
+    'effort:2': effort[2].join(', '),
+    'effort:3': effort[3].join(', '),
+    'effort:5': effort[5].join(', '),
+    'effort:8': effort[8].join(', '),
+    'effort:13': effort[13].join(', '),
   };
 }
 

@@ -21,6 +21,12 @@ describe(isAgentScored, () => {
     expect(isAgentScored({ urgency: author('high') })).toBe(false);
     expect(isAgentScored(undefined)).toBe(false);
   });
+
+  it('is false for an item whose effort comes from a label', () => {
+    expect(isAgentScored({ urgency: author('high'), effort: { score: 5, by: 'label', label: 'effort:5' } })).toBe(
+      false,
+    );
+  });
 });
 
 describe(findTrailOrigin, () => {

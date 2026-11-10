@@ -161,6 +161,7 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
       const mapping: ScoreLabelMapping = {
         urgency: { critical: ['p0'], high: ['priority:high'], low: [], medium: [] },
         value: { 'must-have': ['value:must-have'], 'nice-to-have': [], questionable: [], 'should-have': [] },
+        effort: { 1: ['xs'], 2: [], 3: ['effort:3'], 5: [], 8: [], 13: ['xl', 'epic'] },
       };
       await opened.store.writeScoreLabelMapping(USER, mapping);
       expect((await opened.store.readUserState(USER)).scoreLabelMapping).toEqual(mapping);
@@ -170,10 +171,11 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
       expect((await opened.store.readUserState(USER)).scoreLabelMapping).toBeUndefined();
     });
 
-    it('tells a saved score-label mapping whose levels are all empty from no saved mapping', async () => {
+    it('tells a saved score-label mapping whose entries are all empty from no saved mapping', async () => {
       const empty: ScoreLabelMapping = {
         urgency: { critical: [], high: [], low: [], medium: [] },
         value: { 'must-have': [], 'nice-to-have': [], questionable: [], 'should-have': [] },
+        effort: { 1: [], 2: [], 3: [], 5: [], 8: [], 13: [] },
       };
       await opened.store.writeScoreLabelMapping(USER, empty);
 

@@ -46,8 +46,23 @@ describe(resolveItemScores, () => {
     });
   });
 
+  it('takes the effort from its mapped label when none is stored, and the larger of two', () => {
+    expect(resolveItemScores(undefined, ['effort:5'], DEFAULT_SCORE_LABEL_MAPPING)).toEqual({
+      effort: { score: 5, by: 'label', label: 'effort:5' },
+    });
+    expect(resolveItemScores(undefined, ['effort:8', 'Effort:3'], DEFAULT_SCORE_LABEL_MAPPING)).toEqual({
+      effort: { score: 8, by: 'label', label: 'effort:8' },
+    });
+  });
+
+  it('keeps a stored effort over the label', () => {
+    const stored: ItemScores = { effort: { score: 2, by: 'author', at: AT } };
+
+    expect(resolveItemScores(stored, ['effort:13'], DEFAULT_SCORE_LABEL_MAPPING)).toEqual(stored);
+  });
+
   it('ignores an unmapped label', () => {
-    expect(resolveItemScores(undefined, ['priority:high', 'bug'], DEFAULT_SCORE_LABEL_MAPPING)).toEqual({});
+    expect(resolveItemScores(undefined, ['priority:high', 'bug', 'effort:4'], DEFAULT_SCORE_LABEL_MAPPING)).toEqual({});
   });
 
   it('reads labels through the mapping that it is given', () => {
@@ -87,6 +102,7 @@ describe(findDuplicateScoreLabels, () => {
 
   it('finds a label under one urgency and one value level', () => {
     const mapping: ScoreLabelMapping = {
+      ...emptyMapping(),
       urgency: { ...emptyMapping().urgency, critical: ['p0'] },
       value: { ...emptyMapping().value, 'must-have': ['p0'] },
     };
@@ -97,6 +113,24 @@ describe(findDuplicateScoreLabels, () => {
         levels: [
           { dimension: 'urgency', level: 'critical' },
           { dimension: 'value', level: 'must-have' },
+        ],
+      },
+    ]);
+  });
+
+  it('finds a label under an effort and a value level', () => {
+    const mapping: ScoreLabelMapping = {
+      ...emptyMapping(),
+      value: { ...emptyMapping().value, 'must-have': ['big'] },
+      effort: { ...emptyMapping().effort, 13: ['Big'] },
+    };
+
+    expect(findDuplicateScoreLabels(mapping)).toEqual([
+      {
+        label: 'big',
+        levels: [
+          { dimension: 'value', level: 'must-have' },
+          { dimension: 'effort', level: 13 },
         ],
       },
     ]);
@@ -122,9 +156,11 @@ describe(normalizeScoreLabelMapping, () => {
     const mapping: ScoreLabelMapping = {
       ...emptyMapping(),
       value: { ...emptyMapping().value, questionable: [' maybe ', '', '  '] },
+      effort: { ...emptyMapping().effort, 3: [' medium ', ''] },
     };
 
     expect(normalizeScoreLabelMapping(mapping).value.questionable).toEqual(['maybe']);
+    expect(normalizeScoreLabelMapping(mapping).effort[3]).toEqual(['medium']);
   });
 });
 
@@ -133,6 +169,7 @@ function emptyMapping(): ScoreLabelMapping {
   return {
     urgency: { critical: [], high: [], low: [], medium: [] },
     value: { 'must-have': [], 'nice-to-have': [], questionable: [], 'should-have': [] },
+    effort: { 1: [], 2: [], 3: [], 5: [], 8: [], 13: [] },
   };
 }
 // endregion | Helpers
