@@ -203,6 +203,14 @@
   touch-action: pan-x pan-y;
 }
 
+.tr-chart-scroll[data-pannable='true'] {
+  cursor: grab;
+}
+
+.tr-chart-scroll[data-panning='true'] {
+  cursor: grabbing;
+}
+
 .tr-chart-scroll:focus-visible {
   outline: 3px solid var(--tr-focus);
   outline-offset: -1px;

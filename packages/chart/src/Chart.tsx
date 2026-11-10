@@ -32,6 +32,7 @@ import { listTrails, Trail } from './Trail.tsx';
 import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
+import { usePan } from './usePan.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
@@ -146,7 +147,7 @@ export function Chart({
   const chainView = useChainView(visibleItems, review);
   if (isRevealing && review.kind !== undefined) review.end();
   const svgRef = useRef<SVGSVGElement>(null);
-  const { drag, dragHandlersFor, selectItem } = useItemDrag({
+  const { drag, dragHandlersFor, selectItem, isHoldingPress } = useItemDrag({
     svgRef,
     scores,
     scopeMode,
@@ -154,6 +155,7 @@ export function Chart({
     onDrop: (key, cell) => review.changeScores(key, { urgency: cell.u, impact: cell.i }),
     onSelect: selection.push,
   });
+  usePan({ scrollRef, isHoldingPress });
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 

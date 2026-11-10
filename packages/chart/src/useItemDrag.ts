@@ -41,10 +41,12 @@ export interface ItemDragState {
   dragHandlersFor: (key: string, r?: number) => DragHandlers | undefined;
   /** Selects an item, unless the click ends a drag of it. */
   selectItem: (key: string) => void;
+  /** Returns whether the selected item holds a press, which may yet become a drag. */
+  isHoldingPress: () => boolean;
 }
 
 /** How far, in CSS pixels, a pointer moves from where it was pressed before the press becomes a drag. */
-const DRAG_THRESHOLD = 4;
+export const DRAG_THRESHOLD = 4;
 
 /**
  * Drags an item to a scored cell: A press captures the pointer, a move past the threshold starts the drag, and a release
@@ -120,7 +122,7 @@ export function useItemDrag({
     return { u: scores[key]?.urgency?.value ?? 0, i: scores[key]?.impact?.value ?? 0 };
   }
 
-  return { drag, dragHandlersFor, selectItem };
+  return { drag, dragHandlersFor, selectItem, isHoldingPress: () => press.current !== undefined };
 }
 
 // region | Helpers
