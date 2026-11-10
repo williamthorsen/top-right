@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
-import { DEFAULT_ZOOM, fitScale, isAtEnd, stepZoom, type Zoom, type ZoomDirection } from './zoom.ts';
+import { DEFAULT_ZOOM, fitScale, isAtEnd, NATURAL_SCALE, stepZoom, type Zoom, type ZoomDirection } from './zoom.ts';
 
 export interface ZoomOptions {
   /** The scroll container whose content the zoom scales. */
@@ -18,7 +18,7 @@ export interface ZoomState {
   zoom: Zoom;
   /** Steps the scale, keeping the centre of the visible area in place. */
   step: (direction: ZoomDirection) => void;
-  /** Chooses Fit or a scale, keeping the centre of the visible area in place. */
+  /** Chooses a scale, or Fit, which follows the area's size until a manual zoom; either keeps the visible centre. */
   choose: (choice: ZoomChoice) => void;
 }
 
@@ -41,11 +41,12 @@ const KEY_EXEMPT_SELECTOR =
  * Holds the matrix's zoom and wires its inputs: Ctrl or Cmd with the wheel (which a trackpad pinch also sends) and a
  * two-finger touch pinch over the scroll container, and the `+`, `-`, and `0` keys. Each change keeps an anchor point in
  * place by correcting the container's scroll: the pointer for the wheel and the pinch, the visible centre otherwise.
+ * While the zoom is Fit, which it is on mount, a change in the container's size refits the matrix.
  */
 export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): ZoomState {
   const [zoom, setZoom] = useState<Zoom>(DEFAULT_ZOOM);
-  // Several wheel or pinch events can arrive before a commit, so each steps from the latest request.
-  const requestedScale = useRef(DEFAULT_ZOOM.scale);
+  // Several wheel, pinch, or resize events can arrive before a commit, so each acts on the latest request.
+  const requested = useRef<Zoom>(DEFAULT_ZOOM);
   const anchor = useRef<Anchor>(undefined);
 
   /** Records a zoom change and the client point that it keeps in place, the visible centre by default. */
@@ -53,23 +54,45 @@ export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): Zoo
     const container = scrollRef.current;
     const content = contentRef.current;
     if (container && content) anchor.current = locateAnchor(content, at ?? findVisibleCentre(container));
-    requestedScale.current = next.scale;
+    requested.current = next;
     setZoom(next);
   }
 
   function step(direction: ZoomDirection, at?: ClientPoint): void {
-    const scale = stepZoom(requestedScale.current, direction);
-    if (scale !== requestedScale.current) request({ kind: 'step', scale }, at);
+    const scale = stepZoom(requested.current.scale, direction);
+    if (scale !== requested.current.scale) request({ kind: 'step', scale }, at);
   }
 
   function choose(choice: ZoomChoice): void {
-    if (choice !== 'fit') {
-      request({ kind: 'step', scale: choice });
-      return;
-    }
-    const container = scrollRef.current;
-    request({ kind: 'fit', scale: fitScale(container?.clientWidth ?? 0, container?.clientHeight ?? 0) });
+    if (choice === 'fit') request({ kind: 'fit', scale: measureFit() });
+    else request({ kind: 'step', scale: choice });
   }
+
+  /** Returns the scale that fits the matrix to the scroll container's client area. */
+  function measureFit(): number {
+    const container = scrollRef.current;
+    return fitScale(container?.clientWidth ?? 0, container?.clientHeight ?? 0);
+  }
+
+  /** Refits the matrix to the container while the zoom is Fit. */
+  function refit(): void {
+    if (requested.current.kind !== 'fit') return;
+    const scale = measureFit();
+    if (scale !== requested.current.scale) request({ kind: 'fit', scale });
+  }
+
+  const handleResize = useEffectEvent(refit);
+
+  // Fit before the first paint, so that the matrix does not open at the natural size and then jump.
+  useLayoutEffect(() => handleResize(), []);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => handleResize());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [scrollRef]);
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -87,7 +110,7 @@ export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): Zoo
         step('out');
         break;
       case '0':
-        request({ kind: 'step', scale: DEFAULT_ZOOM.scale });
+        request({ kind: 'step', scale: NATURAL_SCALE });
         break;
       default:
         return;
@@ -114,7 +137,7 @@ export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): Zoo
   }, [scrollRef, contentRef, zoom.scale]);
 
   const stepAt = useEffectEvent((direction: ZoomDirection, at: ClientPoint) => step(direction, at));
-  const readScale = useEffectEvent(() => requestedScale.current);
+  const readScale = useEffectEvent(() => requested.current.scale);
 
   // React's wheel and touch handlers are passive, and only an active listener can keep the page from zooming.
   useEffect(() => {
