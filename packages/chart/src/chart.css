@@ -190,17 +190,28 @@
   outline-offset: -2px;
 }
 
+/* A flex container, so that the matrix's auto margins centre it while it is smaller and keep both edges reachable while it is larger. */
 .tr-chart-scroll {
+  display: flex;
   flex: 1;
   min-height: 0;
   overflow: auto;
   background: var(--tr-surface);
   border: 1px solid var(--tr-line);
   border-radius: 8px;
+  /* The chart handles a two-finger pinch itself, so the browser keeps only one-finger scrolling here. */
+  touch-action: pan-x pan-y;
+}
+
+.tr-chart-scroll:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: -1px;
 }
 
 .tr-chart {
   display: block;
+  flex-shrink: 0;
+  margin: auto;
   font-family: var(--tr-font);
 }
 

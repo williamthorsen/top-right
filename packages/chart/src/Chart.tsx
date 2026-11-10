@@ -38,6 +38,7 @@ import { useItemFilter } from './useItemFilter.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
+import { useZoom } from './useZoom.ts';
 
 import './chart.css';
 
@@ -130,7 +131,10 @@ export function Chart({
     setHighlightedKey(undefined);
   }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
+  const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const zoom = useZoom({ scrollRef, keyRootRef: rootRef });
+  const scale = zoom.zoom.scale;
   const review = useReview({
     items: visibleItems,
     scores,
@@ -191,7 +195,7 @@ export function Chart({
   );
 
   return (
-    <div className="tr-root">
+    <div className="tr-root" ref={rootRef}>
       <div className="tr-work">
         <div className="tr-chart-area">
           <ChartStrip
@@ -210,11 +214,11 @@ export function Chart({
                 <svg
                   aria-label="Items by urgency and impact"
                   className="tr-chart"
-                  height={HEIGHT}
+                  height={HEIGHT * scale}
                   ref={svgRef}
                   role="group"
                   viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                  width={WIDTH}
+                  width={WIDTH * scale}
                 >
                   <Grid />
                   <g transform={MATRIX_TRANSFORM}>
