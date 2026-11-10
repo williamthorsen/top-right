@@ -698,8 +698,8 @@
   text-align: center;
 }
 
-/* The More menu opens below its button, over the chart. */
-.tr-more {
+/* A menu opens below its button, over the chart. */
+.tr-menu-root {
   position: relative;
 }
 
