@@ -19,7 +19,10 @@ export interface ListedItem {
   scores: ResolvedItemScores;
 }
 
-/** Returns each item with the user's stored scores for it and, where none is stored, the scores that its labels supply. */
+/**
+ * Returns each item with the user's stored scores for it and, where none is stored, the scores that its labels
+ * supply.
+ */
 export function listItems(
   items: readonly WorkItem[],
   scores: Readonly<Record<string, ItemScores>>,
@@ -39,7 +42,10 @@ export function listItems(
   });
 }
 
-/** Returns one line per item: the key, the four scores (`-` when unscored, `(label)` after a label's), and the title. */
+/**
+ * Returns one line per item: the key, the four scores (`-` when unscored, `(label)` after a label's), and the
+ * title.
+ */
 export function renderItemsText(items: readonly ListedItem[]): string {
   return items
     .map((item) => {

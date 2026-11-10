@@ -47,7 +47,10 @@ export function describeDuplicateScoreLabel({ label, levels }: DuplicateScoreLab
   return `"${label}" is under ${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}. Keep it under one level.`;
 }
 
-/** Returns each label that `mapping` lists under more than one level, in either dimension, compared case-insensitively. */
+/**
+ * Returns each label that `mapping` lists under more than one level, in either dimension, compared
+ * case-insensitively.
+ */
 export function findDuplicateScoreLabels(mapping: ScoreLabelMapping): DuplicateScoreLabel[] {
   const levelsByLabel = new Map<string, DuplicateScoreLabel['levels']>();
   for (const { dimension, level, labels } of listLevelLabels(mapping)) {

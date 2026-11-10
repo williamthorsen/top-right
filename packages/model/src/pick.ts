@@ -6,8 +6,8 @@ import { formatItemKey, type WorkItem } from './work-item.ts';
 /**
  * Returns the key of the next pick: among the open items that both axes place and that no open item blocks, the
  * highest rank of urgency plus value, then value, then in progress before to do, then the least remaining scope, then
- * the oldest. An agent's score or a label's places an item as the author's does. An item without effort sorts after every item with
- * one, because an unknown scope is not assumed to be small. The key breaks any tie that remains.
+ * the oldest. An agent's score or a label's places an item as the author's does. An item without effort sorts after
+ * every item with one, because an unknown scope is not assumed to be small. The key breaks any tie that remains.
  */
 export function findNextPick(
   items: readonly WorkItem[],

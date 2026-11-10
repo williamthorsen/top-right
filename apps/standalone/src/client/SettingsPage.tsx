@@ -78,7 +78,10 @@ async function saveAbbreviations(abbreviations: Record<string, string>): Promise
   return await refuseOnFailure(() => postJson('/api/abbreviations', { abbreviations }, abbreviationsResponseSchema));
 }
 
-/** Saves the score-label mapping, or restores the default, and returns the reason that the host refused it, if it did. */
+/**
+ * Saves the score-label mapping, or restores the default, and returns the reason that the host refused it, if it
+ * did.
+ */
 async function saveScoreLabelMapping(mapping: ScoreLabelMapping | undefined): Promise<string | undefined> {
   return await refuseOnFailure(() =>
     postJson('/api/score-label-mapping', { mapping: mapping ?? null }, scoreLabelMappingResponseSchema),
