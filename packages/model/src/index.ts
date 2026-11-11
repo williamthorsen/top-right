@@ -62,6 +62,7 @@ export {
 export { deriveStatus, isOverrideVoid, STATUS_ORDER, type StatusCategory, type StatusOverride } from './status.ts';
 export {
   formatItemKey,
+  type ItemPatch,
   type ItemRef,
   type ItemState,
   parseItemKey,

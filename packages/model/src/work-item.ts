@@ -25,7 +25,12 @@ export interface WorkItem extends ItemRef {
   createdAt: string;
   labels: string[];
   relations: Relation[];
+  /** The open item's status where its source tracks one; unset when the source does not. */
+  sourceStatus?: 'in-progress' | 'to-do';
 }
+
+/** The fields of an item that a write at its source can change, as a write reports them. */
+export type ItemPatch = Partial<Pick<WorkItem, 'labels' | 'sourceStatus'>>;
 
 /** Returns a key that identifies an item across repositories, as `owner/name#number`. */
 export function formatItemKey(ref: Pick<ItemRef, 'number' | 'repo'>): string {

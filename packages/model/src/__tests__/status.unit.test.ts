@@ -21,6 +21,24 @@ describe(deriveStatus, () => {
   it('ignores an override set against another source state', () => {
     expect(deriveStatus({ state: 'open' }, { ...IN_PROGRESS_WHILE_OPEN, sourceState: 'closed' })).toBe('to-do');
   });
+
+  it("returns the source's status for an open item without an override", () => {
+    expect(deriveStatus({ state: 'open', sourceStatus: 'in-progress' }, undefined)).toBe('in-progress');
+  });
+
+  it("returns done for a closed item, whatever the source's status says", () => {
+    expect(deriveStatus({ state: 'closed', sourceStatus: 'in-progress' }, undefined)).toBe('done');
+  });
+
+  it("lets an override that still applies outrank the source's status", () => {
+    const toDo: StatusOverride = { ...IN_PROGRESS_WHILE_OPEN, status: 'to-do' };
+    expect(deriveStatus({ state: 'open', sourceStatus: 'in-progress' }, toDo)).toBe('to-do');
+  });
+
+  it("falls back to the source's status when the override is void", () => {
+    const voided: StatusOverride = { ...IN_PROGRESS_WHILE_OPEN, status: 'to-do', sourceState: 'closed' };
+    expect(deriveStatus({ state: 'open', sourceStatus: 'in-progress' }, voided)).toBe('in-progress');
+  });
 });
 
 describe(isOverrideVoid, () => {
