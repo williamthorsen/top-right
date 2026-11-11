@@ -117,6 +117,7 @@ export function parseConfig(text: string, path: string): HostConfig {
 }
 
 // region | Helpers
+/** Returns the canonical form of a project URL, or undefined when `url` is not one. */
 function canonicalizeProjectUrl(url: string): string | undefined {
   return parseProjectUrl(url)?.url;
 }

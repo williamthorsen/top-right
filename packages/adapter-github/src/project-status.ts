@@ -192,6 +192,7 @@ function buildProjectQuery(ownerKind: ProjectRef['ownerKind']): string {
 }`;
 }
 
+/** Joins the messages of GraphQL errors into one line. */
 function describeErrors(errors: ReadonlyArray<{ message: string }>): string {
   return errors.map((error) => error.message).join('; ');
 }

@@ -45,6 +45,7 @@ export async function resolveProjectStrategies(
 }
 
 // region | Helpers
+/** Returns the error's message, or the value as a string when it is not an `Error`. */
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
