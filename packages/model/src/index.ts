@@ -59,7 +59,14 @@ export {
   VALUE_LEVELS,
   type ValueLevel,
 } from './scores.ts';
-export { deriveStatus, isOverrideVoid, STATUS_ORDER, type StatusCategory, type StatusOverride } from './status.ts';
+export {
+  deriveStatus,
+  isOverrideVoid,
+  type OpenStatus,
+  STATUS_ORDER,
+  type StatusCategory,
+  type StatusOverride,
+} from './status.ts';
 export {
   formatItemKey,
   type ItemPatch,

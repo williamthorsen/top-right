@@ -1,3 +1,5 @@
+import type { OpenStatus } from './status.ts';
+
 /** An item's state at its source. */
 export type ItemState = 'closed' | 'open';
 
@@ -26,7 +28,7 @@ export interface WorkItem extends ItemRef {
   labels: string[];
   relations: Relation[];
   /** The open item's status where its source tracks one; unset when the source does not. */
-  sourceStatus?: 'in-progress' | 'to-do';
+  sourceStatus?: OpenStatus;
 }
 
 /** The fields of an item that a write at its source can change, as a write reports them. */

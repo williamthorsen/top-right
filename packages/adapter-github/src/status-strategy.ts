@@ -1,4 +1,4 @@
-import type { ItemPatch, ItemRef, WorkItem } from '@top-right/model';
+import type { ItemPatch, ItemRef, OpenStatus, WorkItem } from '@top-right/model';
 
 import type { GraphqlRequest } from './fetch-issues.ts';
 import { updateIssueLabels } from './update-issue-labels.ts';
@@ -9,9 +9,9 @@ export const IN_PROGRESS_LABEL = 'status:in-progress';
 /** How a repository tracks whether an open item is in progress, read from the item and written at its source. */
 export interface StatusStrategy {
   /** Reads an open item's status at its source. */
-  read(item: WorkItem): 'in-progress' | 'to-do';
+  read(item: WorkItem): OpenStatus;
   /** Writes the status at the source and resolves to the fields that changed, `sourceStatus` included. */
-  write(ref: Pick<ItemRef, 'number' | 'repo'>, status: 'in-progress' | 'to-do'): Promise<ItemPatch>;
+  write(ref: Pick<ItemRef, 'number' | 'repo'>, status: OpenStatus): Promise<ItemPatch>;
 }
 
 /** Returns the strategy that tracks In progress as the `status:in-progress` label, matched case-insensitively. */
@@ -29,7 +29,7 @@ export function createLabelStatusStrategy(request: GraphqlRequest): StatusStrate
 
 // region | Helpers
 /** Returns in-progress when the labels include the in-progress label in any case, and to-do otherwise. */
-function readLabelStatus(labels: readonly string[]): 'in-progress' | 'to-do' {
+function readLabelStatus(labels: readonly string[]): OpenStatus {
   return labels.some((label) => label.toLowerCase() === IN_PROGRESS_LABEL) ? 'in-progress' : 'to-do';
 }
 // endregion | Helpers

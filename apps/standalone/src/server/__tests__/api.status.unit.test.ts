@@ -1,5 +1,5 @@
 import type { StatusStrategy } from '@top-right/adapter-github';
-import type { ItemPatch, StatusOverride } from '@top-right/model';
+import type { ItemPatch, OpenStatus, StatusOverride } from '@top-right/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createMemoryStore } from '#src/test-utils/memory-store.ts';
@@ -8,7 +8,7 @@ import { closeServers, EARLIER, ITEM, ITEM_KEY, NOW, post, startServer } from '.
 
 const REF = { repo: ITEM.repo, number: ITEM.number };
 const LEGACY: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
-const WRITES: Array<{ status: 'in-progress' | 'to-do'; patch: ItemPatch }> = [
+const WRITES: Array<{ status: OpenStatus; patch: ItemPatch }> = [
   { status: 'in-progress', patch: { labels: ['feature', 'status:in-progress'], sourceStatus: 'in-progress' } },
   { status: 'to-do', patch: { labels: ['feature'], sourceStatus: 'to-do' } },
 ];
