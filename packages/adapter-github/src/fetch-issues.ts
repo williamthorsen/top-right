@@ -1,7 +1,8 @@
 import { formatItemKey, type WorkItem } from '@top-right/model';
 
 import { type GitHubIssue, issuesResponseSchema, mapIssue } from './map-issue.ts';
-import { ISSUES_QUERY } from './query.ts';
+import { buildIssuesQuery } from './query.ts';
+import type { StatusStrategy } from './status-strategy.ts';
 
 /** Sends a GraphQL query to GitHub and resolves to the response body; the host supplies it with its credentials. */
 export type GraphqlRequest = (query: string, variables: Record<string, unknown>) => Promise<unknown>;
@@ -11,26 +12,31 @@ export class GitHubAdapterError extends Error {
   override name = 'GitHubAdapterError';
 }
 
-/** Which issues to read beyond the open ones. */
+/** Which issues to read beyond the open ones, and how to read an open issue's status. */
 export interface FetchIssuesOptions {
   /** Also reads the issues closed at or after this moment; without it, no closed issue is read. */
   closedSince?: Date | undefined;
+  /** Reads each open issue's `sourceStatus`; without it, the status stays unset. */
+  status?: StatusStrategy | undefined;
 }
 
 const DEFAULT_PAGE_SIZE = 100;
 
-/** Reads the open issues of `repo` (`owner/name`), and those closed since `closedSince`, as work items. */
+/**
+ * Reads the open issues of `repo` (`owner/name`), and those closed since `closedSince`, as work items, with each open
+ * item's status as `status` reads it.
+ */
 export async function fetchIssues(
   request: GraphqlRequest,
   repo: string,
-  { closedSince, pageSize = DEFAULT_PAGE_SIZE }: FetchIssuesOptions & { pageSize?: number } = {},
+  { closedSince, pageSize = DEFAULT_PAGE_SIZE, status }: FetchIssuesOptions & { pageSize?: number } = {},
 ): Promise<WorkItem[]> {
   const [owner, name, extra] = repo.split('/', 3);
   if (!owner || !name || extra !== undefined)
     throw new GitHubAdapterError(`${repo}: expected a repository as owner/name`);
 
   function read(variables: Record<string, unknown>): Promise<GitHubIssue[]> {
-    return readAllPages(request, repo, { owner, name, pageSize, ...variables });
+    return readAllPages(request, repo, buildIssuesQuery(status?.issueFields), { owner, name, pageSize, ...variables });
   }
   const open = await read({ states: ['OPEN'], orderBy: { field: 'CREATED_AT', direction: 'ASC' } });
   // `since` filters on the update time, which closing an issue advances, so the closed time decides membership.
@@ -47,7 +53,8 @@ export async function fetchIssues(
 
   const items = new Map<string, WorkItem>();
   for (const issue of [...open, ...closed]) {
-    const item = mapIssue(issue, repo);
+    const mapped = mapIssue(issue, repo);
+    const item = status && mapped.state === 'open' ? { ...mapped, sourceStatus: status.read(mapped, issue) } : mapped;
     // An issue whose state changes between the two reads appears in both; the first record stands.
     const key = formatItemKey(item);
     if (!items.has(key)) items.set(key, item);
@@ -55,27 +62,33 @@ export async function fetchIssues(
   return items.values().toArray();
 }
 
-/** Reads the issues of every repository; any failure rejects the whole read. */
+/** Reads the issues of every repository, each with its repository's status strategy; any failure rejects the whole read. */
 export async function fetchIssuesOfRepos(
   request: GraphqlRequest,
   repos: readonly string[],
-  options: FetchIssuesOptions = {},
+  {
+    closedSince,
+    strategyFor,
+  }: Pick<FetchIssuesOptions, 'closedSince'> & { strategyFor?: (repo: string) => StatusStrategy | undefined } = {},
 ): Promise<WorkItem[]> {
-  const perRepo = await Promise.all(repos.map((repo) => fetchIssues(request, repo, options)));
+  const perRepo = await Promise.all(
+    repos.map((repo) => fetchIssues(request, repo, { closedSince, status: strategyFor?.(repo) })),
+  );
   return perRepo.flat();
 }
 
 // region | Helpers
-/** Reads every page of `ISSUES_QUERY` for the variables, following the end cursor. */
+/** Reads every page of `query` for the variables, following the end cursor. */
 async function readAllPages(
   request: GraphqlRequest,
   repo: string,
+  query: string,
   variables: Record<string, unknown>,
 ): Promise<GitHubIssue[]> {
   const issues: GitHubIssue[] = [];
   let after: string | null = null;
   do {
-    const parsed = issuesResponseSchema.safeParse(await request(ISSUES_QUERY, { ...variables, after }));
+    const parsed = issuesResponseSchema.safeParse(await request(query, { ...variables, after }));
     if (!parsed.success)
       throw new GitHubAdapterError(`${repo}: unexpected response from GitHub`, { cause: parsed.error });
     const { data, errors } = parsed.data;

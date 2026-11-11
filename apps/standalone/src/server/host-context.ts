@@ -19,7 +19,6 @@ import { computeClosedSince, formatAbbreviationNotice, readConfig } from './conf
 import { resolveDatabasePath } from './database-path.ts';
 import { createGithubRequest } from './github-request.ts';
 import type { LabelWriter } from './label-write.ts';
-import { applySourceStatus } from './source-status.ts';
 import { openSqliteStore, type SqliteStore } from './sqlite-store.ts';
 import { StartupError } from './startup-error.ts';
 import { resolveToken } from './token.ts';
@@ -63,13 +62,11 @@ export async function openHostContext(): Promise<HostContext> {
   return {
     databasePath,
     labelWriter: (ref, change) => updateIssueLabels(request, ref.repo, ref.number, change),
-    loadItems: async () =>
-      applySourceStatus(
-        await fetchIssuesOfRepos(request, repos, {
-          closedSince: computeClosedSince(new Date(), config.closedWindowDays),
-        }),
-        statusStrategyFor,
-      ),
+    loadItems: () =>
+      fetchIssuesOfRepos(request, repos, {
+        closedSince: computeClosedSince(new Date(), config.closedWindowDays),
+        strategyFor: statusStrategyFor,
+      }),
     repos,
     statusStrategyFor,
     store,

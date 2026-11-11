@@ -9,17 +9,21 @@ const issueRefSchema = z.object({
   repository: z.object({ nameWithOwner: z.string() }),
 });
 
-const issueSchema = issueRefSchema.omit({ repository: true }).extend({
-  createdAt: z.string(),
-  closedAt: z.string().nullable(),
-  labels: z.object({ nodes: z.array(z.object({ name: z.string() })) }),
-  blockedBy: z.object({ nodes: z.array(issueRefSchema) }),
-  blocking: z.object({ nodes: z.array(issueRefSchema) }),
-  subIssues: z.object({ nodes: z.array(issueRefSchema) }),
-  parent: issueRefSchema.nullable(),
-});
+// Loose, so that the fields that a status strategy adds to the query reach its `read`.
+const issueSchema = issueRefSchema
+  .omit({ repository: true })
+  .extend({
+    createdAt: z.string(),
+    closedAt: z.string().nullable(),
+    labels: z.object({ nodes: z.array(z.object({ name: z.string() })) }),
+    blockedBy: z.object({ nodes: z.array(issueRefSchema) }),
+    blocking: z.object({ nodes: z.array(issueRefSchema) }),
+    subIssues: z.object({ nodes: z.array(issueRefSchema) }),
+    parent: issueRefSchema.nullable(),
+  })
+  .loose();
 
-/** The response to one page of `ISSUES_QUERY`. */
+/** The response to one page of the query that `buildIssuesQuery` returns. */
 export const issuesResponseSchema = z.object({
   data: z
     .object({
