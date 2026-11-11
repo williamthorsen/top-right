@@ -2,6 +2,9 @@ import type { GraphqlRequest } from '@top-right/adapter-github';
 
 const GRAPHQL_URL = 'https://api.github.com/graphql';
 
+/** The user agent that the host sends with every request to GitHub. */
+export const GITHUB_USER_AGENT = 'top-right-local';
+
 /** Returns a GraphQL request function that sends `token` with each request. */
 export function createGithubRequest(token: string, fetchImpl: typeof fetch = fetch): GraphqlRequest {
   return async (query, variables) => {
@@ -10,7 +13,7 @@ export function createGithubRequest(token: string, fetchImpl: typeof fetch = fet
       headers: {
         authorization: `Bearer ${token}`,
         'content-type': 'application/json',
-        'user-agent': 'top-right-local',
+        'user-agent': GITHUB_USER_AGENT,
       },
       body: JSON.stringify({ query, variables }),
     });

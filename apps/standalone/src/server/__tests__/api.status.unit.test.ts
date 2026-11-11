@@ -103,6 +103,7 @@ describe('POST /api/status on a host whose repository has a status strategy', ()
 /** Returns a status strategy whose `write` records its calls and settles as `write` does. */
 function createStrategy(write: () => Promise<ItemPatch>) {
   return {
+    issueFields: '',
     read: vi.fn<StatusStrategy['read']>(() => 'to-do'),
     write: vi.fn<StatusStrategy['write']>(write),
   };

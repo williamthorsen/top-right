@@ -34,6 +34,22 @@ A circle's id is the repository's abbreviation and the issue number, such as `t.
 
 An open issue labelled `status:in-progress` shows as In progress, and setting In progress or To do in the pane adds or removes that label; [`IN_PROGRESS_LABEL`](../../packages/adapter-github/src/status-strategy.ts) names it. The repository must have the label, which release-kit's common label preset defines: The host never creates one, and it refuses the write with a message that names the missing label.
 
+A repository whose entry names a GitHub Project by its URL takes its status from the project's Status field instead, and setting a status in the pane sets the field, adding the issue to the project when it is not yet an item. [`DEFAULT_PROJECT_STATUS_OPTIONS`](../../packages/adapter-github/src/project-status.ts) names the options that read as To do and In progress; `projects` lists a project's own, and a write sets the first of each list:
+
+```json
+{
+  "projects": {
+    "https://github.com/users/LOGIN/projects/1": { "toDo": ["Backlog", "Todo"], "inProgress": ["In Progress"] }
+  },
+  "repos": [
+    { "repo": "williamthorsen/top-right", "project": "https://github.com/users/LOGIN/projects/1" },
+    { "repo": "williamthorsen/codeassembly" }
+  ]
+}
+```
+
+A project needs the token's `project` scope, which `gh auth login` does not grant: Run `gh auth refresh --scopes project`. The host refuses to start when it cannot read a configured project or a listed option, and [`docs/design.md`](../../docs/design.md) states how a project's status and the pane's override combine.
+
 The GitHub token comes from `GITHUB_TOKEN` or, when it is unset, from `gh auth token`, so `gh auth login` is the only setup that the first run needs.
 
 ## Score the backlog with an agent

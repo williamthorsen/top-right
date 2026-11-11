@@ -4,8 +4,15 @@ export const RELATION_LIMIT = 50;
 /** The most labels that the query reads per issue. */
 export const LABEL_LIMIT = 50;
 
-/** Reads one page of a repository's issues in the given states, order, and filter, with their labels and relations. */
-export const ISSUES_QUERY = `
+/** The most projects that the Project strategy reads per issue; a personal issue belongs to a handful. */
+export const PROJECT_ITEM_LIMIT = 20;
+
+/**
+ * Returns the query that reads one page of a repository's issues in the given states, order, and filter, with their
+ * labels, their relations, and the `issueFields` that a status strategy reads.
+ */
+export function buildIssuesQuery(issueFields = ''): string {
+  return `
 query Issues(
   $owner: String!
   $name: String!
@@ -30,6 +37,7 @@ query Issues(
         blocking(first: ${RELATION_LIMIT}) { nodes { ...IssueRef } }
         subIssues(first: ${RELATION_LIMIT}) { nodes { ...IssueRef } }
         parent { ...IssueRef }
+        ${issueFields}
       }
     }
   }
@@ -43,3 +51,4 @@ fragment IssueRef on Issue {
   repository { nameWithOwner }
 }
 `;
+}

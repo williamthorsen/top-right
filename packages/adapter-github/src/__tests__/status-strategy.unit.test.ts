@@ -12,13 +12,13 @@ describe(createLabelStatusStrategy, () => {
     it('returns in-progress for an item with the label in any case', () => {
       const strategy = createLabelStatusStrategy(createFakeGithub(REPO_LABELS, []).request);
 
-      expect(strategy.read(buildItem(['bug', 'Status:In-Progress']))).toBe('in-progress');
+      expect(strategy.read(buildItem(['bug', 'Status:In-Progress']), {})).toBe('in-progress');
     });
 
     it('returns to-do for an item without the label', () => {
       const strategy = createLabelStatusStrategy(createFakeGithub(REPO_LABELS, []).request);
 
-      expect(strategy.read(buildItem(['bug', 'status:blocked']))).toBe('to-do');
+      expect(strategy.read(buildItem(['bug', 'status:blocked']), {})).toBe('to-do');
     });
   });
 
