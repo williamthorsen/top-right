@@ -32,6 +32,8 @@ Open <http://localhost:4310/>. Set `PORT` to serve on another port. The host rea
 
 A circle's id is the repository's abbreviation and the issue number, such as `t.11`. The abbreviation defaults to the first letter of the repository's name and is changed on the Settings page, which also edits the labels that assign each work type and the labels that supply each urgency level, value level, and effort. While two repositories share an abbreviation, the chart shows an alert that links to Settings. The host ignores an `abbreviation` field in the config file and names the repositories that still set one when it starts.
 
+An open issue labelled `status:in-progress` shows as In progress, and setting In progress or To do in the pane adds or removes that label; [`IN_PROGRESS_LABEL`](../../packages/adapter-github/src/status-strategy.ts) names it. The repository must have the label, which release-kit's common label preset defines: The host never creates one, and it refuses the write with a message that names the missing label.
+
 The GitHub token comes from `GITHUB_TOKEN` or, when it is unset, from `gh auth token`, so `gh auth login` is the only setup that the first run needs.
 
 ## Score the backlog with an agent

@@ -8,7 +8,7 @@ Work items as sized bubbles on urgency and importance axes, with adapters for Gi
 
 - `apps/standalone` — the local host, which serves the chart of the author's GitHub issues, and the `top-right` CLI, through which an agent writes scores
 - `packages/_workspace` — scaffold for new libraries (no-op build)
-- `packages/adapter-github` — reads GitHub issues as work items and writes their labels
+- `packages/adapter-github` — reads GitHub issues as work items, writes their labels, and provides the status strategies
 - `packages/chart` — the chart as a React component that takes props and never fetches
 - `packages/model` — work items, relations, scores and status, the work-type classifier, and the score-label mapping
 - `packages/store` — the store interface for scores, status overrides, visits, and settings, with its conformance tests
