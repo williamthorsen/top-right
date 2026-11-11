@@ -12,6 +12,11 @@ export class GitHubAdapterError extends Error {
   override name = 'GitHubAdapterError';
 }
 
+/** A refusal because the token lacks a scope that the request needs. */
+export class GitHubScopeError extends GitHubAdapterError {
+  override name = 'GitHubScopeError';
+}
+
 /** Which issues to read beyond the open ones, and how to read an open issue's status. */
 export interface FetchIssuesOptions {
   /** Also reads the issues closed at or after this moment; without it, no closed issue is read. */
