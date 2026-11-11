@@ -43,7 +43,7 @@ describe(applySourceStatus, () => {
     expect(item).not.toHaveProperty('sourceStatus');
   });
 
-  it('leaves the status unset on an item whose repository has no strategy', () => {
+  it('leaves the status unset on an item whose repository lacks a strategy', () => {
     const [item] = applySourceStatus([{ ...ITEM, repo: 'owner/other', labels: ['wip'] }], strategyFor);
 
     expect(item).not.toHaveProperty('sourceStatus');

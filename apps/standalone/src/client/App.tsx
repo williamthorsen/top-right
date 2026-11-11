@@ -153,7 +153,7 @@ export function App(): ReactElement {
 
   function changeStatus(itemKey: string, status: SettableStatus, sourceState: 'closed' | 'open'): void {
     const previous = overrides[itemKey];
-    // An override of To do too, so that an item whose source says In progress shows To do until the host answers.
+    // Set To do as an override too, so that an item whose source says In progress shows To do until the host answers.
     const optimistic: StatusOverride = { status, sourceState, at: new Date().toISOString() };
     setOverrides((current) => replaceEntry(current, itemKey, optimistic));
     enqueueWrite(itemKey, async () => {
@@ -162,7 +162,7 @@ export function App(): ReactElement {
         applyPatch(itemKey, pickStatusPatch(body));
         setOverrides((current) => replaceEntry(current, itemKey, body.override ?? undefined));
       } catch (error) {
-        // A host that wrote the source before its store failed answers with the item's new fields.
+        // Apply the item's new fields when the host wrote the source before its store failed.
         const written = error instanceof HostResponseError ? statusPatchSchema.safeParse(error.body) : undefined;
         if (written?.success) applyPatch(itemKey, pickStatusPatch(written.data));
         setOverrides((current) => replaceEntry(current, itemKey, previous));

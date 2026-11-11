@@ -3,7 +3,7 @@ import type { WorkItem } from '@top-right/model';
 
 /**
  * Returns `items` with each open item's status as its repository's strategy reads it. A closed item, and an item whose
- * repository has no strategy, keeps `sourceStatus` unset.
+ * repository lacks a strategy, keeps `sourceStatus` unset.
  */
 export function applySourceStatus(
   items: readonly WorkItem[],
