@@ -19,7 +19,7 @@ Revised after the product manager and interaction designer evaluations: The purp
 ## Non-goals
 
 - Replacing the tracker. GitHub and Jira remain the source of truth for an item's title, description, and state; Top Right stores only what the sources do not hold.
-- Writing an item's state to the tracker. Done is read from the source, never set in the chart, until an adapter declares that it can set status; the prototype round settled this as read-only for now.
+- Writing an item's open or closed state to the tracker. Done is read from the source and never set in the chart. The standalone host writes In progress to a GitHub issue's label, which leaves the issue open.
 - Planning by dependency. Relationships are shown on the chart but never position a circle.
 - A hosted service before there is demand for one.
 
@@ -118,11 +118,11 @@ Only the issues are kept in memory. Scores, status overrides, the last visit, an
 
 ### Status is a derived category with an override, and Done is read-only
 
-Each adapter derives an item's status category from its source, and the app stores an override. GitHub issues do not have a native "in progress" state, so the override is how an item gets one; Jira gives every status a status category, To Do, In Progress, or Done, so the Jira adapter reads the category without any per-project mapping. The source's done state outranks the override, and a change of the source's state clears the override, so that an item closed at the source does not reappear as in progress after a refresh.
+Each adapter derives an item's status category from its source, and the app stores an override. Jira gives every status a status category, To Do, In Progress, or Done, so the Jira adapter reads the category without any per-project mapping. GitHub issues do not have a native "in progress" state, so each repository has a status strategy, which reads an open item's status at its source into the work item's `sourceStatus` and writes a status change there. The label strategy, the first, reads and writes the label that [`IN_PROGRESS_LABEL`](../packages/adapter-github/src/status-strategy.ts) names, which release-kit's common label preset defines; it matches the label case-insensitively. A GitHub Project's Status field will be a second strategy, and adding it changes neither the chart nor the store. On the standalone host every configured repository uses the label strategy; a config key waits for the second. The source's done state outranks the override, an override that still applies outranks the source's status, and the source's status outranks the To do default. A change of the source's state clears the override, so that an item closed at the source does not reappear as in progress after a refresh.
 
-The detail pane shows status as one segmented control, To do, In progress, Done, because status is an enum and a checkbox beside a chip said the same thing twice. Done is read-only: It is the issue's state on the tracker. Writing status waits for an adapter that declares it can, which an in-app item always can, a GitHub adapter may, and a Jira adapter cannot until it can find the transition that lands in a category.
+The detail pane shows status as one segmented control, To do, In progress, Done, because status is an enum and a checkbox beside a chip said the same thing twice. Done is read-only: It is the issue's state on the tracker. Setting In progress or To do on an item whose repository has a strategy writes the status at the source first and then deletes the item's stored override, so that a write that the source refuses, such as one to a repository that lacks the label, leaves the status, the labels, and the store as they were. The host never creates an override for such an item, and an override stored before the strategy keeps applying until the author next sets the item's status. An item without a strategy, such as an in-app item, keeps its status as an override. A Jira adapter cannot write status until it can find the transition that lands in a category.
 
-Revised after the developer evaluation: The decision had no precedence rule between the source and the override. Revised at the prototype round: The checkbox became an enum, and the developer settled status writes as read-only for now.
+Revised after the developer evaluation: The decision had no precedence rule between the source and the override. Revised at the prototype round: The checkbox became an enum, and the developer settled status writes as read-only for now. Revised at #50: An In progress that only the app stored was invisible at GitHub, and a label shows it there and to every tool that reads labels.
 
 ### Custom tasks
 
@@ -300,7 +300,7 @@ The package split is settled for the MVP, whose epic is #10. It follows the base
 
 - `packages/model`: work items, scores keyed by user, status categories and the override, relationships and the longest blocker chain, the work-type classifier and its mapping, the score-label mapping and the resolution of label scores, the next pick, and the review queues
 - `packages/chart`: the browser chart, its detail pane, the table, and the Settings forms, which take props only, with the cell packing and the gutters inside it, and the selection that the chart and the table share
-- `packages/adapter-github`: the GitHub adapter, which reads issues and writes their labels
+- `packages/adapter-github`: the GitHub adapter, which reads issues, writes their labels, and provides the status strategies
 - `packages/store`: the store interface, with scores, status overrides, the last visit, and the settings that Settings edits (the type mapping, the score-label mapping, and the repo abbreviations), each per user, and the conformance tests that every store runs
 - `apps/standalone`: the local host, which implements the store on SQLite, keeps the last read of the issues in memory, writes the author's levels to labels through the adapter, serves the page, and keeps the selection in the page's URL
 

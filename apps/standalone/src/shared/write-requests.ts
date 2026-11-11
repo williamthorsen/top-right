@@ -45,8 +45,20 @@ export const scoresResponseSchema = z.object({
   labels: z.array(z.string()).exactOptional(),
 });
 
+/**
+ * The item's labels and source status after the host wrote its status at the source, which a `POST /api/status` answer
+ * contains whether or not the store then failed.
+ */
+export const statusPatchSchema = z.object({
+  labels: z.array(z.string()).exactOptional(),
+  sourceStatus: z.enum(['in-progress', 'to-do']).exactOptional(),
+});
+
 /** The body of a successful `POST /api/status`: the item's resulting override, or `null` when it has none. */
-export const statusResponseSchema = z.object({ itemKey: z.string(), override: statusOverrideSchema.nullable() });
+export const statusResponseSchema = statusPatchSchema.extend({
+  itemKey: z.string(),
+  override: statusOverrideSchema.nullable(),
+});
 
 export type KeepRequest = z.infer<typeof keepRequestSchema>;
 export type ScoresRequest = z.infer<typeof scoresRequestSchema>;

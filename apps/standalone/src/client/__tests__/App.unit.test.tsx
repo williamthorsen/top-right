@@ -247,6 +247,81 @@ describe(App, () => {
   });
 });
 
+describe('setting the status', () => {
+  const IN_PROGRESS_BY_LABEL: ItemsResponse = {
+    ...ITEMS,
+    items: ITEMS.items.map((item) => ({
+      ...item,
+      labels: ['feature', 'status:in-progress'],
+      sourceStatus: 'in-progress',
+    })),
+  };
+  const TO_DO_WRITTEN = { itemKey: ITEM_KEY, override: null, labels: ['feature'], sourceStatus: 'to-do' };
+
+  it('shows To do on an issue labelled In progress before the host confirms it, and after', async () => {
+    const user = userEvent.setup();
+    const write = Promise.withResolvers<Response>();
+    stubFetch((path) =>
+      path === '/api/status' ? write.promise : Promise.resolve(Response.json(IN_PROGRESS_BY_LABEL)),
+    );
+    render(<App />);
+
+    await selectItem(user);
+    expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
+    await user.click(within(getGroup('Status')).getByRole('radio', { name: 'To do' }));
+    expect(within(getGroup('Status')).getByRole('radio', { name: 'To do' })).toBeChecked();
+
+    write.resolve(Response.json(TO_DO_WRITTEN));
+    await waitFor(() => expect(within(getGroup('Status')).getByRole('radio', { name: 'To do' })).toBeChecked());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('if the host refuses the write, returns the status to In progress and says so', async () => {
+    const user = userEvent.setup();
+    stubFetch((path) =>
+      Promise.resolve(
+        path === '/api/status'
+          ? Response.json(
+              { error: 'owner/repo has no label "status:in-progress"; create it at GitHub' },
+              { status: 502 },
+            )
+          : Response.json(IN_PROGRESS_BY_LABEL),
+      ),
+    );
+    render(<App />);
+
+    await selectItem(user);
+    await user.click(within(getGroup('Status')).getByRole('radio', { name: 'To do' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^Status not saved: .*create it at GitHub/);
+    expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
+  });
+
+  it('if the store fails after the write at GitHub, shows the status that the returned labels supply', async () => {
+    const user = userEvent.setup();
+    const { itemKey: _itemKey, override: _override, ...patch } = TO_DO_WRITTEN;
+    stubFetch((path) =>
+      Promise.resolve(
+        path === '/api/status'
+          ? Response.json(
+              { error: 'the status changed at GitHub, but the stored status was not cleared', ...patch },
+              {
+                status: 500,
+              },
+            )
+          : Response.json(IN_PROGRESS_BY_LABEL),
+      ),
+    );
+    render(<App />);
+
+    await selectItem(user);
+    await user.click(within(getGroup('Status')).getByRole('radio', { name: 'To do' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Status not saved: the status changed at GitHub');
+    expect(within(getGroup('Status')).getByRole('radio', { name: 'To do' })).toBeChecked();
+  });
+});
+
 describe('refreshing the issues', () => {
   const RENAMED = 'Score every item';
   const REFRESHED = { items: [{ ...ITEMS.items[0], title: RENAMED }], readAt: '2026-11-08T10:05:00.000Z' };

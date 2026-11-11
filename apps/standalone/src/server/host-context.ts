@@ -6,9 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import {
+  createLabelStatusStrategy,
   fetchIssuesOfRepos,
   fetchViewerLogin,
   type GraphqlRequest,
+  type StatusStrategy,
   updateIssueLabels,
 } from '@top-right/adapter-github';
 import type { WorkItem } from '@top-right/model';
@@ -17,6 +19,7 @@ import { computeClosedSince, formatAbbreviationNotice, readConfig } from './conf
 import { resolveDatabasePath } from './database-path.ts';
 import { createGithubRequest } from './github-request.ts';
 import type { LabelWriter } from './label-write.ts';
+import { applySourceStatus } from './source-status.ts';
 import { openSqliteStore, type SqliteStore } from './sqlite-store.ts';
 import { StartupError } from './startup-error.ts';
 import { resolveToken } from './token.ts';
@@ -26,10 +29,15 @@ export interface HostContext {
   databasePath: string;
   /** Writes an issue's labels through the GitHub adapter. */
   labelWriter: LabelWriter;
-  /** Reads the open issues of the configured repositories and those closed within the configured window. */
+  /**
+   * Reads the open issues of the configured repositories and those closed within the configured window, with each open
+   * issue's source status.
+   */
   loadItems: () => Promise<WorkItem[]>;
   /** The configured repositories, as `owner/name`. */
   repos: string[];
+  /** Returns how a repository tracks In progress, or `undefined` for a repository that the host does not read. */
+  statusStrategyFor: (repo: string) => StatusStrategy | undefined;
   store: SqliteStore;
   /** The user whose scores are read and written, as `github:<login>`. */
   userId: string;
@@ -48,12 +56,22 @@ export async function openHostContext(): Promise<HostContext> {
   const userId = await resolveUserId(request);
   const databasePath = resolveDatabasePath(process.env, os.homedir());
   const store = openStore(databasePath);
+  const statusStrategy = createLabelStatusStrategy(request);
+  function statusStrategyFor(repo: string): StatusStrategy | undefined {
+    return repos.includes(repo) ? statusStrategy : undefined;
+  }
   return {
     databasePath,
     labelWriter: (ref, change) => updateIssueLabels(request, ref.repo, ref.number, change),
-    loadItems: () =>
-      fetchIssuesOfRepos(request, repos, { closedSince: computeClosedSince(new Date(), config.closedWindowDays) }),
+    loadItems: async () =>
+      applySourceStatus(
+        await fetchIssuesOfRepos(request, repos, {
+          closedSince: computeClosedSince(new Date(), config.closedWindowDays),
+        }),
+        statusStrategyFor,
+      ),
     repos,
+    statusStrategyFor,
     store,
     userId,
   };

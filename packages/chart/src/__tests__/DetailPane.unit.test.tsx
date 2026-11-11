@@ -111,6 +111,12 @@ describe(DetailPane, () => {
     expect(within(status).getByRole('radio', { name: 'Done' })).toHaveAttribute('aria-disabled', 'true');
   });
 
+  it("shows the status that the item's source supplies when no override applies", () => {
+    renderPane({ item: { ...ITEM, sourceStatus: 'in-progress' } });
+
+    expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
+  });
+
   it("shows a closed item's status as Done, read-only", async () => {
     const user = userEvent.setup();
     const { onStatusChange } = renderPane({ item: { ...ITEM, state: 'closed' } });

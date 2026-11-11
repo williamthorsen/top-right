@@ -44,6 +44,12 @@ describe(ItemTable, () => {
     expect(within(row).getByRole('cell', { name: 'Must-have' })).toBeInTheDocument();
   });
 
+  it("shows the status that the item's source supplies", () => {
+    renderChart([buildItem({ number: 1, sourceStatus: 'in-progress' })]);
+
+    expect(within(getRow('Issue 1')).getByRole('cell', { name: /In progress/ })).toBeInTheDocument();
+  });
+
   it('shows progress as a percentage', () => {
     const at = '2026-11-08T00:00:00.000Z';
     renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: { progress: { score: 0.35, by: 'author', at } } });

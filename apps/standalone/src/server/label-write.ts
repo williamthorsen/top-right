@@ -43,7 +43,7 @@ export async function writeAuthorChange(
       : { kind: 'none' };
   if (result.kind === 'refused') return { status: result.status, body: { error: result.error } };
   if (result.kind === 'none') return { status: 200, body: { itemKey, scores: await write() } };
-  items.setLabels(itemKey, result.labels);
+  items.patchItem(itemKey, { labels: result.labels });
   try {
     await write();
     const scores = await store.clearScores(userId, itemKey, LABELLED_FIELDS);

@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import type { StatusStrategy } from '@top-right/adapter-github';
 import {
   applyScoreWrite,
   DEFAULT_SCORE_LABEL_MAPPING,
@@ -41,6 +42,7 @@ import {
 import { describeError, readRequest, sendJson } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
 import { type LabelWriter, writeAuthorChange } from './label-write.ts';
+import { writeStatusAtSource } from './status-write.ts';
 
 export const ABBREVIATIONS_PATH = '/api/abbreviations';
 export const ITEMS_PATH = '/api/items';
@@ -59,6 +61,8 @@ export interface ApiOptions {
   labelWriter?: LabelWriter | undefined;
   /** The repositories (`owner/name`) whose open issues `items` holds in full, with their recently closed ones. */
   repos: readonly string[];
+  /** Returns how a repository tracks In progress; without one, the host keeps an item's status as an override. */
+  statusStrategyFor?: ((repo: string) => StatusStrategy | undefined) | undefined;
   store: Store;
   /** The user whose scores the host reads and writes. */
   userId: string;
@@ -70,12 +74,14 @@ export function createApiHandler({
   items: itemsCache,
   labelWriter,
   repos,
+  statusStrategyFor,
   store,
   userId,
   now = () => new Date(),
 }: ApiOptions) {
   const configuredRepos = new Set(repos);
   const authorWrites = { items: itemsCache, labelWriter, store, userId };
+  const statusWrites = { items: itemsCache, store, userId };
 
   type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
 
@@ -212,7 +218,14 @@ export function createApiHandler({
           sendJson(response, 400, { error: 'The item is closed at its source; Done is read from the source.' });
           return;
         }
-        // An open GitHub item is To do at its source, so To do needs no override.
+        const ref = parseItemKey(body.itemKey);
+        const strategy = ref && statusStrategyFor?.(ref.repo);
+        if (ref && strategy) {
+          const answer = await writeStatusAtSource(statusWrites, strategy, ref, body.itemKey, body.status);
+          sendJson(response, answer.status, answer.body);
+          return;
+        }
+        // Without a strategy, an open item is To do at its source, so To do needs no override.
         const override: StatusOverride | undefined =
           body.status === 'to-do'
             ? undefined

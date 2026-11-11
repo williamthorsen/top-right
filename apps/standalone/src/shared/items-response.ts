@@ -32,6 +32,7 @@ export const itemsResponseSchema = z.object({
     itemRefSchema.extend({
       createdAt: z.string(),
       labels: z.array(z.string()),
+      sourceStatus: z.enum(['in-progress', 'to-do']).exactOptional(),
       relations: z.array(
         z.object({ kind: z.enum(['blocked-by', 'blocking', 'parent', 'sub-issue']), ref: itemRefSchema }),
       ),
