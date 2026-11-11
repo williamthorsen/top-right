@@ -2,6 +2,17 @@ import type { z } from 'zod';
 
 import { errorResponseSchema } from '#src/shared/items-response.ts';
 
+/** A failed response from the host, with its JSON body for a caller that reads more than the message. */
+export class HostResponseError extends Error {
+  readonly body: unknown;
+
+  constructor(message: string, body: unknown) {
+    super(message);
+    this.name = 'HostResponseError';
+    this.body = body;
+  }
+}
+
 /** Returns the reason for a failed request as a phrase: the host's message, or what the client observed. */
 export function describeError(error: unknown): string {
   if (error instanceof TypeError) return 'the host did not respond';
@@ -12,7 +23,7 @@ export function describeError(error: unknown): string {
 export async function getJson<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   const response = await fetch(path);
   const body = await readJsonBody(response);
-  if (!response.ok) throw new Error(readErrorMessage(body, response.status));
+  if (!response.ok) throw new HostResponseError(readErrorMessage(body, response.status), body);
   return schema.parse(body);
 }
 
@@ -24,7 +35,7 @@ export async function postJson<T>(path: string, payload: unknown, schema: z.ZodT
     body: JSON.stringify(payload),
   });
   const body = await readJsonBody(response);
-  if (!response.ok) throw new Error(readErrorMessage(body, response.status));
+  if (!response.ok) throw new HostResponseError(readErrorMessage(body, response.status), body);
   return schema.parse(body);
 }
 

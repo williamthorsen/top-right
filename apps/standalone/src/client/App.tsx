@@ -3,6 +3,7 @@ import {
   applyScoreWrite,
   describeAbbreviationClash,
   formatItemKey,
+  type ItemPatch,
   type ItemScores,
   keepItemScores,
   type Scores,
@@ -12,9 +13,9 @@ import {
 import { type ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 
 import { type ItemsResponse, itemsResponseSchema, refreshResponseSchema } from '#src/shared/items-response.ts';
-import { scoresResponseSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
+import { scoresResponseSchema, statusPatchSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
 
-import { describeError, getJson, postJson } from './host-requests.ts';
+import { describeError, getJson, HostResponseError, postJson } from './host-requests.ts';
 import { SETTINGS_PATH } from './SettingsPage.tsx';
 import { useUrlSelection } from './useUrlSelection.ts';
 
@@ -33,26 +34,27 @@ export function App(): ReactElement {
   // Writes for one item run in order, so that a late response cannot overwrite a newer change.
   const writeQueues = useRef(new Map<string, Promise<void>>());
   const refreshRunning = useRef(false);
-  // A refresh answered after a label write may have read the issues before it, so the client re-applies newer writes.
-  const labelWrites = useRef(new Map<string, { labels: string[]; sequence: number }>());
-  const labelWriteCount = useRef(0);
+  // A refresh answered after a write at the source may have read the issues before it, so the client re-applies newer
+  // writes.
+  const itemWrites = useRef(new Map<string, { patch: ItemPatch; sequence: number }>());
+  const itemWriteCount = useRef(0);
 
   // Replaces only the issues, so that a refresh cannot overwrite a score or status write in progress.
   const refreshIssues = useCallback(async (): Promise<void> => {
     if (refreshRunning.current) return;
     refreshRunning.current = true;
     setIsRefreshing(true);
-    const startedAfter = labelWriteCount.current;
+    const startedAfter = itemWriteCount.current;
     try {
       const { items, readAt } = await postJson('/api/items/refresh', {}, refreshResponseSchema);
-      const newer = new Map<string, string[]>();
-      for (const [itemKey, write] of labelWrites.current) {
-        if (write.sequence > startedAfter) newer.set(itemKey, write.labels);
-        else labelWrites.current.delete(itemKey);
+      const newer = new Map<string, ItemPatch>();
+      for (const [itemKey, write] of itemWrites.current) {
+        if (write.sequence > startedAfter) newer.set(itemKey, write.patch);
+        else itemWrites.current.delete(itemKey);
       }
       setState((current) =>
         current.kind === 'loaded'
-          ? { ...current, data: { ...current.data, items: replaceLabels(items, newer), readAt } }
+          ? { ...current, data: { ...current.data, items: applyPatches(items, newer), readAt } }
           : current,
       );
     } catch (error) {
@@ -103,13 +105,16 @@ export function App(): ReactElement {
     writeQueues.current.set(itemKey, queued);
   }
 
-  function applyLabels(itemKey: string, labels: string[]): void {
-    labelWriteCount.current += 1;
-    labelWrites.current.set(itemKey, { labels, sequence: labelWriteCount.current });
-    const written = new Map([[itemKey, labels]]);
+  /** Applies the fields that a write at the source changed, and keeps them for a refresh that read before the write. */
+  function applyPatch(itemKey: string, patch: ItemPatch): void {
+    if (patch.labels === undefined && patch.sourceStatus === undefined) return;
+    itemWriteCount.current += 1;
+    const merged = { ...itemWrites.current.get(itemKey)?.patch, ...patch };
+    itemWrites.current.set(itemKey, { patch: merged, sequence: itemWriteCount.current });
+    const written = new Map([[itemKey, patch]]);
     setState((current) =>
       current.kind === 'loaded'
-        ? { ...current, data: { ...current.data, items: replaceLabels(current.data.items, written) } }
+        ? { ...current, data: { ...current.data, items: applyPatches(current.data.items, written) } }
         : current,
     );
   }
@@ -121,7 +126,7 @@ export function App(): ReactElement {
     enqueueWrite(itemKey, async () => {
       try {
         const body = await postJson('/api/scores', { itemKey, scores: changed }, scoresResponseSchema);
-        if (body.labels) applyLabels(itemKey, body.labels);
+        if (body.labels) applyPatch(itemKey, { labels: body.labels });
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
@@ -137,7 +142,7 @@ export function App(): ReactElement {
     enqueueWrite(itemKey, async () => {
       try {
         const body = await postJson('/api/keep', { itemKey }, scoresResponseSchema);
-        if (body.labels) applyLabels(itemKey, body.labels);
+        if (body.labels) applyPatch(itemKey, { labels: body.labels });
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
@@ -148,14 +153,18 @@ export function App(): ReactElement {
 
   function changeStatus(itemKey: string, status: SettableStatus, sourceState: 'closed' | 'open'): void {
     const previous = overrides[itemKey];
-    const optimistic: StatusOverride | undefined =
-      status === 'to-do' ? undefined : { status, sourceState, at: new Date().toISOString() };
+    // An override of To do too, so that an item whose source says In progress shows To do until the host answers.
+    const optimistic: StatusOverride = { status, sourceState, at: new Date().toISOString() };
     setOverrides((current) => replaceEntry(current, itemKey, optimistic));
     enqueueWrite(itemKey, async () => {
       try {
         const body = await postJson('/api/status', { itemKey, status, sourceState }, statusResponseSchema);
+        applyPatch(itemKey, pickStatusPatch(body));
         setOverrides((current) => replaceEntry(current, itemKey, body.override ?? undefined));
       } catch (error) {
+        // A host that wrote the source before its store failed answers with the item's new fields.
+        const written = error instanceof HostResponseError ? statusPatchSchema.safeParse(error.body) : undefined;
+        if (written?.success) applyPatch(itemKey, pickStatusPatch(written.data));
         setOverrides((current) => replaceEntry(current, itemKey, previous));
         setFailure(`Status not saved: ${describeError(error)}. Try again.`);
       }
@@ -212,12 +221,17 @@ function endSentence(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;
 }
 
-/** Returns `items` with the labels of each item that `labels` names replaced. */
-function replaceLabels(items: readonly WorkItem[], labels: ReadonlyMap<string, string[]>): WorkItem[] {
+/** Returns `items` with the fields that each patch names replaced on its item. */
+function applyPatches(items: readonly WorkItem[], patches: ReadonlyMap<string, ItemPatch>): WorkItem[] {
   return items.map((item) => {
-    const replaced = labels.get(formatItemKey(item));
-    return replaced ? { ...item, labels: replaced } : item;
+    const patch = patches.get(formatItemKey(item));
+    return patch ? { ...item, ...patch } : item;
   });
+}
+
+/** Returns the labels and source status that a status answer contains, without its other fields. */
+function pickStatusPatch({ labels, sourceStatus }: ItemPatch): ItemPatch {
+  return { ...(labels !== undefined && { labels }), ...(sourceStatus !== undefined && { sourceStatus }) };
 }
 
 /** Returns `record` with `key` set to `value`, or without `key` when `value` is undefined. */
