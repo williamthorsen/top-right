@@ -6,14 +6,22 @@ interface Mutation {
   remove?: string[];
 }
 
+interface FakeGithub {
+  mutations: Mutation[];
+  request: GraphqlRequest;
+}
+
 /**
  * Returns a fake GraphQL endpoint holding one issue, `owner/repo#7`, whose repository has the labels of `repoLabels`
  * (name to id), and the mutations that it receives.
  */
-export function createFakeGithub(repoLabels: Record<string, string>, initial: string[], mutationError?: string) {
+export function createFakeGithub(
+  repoLabels: Record<string, string>,
+  initial: string[],
+  mutationError?: string,
+): FakeGithub {
   let issueLabels = [...initial];
   const mutations: Mutation[] = [];
-  const idOf = (name: string): string => repoLabels[name.toLowerCase()] ?? `L_${name}`;
 
   const request: GraphqlRequest = (query, variables) => {
     if (query.startsWith('query')) {
@@ -41,6 +49,10 @@ export function createFakeGithub(repoLabels: Record<string, string>, initial: st
     });
   };
   return { mutations, request };
+
+  function idOf(name: string): string {
+    return repoLabels[name.toLowerCase()] ?? `L_${name}`;
+  }
 }
 
 /** Reads the issue id and the label ids to add and remove from a mutation's variables. */

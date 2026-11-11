@@ -15,7 +15,6 @@ import {
   formatItemKey,
   isOverrideVoid,
   isValidAbbreviation,
-  type ItemPatch,
   keepItemScores,
   normalizeScoreLabelMapping,
   normalizeWorkTypeMapping,
@@ -43,6 +42,7 @@ import {
 import { describeError, readRequest, sendJson } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
 import { type LabelWriter, writeAuthorChange } from './label-write.ts';
+import { writeStatusAtSource } from './status-write.ts';
 
 export const ABBREVIATIONS_PATH = '/api/abbreviations';
 export const ITEMS_PATH = '/api/items';
@@ -81,6 +81,7 @@ export function createApiHandler({
 }: ApiOptions) {
   const configuredRepos = new Set(repos);
   const authorWrites = { items: itemsCache, labelWriter, store, userId };
+  const statusWrites = { items: itemsCache, store, userId };
 
   type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
 
@@ -220,7 +221,7 @@ export function createApiHandler({
         const ref = parseItemKey(body.itemKey);
         const strategy = ref && statusStrategyFor?.(ref.repo);
         if (ref && strategy) {
-          const answer = await writeStatusAtSource(strategy, ref, body.itemKey, body.status);
+          const answer = await writeStatusAtSource(statusWrites, strategy, ref, body.itemKey, body.status);
           sendJson(response, answer.status, answer.body);
           return;
         }
@@ -280,35 +281,6 @@ export function createApiHandler({
       else applying[itemKey] = override;
     }
     return applying;
-  }
-
-  /**
-   * Writes an open item's status through its repository's strategy, deletes the item's stored override, and returns the
-   * HTTP answer. A write that the source refuses leaves the cache and the store untouched.
-   */
-  async function writeStatusAtSource(
-    strategy: StatusStrategy,
-    ref: Pick<WorkItem, 'number' | 'repo'>,
-    itemKey: string,
-    status: 'in-progress' | 'to-do',
-  ): Promise<{ status: number; body: unknown }> {
-    let patch: ItemPatch;
-    try {
-      patch = await strategy.write(ref, status);
-    } catch (error) {
-      return { status: 502, body: { error: describeError(error) } };
-    }
-    itemsCache.patchItem(itemKey, patch);
-    try {
-      await store.writeStatusOverride(userId, itemKey, undefined);
-    } catch (error) {
-      const reason = describeError(error);
-      return {
-        status: 500,
-        body: { error: `the status changed at GitHub, but the stored status was not cleared: ${reason}`, ...patch },
-      };
-    }
-    return { status: 200, body: { itemKey, override: null, ...patch } };
   }
 
   return async (request: IncomingMessage, response: ServerResponse, next: () => void): Promise<void> => {

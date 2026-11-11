@@ -57,8 +57,9 @@ export async function openHostContext(): Promise<HostContext> {
   const databasePath = resolveDatabasePath(process.env, os.homedir());
   const store = openStore(databasePath);
   const statusStrategy = createLabelStatusStrategy(request);
-  const statusStrategyFor = (repo: string): StatusStrategy | undefined =>
-    repos.includes(repo) ? statusStrategy : undefined;
+  function statusStrategyFor(repo: string): StatusStrategy | undefined {
+    return repos.includes(repo) ? statusStrategy : undefined;
+  }
   return {
     databasePath,
     labelWriter: (ref, change) => updateIssueLabels(request, ref.repo, ref.number, change),
