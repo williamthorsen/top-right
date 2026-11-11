@@ -1,7 +1,7 @@
 import type { WorkItem } from '@top-right/model';
 import { describe, expect, it } from 'vitest';
 
-import { GitHubAdapterError, GitHubScopeError } from '../fetch-issues.ts';
+import { GitHubAdapterError, GitHubNotFoundError, GitHubScopeError } from '../fetch-issues.ts';
 import {
   createProjectStatusStrategy,
   parseProjectUrl,
@@ -61,6 +61,12 @@ describe(resolveProject, () => {
     const { request } = createFakeGithubProject({ failure: 'scope' });
 
     await expect(resolveProject(request, FAKE_PROJECT_URL)).rejects.toThrow(GitHubScopeError);
+  });
+
+  it('if the project is missing or unreadable, rejects with a not-found error', async () => {
+    const { request } = createFakeGithubProject({ failure: 'no-project' });
+
+    await expect(resolveProject(request, FAKE_PROJECT_URL)).rejects.toThrow(GitHubNotFoundError);
   });
 
   it.each([

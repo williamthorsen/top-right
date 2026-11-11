@@ -3,6 +3,7 @@ export {
   fetchIssuesOfRepos,
   type FetchIssuesOptions,
   GitHubAdapterError,
+  GitHubNotFoundError,
   GitHubScopeError,
   type GraphqlRequest,
 } from './fetch-issues.ts';

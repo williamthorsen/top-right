@@ -1,7 +1,7 @@
 import type { OpenStatus, WorkItem } from '@top-right/model';
 import { z } from 'zod';
 
-import { GitHubAdapterError, GitHubScopeError, type GraphqlRequest } from './fetch-issues.ts';
+import { GitHubAdapterError, GitHubNotFoundError, GitHubScopeError, type GraphqlRequest } from './fetch-issues.ts';
 import { PROJECT_ITEM_LIMIT } from './query.ts';
 import type { StatusStrategy } from './status-strategy.ts';
 
@@ -115,7 +115,8 @@ export function parseProjectUrl(url: string): ProjectRef | undefined {
 
 /**
  * Reads the project that `url` names, with its Status field. Throws a `GitHubScopeError` when the token lacks the scope
- * to read projects, and a `GitHubAdapterError` when the project or its single-select Status field is missing.
+ * to read projects, a `GitHubNotFoundError` when the project is missing or unreadable, and a `GitHubAdapterError` when
+ * its single-select Status field is missing.
  */
 export async function resolveProject(request: GraphqlRequest, url: string): Promise<ResolvedProject> {
   const ref = parseProjectUrl(url);
@@ -145,7 +146,7 @@ export async function resolveProject(request: GraphqlRequest, url: string): Prom
   if (refused.length > 0)
     throw new GitHubAdapterError(`${ref.url}: GitHub refused the request: ${describeErrors(refused)}`);
   const projectV2 = data?.owner?.projectV2;
-  if (!projectV2) throw new GitHubAdapterError(`${ref.url}: project not found, or the token cannot read it`);
+  if (!projectV2) throw new GitHubNotFoundError(`${ref.url}: project not found, or the token cannot read it`);
   const { field } = projectV2;
   if (!field || !('options' in field)) {
     throw new GitHubAdapterError(`${ref.url}: the project has no single-select field named "${STATUS_FIELD_NAME}"`);

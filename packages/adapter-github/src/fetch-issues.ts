@@ -12,6 +12,11 @@ export class GitHubAdapterError extends Error {
   override name = 'GitHubAdapterError';
 }
 
+/** A resource that GitHub does not return, either because it does not exist or because the token cannot read it. */
+export class GitHubNotFoundError extends GitHubAdapterError {
+  override name = 'GitHubNotFoundError';
+}
+
 /** A refusal because the token lacks a scope that the request needs. */
 export class GitHubScopeError extends GitHubAdapterError {
   override name = 'GitHubScopeError';
