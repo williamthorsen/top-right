@@ -11,6 +11,8 @@ describe(parseConfig, () => {
 
     expect(config).toStrictEqual({
       closedWindowDays: 30,
+      projectOf: {},
+      projectOptions: {},
       repos: ['w/codeassembly', 'w/configs.macos'],
       reposWithAbbreviation: [],
     });
@@ -20,6 +22,28 @@ describe(parseConfig, () => {
     const config = parseConfig('{"repos":[{"repo":"w/top-right","abbreviation":"tr"},{"repo":"w/other"}]}', PATH);
 
     expect(config.reposWithAbbreviation).toStrictEqual(['w/top-right']);
+  });
+
+  it("reads each repository's project and each project's options under the project's canonical URL", () => {
+    const config = parseConfig(
+      JSON.stringify({
+        repos: [
+          { repo: 'w/a', project: 'https://github.com/users/W/projects/3/views/1' },
+          { repo: 'w/b', project: 'https://github.com/users/w/projects/3' },
+          { repo: 'w/c' },
+        ],
+        projects: { 'https://github.com/users/w/projects/3/': { toDo: ['Backlog'], inProgress: ['Doing'] } },
+      }),
+      PATH,
+    );
+
+    expect(config.projectOf).toStrictEqual({
+      'w/a': 'https://github.com/users/w/projects/3',
+      'w/b': 'https://github.com/users/w/projects/3',
+    });
+    expect(config.projectOptions).toStrictEqual({
+      'https://github.com/users/w/projects/3': { toDo: ['Backlog'], inProgress: ['Doing'] },
+    });
   });
 
   it.each([0, 7])('reads a closed window of %i days', (days) => {
@@ -41,6 +65,27 @@ describe(parseConfig, () => {
       case: 'sets a fractional closed window',
       text: '{"repos":[{"repo":"w/a"}],"closedWindowDays":1.5}',
       message: 'closedWindowDays',
+    },
+    {
+      case: 'names a project by a URL that is not a project URL',
+      text: '{"repos":[{"repo":"w/a","project":"https://github.com/w/a"}]}',
+      message: 'repos.0.project: expected a project URL',
+    },
+    {
+      case: 'lists no option for a status',
+      text: JSON.stringify({
+        repos: [{ repo: 'w/a', project: 'https://github.com/users/w/projects/3' }],
+        projects: { 'https://github.com/users/w/projects/3': { toDo: [], inProgress: ['Doing'] } },
+      }),
+      message: 'toDo',
+    },
+    {
+      case: 'lists options for a project that no repository names',
+      text: JSON.stringify({
+        repos: [{ repo: 'w/a', project: 'https://github.com/users/w/projects/3' }],
+        projects: { 'https://github.com/users/w/projects/4': { toDo: ['Todo'], inProgress: ['Doing'] } },
+      }),
+      message: 'no repository names this project',
     },
   ])('if the file $case, throws a StartupError that names the file', ({ text, message }) => {
     const parse = () => parseConfig(text, PATH);
@@ -69,19 +114,13 @@ describe(readConfig, () => {
 
 describe(formatAbbreviationNotice, () => {
   it('names each repository whose entry sets an abbreviation, and Settings', () => {
-    const notice = formatAbbreviationNotice({
-      closedWindowDays: 30,
-      repos: ['w/a', 'w/b'],
-      reposWithAbbreviation: ['w/a', 'w/b'],
-    });
+    const notice = formatAbbreviationNotice({ reposWithAbbreviation: ['w/a', 'w/b'] });
 
     expect(notice).toContain('w/a, w/b');
     expect(notice).toContain('Settings');
   });
 
   it('returns undefined when no entry sets an abbreviation', () => {
-    expect(
-      formatAbbreviationNotice({ closedWindowDays: 30, repos: ['w/a'], reposWithAbbreviation: [] }),
-    ).toBeUndefined();
+    expect(formatAbbreviationNotice({ reposWithAbbreviation: [] })).toBeUndefined();
   });
 });
