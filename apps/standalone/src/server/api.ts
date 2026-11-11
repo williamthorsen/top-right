@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import type { StatusStrategy } from '@top-right/adapter-github';
 import {
   applyScoreWrite,
   DEFAULT_SCORE_LABEL_MAPPING,
@@ -14,6 +15,7 @@ import {
   formatItemKey,
   isOverrideVoid,
   isValidAbbreviation,
+  type ItemPatch,
   keepItemScores,
   normalizeScoreLabelMapping,
   normalizeWorkTypeMapping,
@@ -59,6 +61,8 @@ export interface ApiOptions {
   labelWriter?: LabelWriter | undefined;
   /** The repositories (`owner/name`) whose open issues `items` holds in full, with their recently closed ones. */
   repos: readonly string[];
+  /** Returns how a repository tracks In progress; without one, the host keeps an item's status as an override. */
+  statusStrategyFor?: ((repo: string) => StatusStrategy | undefined) | undefined;
   store: Store;
   /** The user whose scores the host reads and writes. */
   userId: string;
@@ -70,6 +74,7 @@ export function createApiHandler({
   items: itemsCache,
   labelWriter,
   repos,
+  statusStrategyFor,
   store,
   userId,
   now = () => new Date(),
@@ -212,7 +217,14 @@ export function createApiHandler({
           sendJson(response, 400, { error: 'The item is closed at its source; Done is read from the source.' });
           return;
         }
-        // An open GitHub item is To do at its source, so To do needs no override.
+        const ref = parseItemKey(body.itemKey);
+        const strategy = ref && statusStrategyFor?.(ref.repo);
+        if (ref && strategy) {
+          const answer = await writeStatusAtSource(strategy, ref, body.itemKey, body.status);
+          sendJson(response, answer.status, answer.body);
+          return;
+        }
+        // Without a strategy, an open item is To do at its source, so To do needs no override.
         const override: StatusOverride | undefined =
           body.status === 'to-do'
             ? undefined
@@ -268,6 +280,35 @@ export function createApiHandler({
       else applying[itemKey] = override;
     }
     return applying;
+  }
+
+  /**
+   * Writes an open item's status through its repository's strategy, deletes the item's stored override, and returns the
+   * HTTP answer. A write that the source refuses leaves the cache and the store untouched.
+   */
+  async function writeStatusAtSource(
+    strategy: StatusStrategy,
+    ref: Pick<WorkItem, 'number' | 'repo'>,
+    itemKey: string,
+    status: 'in-progress' | 'to-do',
+  ): Promise<{ status: number; body: unknown }> {
+    let patch: ItemPatch;
+    try {
+      patch = await strategy.write(ref, status);
+    } catch (error) {
+      return { status: 502, body: { error: describeError(error) } };
+    }
+    itemsCache.patchItem(itemKey, patch);
+    try {
+      await store.writeStatusOverride(userId, itemKey, undefined);
+    } catch (error) {
+      const reason = describeError(error);
+      return {
+        status: 500,
+        body: { error: `the status changed at GitHub, but the stored status was not cleared: ${reason}`, ...patch },
+      };
+    }
+    return { status: 200, body: { itemKey, override: null, ...patch } };
   }
 
   return async (request: IncomingMessage, response: ServerResponse, next: () => void): Promise<void> => {
