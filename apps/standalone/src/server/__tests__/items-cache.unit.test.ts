@@ -106,14 +106,14 @@ describe(createItemsCache, () => {
     expect((await cache.get()).items).toStrictEqual([ITEM]);
   });
 
-  describe('setLabels', () => {
+  describe('patchItem', () => {
     const KEY = 'williamthorsen/top-right#11';
 
     it("replaces the item's labels in the last read", async () => {
       const cache = createItemsCache({ load: () => Promise.resolve([ITEM]), now: () => START });
       await cache.get();
 
-      cache.setLabels(KEY, ['urgency:high']);
+      cache.patchItem(KEY, { labels: ['urgency:high'] });
 
       expect((await cache.get()).items[0]?.labels).toStrictEqual(['urgency:high']);
     });
@@ -123,7 +123,7 @@ describe(createItemsCache, () => {
       const cache = createItemsCache({ load: () => read.promise, now: () => START });
 
       const refreshing = cache.refresh();
-      cache.setLabels(KEY, ['urgency:high']);
+      cache.patchItem(KEY, { labels: ['urgency:high'] });
       read.resolve([ITEM]);
 
       expect((await refreshing).items[0]?.labels).toStrictEqual(['urgency:high']);
@@ -138,9 +138,37 @@ describe(createItemsCache, () => {
       const cache = createItemsCache({ load, now: () => START });
       await cache.get();
 
-      cache.setLabels(KEY, ['urgency:high']);
+      cache.patchItem(KEY, { labels: ['urgency:high'] });
 
       expect((await cache.refresh()).items[0]?.labels).toStrictEqual(['urgency:low']);
+    });
+
+    it('replaces only the fields that the patch names', async () => {
+      const labelled: WorkItem = { ...ITEM, labels: ['status:in-progress'], sourceStatus: 'in-progress' };
+      const cache = createItemsCache({ load: () => Promise.resolve([labelled]), now: () => START });
+      await cache.get();
+
+      cache.patchItem(KEY, { labels: ['status:in-progress', 'urgency:high'] });
+
+      expect((await cache.get()).items[0]).toMatchObject({
+        labels: ['status:in-progress', 'urgency:high'],
+        sourceStatus: 'in-progress',
+      });
+    });
+
+    it('when a read is in progress, applies every patch made during it', async () => {
+      const read = Promise.withResolvers<WorkItem[]>();
+      const cache = createItemsCache({ load: () => read.promise, now: () => START });
+
+      const refreshing = cache.refresh();
+      cache.patchItem(KEY, { labels: ['status:in-progress'], sourceStatus: 'in-progress' });
+      cache.patchItem(KEY, { labels: ['status:in-progress', 'urgency:high'] });
+      read.resolve([{ ...ITEM, sourceStatus: 'to-do' }]);
+
+      expect((await refreshing).items[0]).toMatchObject({
+        labels: ['status:in-progress', 'urgency:high'],
+        sourceStatus: 'in-progress',
+      });
     });
   });
 });

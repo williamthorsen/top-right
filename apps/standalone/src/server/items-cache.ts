@@ -1,4 +1,4 @@
-import { formatItemKey, type WorkItem } from '@top-right/model';
+import { formatItemKey, type ItemPatch, type WorkItem } from '@top-right/model';
 
 /** How long the last read's issues stay fresh before a load reports them as stale. */
 export const MAX_ITEMS_AGE_MS = 60_000;
@@ -21,8 +21,8 @@ export interface ItemsCache {
   get: () => Promise<CachedItems>;
   /** Reads the issues afresh, sharing a read in progress; a failed read keeps the last issues. */
   refresh: () => Promise<ItemsRead>;
-  /** Replaces an item's labels after a write, in the last read and in a read already in progress. */
-  setLabels: (itemKey: string, labels: readonly string[]) => void;
+  /** Replaces the fields that a write changed on an item, in the last read and in a read already in progress. */
+  patchItem: (itemKey: string, patch: ItemPatch) => void;
 }
 
 export interface ItemsCacheOptions {
@@ -39,8 +39,8 @@ export function createItemsCache({
 }: ItemsCacheOptions): ItemsCache {
   let last: ItemsRead | undefined;
   let pending: Promise<ItemsRead> | undefined;
-  // A read in progress started before these writes, so its issues carry the labels from before them.
-  let patches = new Map<string, readonly string[]>();
+  // A read in progress started before these writes, so its issues carry the fields from before them.
+  let patches = new Map<string, ItemPatch>();
 
   function refresh(): Promise<ItemsRead> {
     pending ??= (async () => {
@@ -63,9 +63,9 @@ export function createItemsCache({
     return result;
   }
 
-  function setLabels(itemKey: string, labels: readonly string[]): void {
-    if (pending) patches.set(itemKey, labels);
-    if (last) last = { ...last, items: applyPatches(last.items, new Map([[itemKey, labels]])) };
+  function patchItem(itemKey: string, patch: ItemPatch): void {
+    if (pending) patches.set(itemKey, { ...patches.get(itemKey), ...patch });
+    if (last) last = { ...last, items: applyPatches(last.items, new Map([[itemKey, patch]])) };
   }
 
   async function get(): Promise<CachedItems> {
@@ -73,15 +73,15 @@ export function createItemsCache({
     return { ...latest, isStale: now().getTime() - latest.readAt.getTime() > maxAgeMs };
   }
 
-  return { get, refresh, setLabels };
+  return { get, patchItem, refresh };
 }
 
 // region | Helpers
-/** Returns `items` with the labels of each patched item replaced. */
-function applyPatches(items: readonly WorkItem[], patches: ReadonlyMap<string, readonly string[]>): WorkItem[] {
+/** Returns `items` with the fields that each patch names replaced on its item. */
+function applyPatches(items: readonly WorkItem[], patches: ReadonlyMap<string, ItemPatch>): WorkItem[] {
   return items.map((item) => {
-    const labels = patches.get(formatItemKey(item));
-    return labels ? { ...item, labels: [...labels] } : item;
+    const patch = patches.get(formatItemKey(item));
+    return patch ? { ...item, ...patch } : item;
   });
 }
 // endregion | Helpers
