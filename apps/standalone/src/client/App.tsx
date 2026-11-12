@@ -6,81 +6,105 @@ import {
   type ItemPatch,
   type ItemScores,
   keepItemScores,
+  parseItemKey,
   type Scores,
   type StatusOverride,
   type WorkItem,
 } from '@top-right/model';
 import { type ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 
-import { type ItemsResponse, itemsResponseSchema, refreshResponseSchema } from '#src/shared/items-response.ts';
+import { type ItemsResponse, itemsResponseSchema, repoReadsResponseSchema } from '#src/shared/items-response.ts';
 import { scoresResponseSchema, statusPatchSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
 
 import { AppHeader } from './AppHeader.tsx';
 import { describeError, getJson, HostResponseError, postJson } from './host-requests.ts';
-import { buildChartHref, buildSettingsHref } from './page-hrefs.ts';
+import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
 import { useStoredMagnification } from './useStoredMagnification.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
 
 /**
  * The page: the chart of the configured repositories' open issues, whose scores and status it writes to the host, with
- * the selected item in the URL.
+ * the selected item in the URL. It asks the host for the repositories that the chart shows.
  */
 export function App(): ReactElement {
   type LoadState = { kind: 'error'; message: string } | { kind: 'loaded'; data: ItemsResponse } | { kind: 'loading' };
+  // How the page asks the host for repositories' issues: from its last reads, or read afresh.
+  type ReadPath = '/api/items/read' | '/api/items/refresh';
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [scores, setScores] = useState<Record<string, ItemScores>>({});
   const [overrides, setOverrides] = useState<Record<string, StatusOverride>>({});
   const [failure, setFailure] = useState<string>();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [shownRepos, setShownRepos] = useState<ReadonlySet<string>>();
   const [selectedKey, changeSelectedKey] = useUrlSelection();
   const [magnification, changeMagnification] = useStoredMagnification();
   // Writes for one item run in order, so that a late response cannot overwrite a newer change.
   const writeQueues = useRef(new Map<string, Promise<void>>());
-  const refreshRunning = useRef(false);
+  // The repositories that a read or a refresh is fetching, which a second request for them skips.
+  const reposInFlight = useRef(new Set<string>());
+  // The repositories that the chart showed when it last reported, so that a report asks only for the newly shown ones.
+  const lastShown = useRef<ReadonlySet<string>>(new Set());
   // A refresh answered after a write at the source may have read the issues before it, so the client re-applies newer
   // writes.
   const itemWrites = useRef(new Map<string, { patch: ItemPatch; sequence: number }>());
   const itemWriteCount = useRef(0);
 
-  // Replaces only the issues, so that a refresh cannot overwrite a score or status write in progress.
-  const refreshIssues = useCallback(async (): Promise<void> => {
-    if (refreshRunning.current) return;
-    refreshRunning.current = true;
+  // Replaces only the issues of the requested repositories, so that a read cannot overwrite a score or status write in
+  // progress, and returns the repositories whose answered read is stale.
+  const readRepos = useCallback(async (path: ReadPath, requested: readonly string[]): Promise<string[]> => {
+    const repos = requested.filter((repo) => !reposInFlight.current.has(repo));
+    if (repos.length === 0) return [];
+    for (const repo of repos) reposInFlight.current.add(repo);
     setIsRefreshing(true);
     const startedAfter = itemWriteCount.current;
     try {
-      const { items, readAt } = await postJson('/api/items/refresh', {}, refreshResponseSchema);
+      const answer = await postJson(path, { repos }, repoReadsResponseSchema);
+      const readRepoSet = new Set(repos);
       const newer = new Map<string, ItemPatch>();
       for (const [itemKey, write] of itemWrites.current) {
         if (write.sequence > startedAfter) newer.set(itemKey, write.patch);
-        else itemWrites.current.delete(itemKey);
+        else if (readRepoSet.has(parseItemKey(itemKey)?.repo ?? '')) itemWrites.current.delete(itemKey);
       }
+      const items = applyPatches(answer.items, newer);
       setState((current) =>
         current.kind === 'loaded'
-          ? { ...current, data: { ...current.data, items: applyPatches(items, newer), readAt } }
+          ? {
+              ...current,
+              data: {
+                ...current.data,
+                items: [...current.data.items.filter((item) => !readRepoSet.has(item.repo)), ...items],
+                reads: { ...current.data.reads, ...answer.reads },
+              },
+            }
           : current,
       );
+      return listStaleRepos(answer.reads);
     } catch (error) {
-      setFailure(`Issues not refreshed: ${endSentence(describeError(error))}`);
+      const verb = path === '/api/items/read' ? 'read' : 'refreshed';
+      setFailure(`Issues not ${verb}: ${endSentence(describeError(error))}`);
+      return [];
     } finally {
-      refreshRunning.current = false;
-      setIsRefreshing(false);
+      for (const repo of repos) reposInFlight.current.delete(repo);
+      setIsRefreshing(reposInFlight.current.size > 0);
     }
   }, []);
 
   useEffect(() => {
     void (async () => {
       try {
-        const data = await getJson('/api/items', itemsResponseSchema);
+        const item = readUrlItem();
+        const path = item === undefined ? '/api/items' : `/api/items?${new URLSearchParams({ item })}`;
+        const data = await getJson(path, itemsResponseSchema);
+        lastShown.current = new Set(Object.keys(data.reads));
         setScores(data.scores);
         setOverrides(data.overrides);
         setState({ kind: 'loaded', data });
-        if (data.isStale) void refreshIssues();
+        void readRepos('/api/items/refresh', listStaleRepos(data.reads));
       } catch (error) {
         setState({ kind: 'error', message: describeError(error) });
       }
     })();
-  }, [refreshIssues]);
+  }, [readRepos]);
 
   useEffect(() => {
     function recordVisitEnd(): void {
@@ -188,6 +212,25 @@ export function App(): ReactElement {
   }
 
   const { data } = state;
+  // The abbreviations name every configured repository.
+  const shownRepoList = Object.keys(data.abbreviations).filter((repo) => shownRepos?.has(repo) ?? true);
+
+  /**
+   * Asks the host for the newly shown repositories, which it answers from its last reads with their age judged now,
+   * then refreshes those whose read is stale.
+   */
+  function followShownRepos(repos: ReadonlySet<string> | undefined): void {
+    setShownRepos(repos);
+    const shown = Object.keys(data.abbreviations).filter((repo) => repos?.has(repo) ?? true);
+    const newlyShown = shown.filter((repo) => !lastShown.current.has(repo));
+    lastShown.current = new Set(shown);
+    void (async () => {
+      const stale = await readRepos('/api/items/read', newlyShown);
+      await readRepos('/api/items/refresh', stale);
+    })();
+  }
+
+  const readAt = findOldestRead(data.reads, shownRepoList);
   return (
     <>
       {header}
@@ -215,12 +258,17 @@ export function App(): ReactElement {
         onMagnificationChange={changeMagnification}
         onScoresChange={changeScores}
         onSelectedKeyChange={changeSelectedKey}
+        onShownReposChange={followShownRepos}
         onStatusChange={(itemKey, status) => {
           const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
           if (item) changeStatus(itemKey, status, item.state);
         }}
         overrides={overrides}
-        refresh={{ readAt: data.readAt, isRefreshing, onRefresh: () => void refreshIssues() }}
+        refresh={
+          readAt === undefined
+            ? undefined
+            : { readAt, isRefreshing, onRefresh: () => void readRepos('/api/items/refresh', shownRepoList) }
+        }
         scoreLabelMapping={data.scoreLabelMapping}
         scores={scores}
         selectedKey={selectedKey}
@@ -243,6 +291,23 @@ function applyPatches(items: readonly WorkItem[], patches: ReadonlyMap<string, I
     const patch = patches.get(formatItemKey(item));
     return patch ? { ...item, ...patch } : item;
   });
+}
+
+/** Returns the repositories whose read the host judged stale. */
+function listStaleRepos(reads: ItemsResponse['reads']): string[] {
+  return Object.entries(reads)
+    .filter(([, read]) => read.isStale)
+    .map(([repo]) => repo);
+}
+
+/**
+ * Returns the oldest read time among `repos`, or among every read when none of `repos` has been read, as an ISO
+ * timestamp; undefined without any read.
+ */
+function findOldestRead(reads: ItemsResponse['reads'], repos: readonly string[]): string | undefined {
+  const shown = repos.flatMap((repo) => reads[repo]?.readAt ?? []);
+  const candidates = shown.length > 0 ? shown : Object.values(reads).map((read) => read.readAt);
+  return candidates.toSorted()[0];
 }
 
 /** Returns the labels and source status that a status answer contains, without its other fields. */

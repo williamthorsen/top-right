@@ -24,6 +24,9 @@ export const itemScoresSchema = z.object({
   progress: buildScoreEntrySchema(z.number()).exactOptional(),
 });
 
+/** When the host last read a repository's issues, and whether the page asks for a fresh read. */
+export const repoReadSchema = z.object({ readAt: z.string(), isStale: z.boolean() });
+
 /** A stored status override. */
 export const statusOverrideSchema = z.object({
   status: z.enum(['in-progress', 'to-do']),
@@ -60,23 +63,24 @@ export const itemsResponseSchema = z.object({
   overrides: z.record(z.string(), statusOverrideSchema),
   /** When the user's previous visit ended. */
   lastVisitAt: z.string().exactOptional(),
-  /** When the host started the read of the issues. */
-  readAt: z.string(),
-  /** Whether the issues are old enough that the page asks the host for a fresh read. */
-  isStale: z.boolean(),
+  /** The read of each repository whose issues `items` holds, by repository. */
+  reads: z.record(z.string(), repoReadSchema),
 });
 
-/** The body of a successful `POST /api/items/refresh`: the issues of a fresh read, without the user's state. */
-export const refreshResponseSchema = z.object({
+/**
+ * The body of a successful `POST /api/items/read` or `POST /api/items/refresh`: the issues of the requested
+ * repositories with their reads, without the user's state.
+ */
+export const repoReadsResponseSchema = z.object({
   items: itemsResponseSchema.shape.items,
-  readAt: z.string(),
+  reads: itemsResponseSchema.shape.reads,
 });
 
 /** The body of a failed request to the host. */
 export const errorResponseSchema = z.object({ error: z.string() });
 
 export type ItemsResponse = z.infer<typeof itemsResponseSchema>;
-export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
+export type RepoReadsResponse = z.infer<typeof repoReadsResponseSchema>;
 
 // region | Helpers
 /** Returns the schema of a score entry whose score and previous score match `score`. */

@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 
 import {
   createLabelStatusStrategy,
+  fetchIssues,
   fetchIssuesOfRepos,
   fetchViewerLogin,
   type GraphqlRequest,
@@ -37,6 +38,8 @@ export interface HostContext {
    * issue's source status.
    */
   loadItems: () => Promise<WorkItem[]>;
+  /** Reads one configured repository's issues as `loadItems` reads each repository's. */
+  loadRepo: (repo: string) => Promise<WorkItem[]>;
   /** The configured repositories, as `owner/name`. */
   repos: string[];
   /**
@@ -85,6 +88,11 @@ export async function openHostContext(): Promise<HostContext> {
       fetchIssuesOfRepos(request, repos, {
         closedSince: computeClosedSince(new Date(), config.closedWindowDays),
         strategyFor: statusStrategyFor,
+      }),
+    loadRepo: (repo) =>
+      fetchIssues(request, repo, {
+        closedSince: computeClosedSince(new Date(), config.closedWindowDays),
+        status: statusStrategyFor(repo),
       }),
     repos,
     statusStrategyFor,

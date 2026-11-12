@@ -1,67 +1,20 @@
 // @vitest-environment jsdom
-// eslint-disable-next-line testing-library/no-manual-cleanup -- Vitest runs without globals, so Testing Library cannot register its own cleanup.
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { DEFAULT_SCORE_LABEL_MAPPING, DEFAULT_WORK_TYPE_MAPPING } from '@top-right/model';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ItemsResponse } from '#src/shared/items-response.ts';
 
 import { App } from '../App.tsx';
+import { setUpAppEnvironment } from '../test-utils/app-environment.ts';
+import { AT, ITEM_KEY, ITEMS, REPO } from '../test-utils/app-fixtures.ts';
+import { stubFetch } from '../test-utils/fetch-stub.ts';
 
-import '@testing-library/jest-dom/vitest';
+setUpAppEnvironment();
 
-// jsdom does not implement scrolling, which the chart's table calls on each selection.
-Element.prototype.scrollIntoView = () => {};
-
-// jsdom does not implement `ResizeObserver`, to which the chart's zoom subscribes; these tests do not resize the chart.
-// The stub is installed per test because `afterEach` unstubs every global.
-beforeEach(() => {
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe(): void {}
-      unobserve(): void {}
-      disconnect(): void {}
-    },
-  );
-});
-
-const ITEM_KEY = 'williamthorsen/top-right#12';
-const AT = '2026-11-08T10:00:00.000Z';
-const ITEMS: ItemsResponse = {
-  items: [
-    {
-      repo: 'williamthorsen/top-right',
-      number: 12,
-      title: 'Score items',
-      url: 'https://github.com/williamthorsen/top-right/issues/12',
-      state: 'open',
-      createdAt: '2026-11-01T09:00:00Z',
-      labels: ['feature'],
-      relations: [],
-    },
-  ],
-  abbreviations: {},
-  abbreviationClashes: [],
-  collections: [],
-  defaultCollectionId: null,
-  workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
-  scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
-  scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'author', at: AT } } },
-  overrides: {},
-  readAt: AT,
-  isStale: false,
-};
+const STALE_ITEMS: ItemsResponse = { ...ITEMS, reads: { [REPO]: { readAt: AT, isStale: true } } };
 
 const CRITICAL_BY_LABEL = { itemKey: ITEM_KEY, scores: {}, labels: ['feature', 'urgency:critical'] };
-
-afterEach(() => {
-  cleanup();
-  localStorage.clear();
-  vi.unstubAllGlobals();
-  globalThis.history.replaceState(null, '', '/');
-});
 
 describe(App, () => {
   it.each([
@@ -217,14 +170,16 @@ describe(App, () => {
     const read = Promise.withResolvers<Response>();
     stubFetch((path) => {
       if (path === '/api/items/refresh') return read.promise;
-      return Promise.resolve(Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : { ...ITEMS, isStale: true }));
+      return Promise.resolve(Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : STALE_ITEMS));
     });
     render(<App />);
 
     await selectItem(user);
     await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
     expect(await screen.findByText('Label · urgency:critical')).toBeInTheDocument();
-    read.resolve(Response.json({ items: ITEMS.items, readAt: '2026-11-08T10:05:00.000Z' }));
+    read.resolve(
+      Response.json({ items: ITEMS.items, reads: { [REPO]: { readAt: '2026-11-08T10:05:00.000Z', isStale: false } } }),
+    );
 
     expect(await within(screen.getByRole('toolbar', { name: 'Issues' })).findByRole('time')).toHaveAttribute(
       'datetime',
@@ -365,23 +320,26 @@ describe('setting the status', () => {
 
 describe('refreshing the issues', () => {
   const RENAMED = 'Score every item';
-  const REFRESHED = { items: [{ ...ITEMS.items[0], title: RENAMED }], readAt: '2026-11-08T10:05:00.000Z' };
+  const READ_AT = '2026-11-08T10:05:00.000Z';
+  const REFRESHED = {
+    items: [{ ...ITEMS.items[0], title: RENAMED }],
+    reads: { [REPO]: { readAt: READ_AT, isStale: false } },
+  };
 
   it('shows the read time and, when the issues are stale, replaces them with a fresh read', async () => {
     const read = Promise.withResolvers<Response>();
-    stubFetch((path) =>
-      path === '/api/items/refresh' ? read.promise : Promise.resolve(Response.json({ ...ITEMS, isStale: true })),
-    );
+    stubFetch((path) => (path === '/api/items/refresh' ? read.promise : Promise.resolve(Response.json(STALE_ITEMS))));
     render(<App />);
 
     const toolbar = await screen.findByRole('toolbar', { name: 'Issues' });
-    expect(toolbar).toHaveTextContent('Reading issues…');
+    // The chart reports the shown repositories after its first render, and the stale read starts from that report.
+    await waitFor(() => expect(toolbar).toHaveTextContent('Reading issues…'));
     expect(screen.getAllByText('Score items').length).toBeGreaterThan(0);
 
     read.resolve(Response.json(REFRESHED));
     expect((await screen.findAllByText(RENAMED)).length).toBeGreaterThan(0);
     expect(screen.queryByText('Score items')).not.toBeInTheDocument();
-    expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', REFRESHED.readAt);
+    expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', READ_AT);
   });
 
   it('reads the issues again on Refresh, keeping the scores on the page', async () => {
@@ -499,12 +457,4 @@ function readItemParameter(): string | null {
   return new URLSearchParams(globalThis.location.search).get('item');
 }
 
-function stubFetch(respond: (path: string) => Promise<Response>): void {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((input: RequestInfo | URL) =>
-      respond(typeof input === 'string' ? input : input instanceof URL ? input.pathname : new URL(input.url).pathname),
-    ),
-  );
-}
 // endregion | Helpers

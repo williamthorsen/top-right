@@ -14,6 +14,9 @@ import { itemScoresSchema, statusOverrideSchema } from './items-response.ts';
 /** The body of `POST /api/keep`: the item whose agent scores the author keeps. */
 export const keepRequestSchema = z.object({ itemKey: z.string().min(1) });
 
+/** The body of `POST /api/items/read` or `POST /api/items/refresh`: the repositories whose issues to return. */
+export const repoReadsRequestSchema = z.object({ repos: z.array(z.string().min(1)) });
+
 /** The body of `POST /api/scores`: one or more of an item's scores. */
 export const scoresRequestSchema = z.object({
   itemKey: z.string().min(1),

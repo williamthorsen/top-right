@@ -13,7 +13,7 @@ cp apps/standalone/config.example.json apps/standalone/config.local.json   # the
 pnpm --filter @top-right/standalone start
 ```
 
-Open <http://localhost:4310/>. Set `PORT` to serve on another port. The host reads the issues from GitHub when it starts and serves each page load from its last read. When the issues are more than a minute old, the page reads them again in the background, and the Refresh button in the strip reads them again at once.
+Open <http://localhost:4310/>. Set `PORT` to serve on another port. The host reads from GitHub only the repositories that the chart shows: at start and on the first load, the default collection's repositories, or every repository without one, and each other repository when the chart first shows it. It serves each page load from its last reads. When a shown repository's issues are more than a minute old, the page reads them again in the background, and the Refresh button in the strip reads the shown repositories again at once.
 
 ## Configure the first run
 

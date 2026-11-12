@@ -31,6 +31,7 @@ const LABEL_MAPPING: ScoreLabelMapping = {
   effort: { 1: [], 2: [], 3: ['size:m'], 5: [], 8: [], 13: [] },
 };
 const IN_PROGRESS: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
+const FRESH_READ = { readAt: NOW.toISOString(), isStale: false };
 
 afterEach(closeServers);
 
@@ -60,8 +61,7 @@ describe(createApiHandler, () => {
         scores,
         overrides: { [ITEM_KEY]: IN_PROGRESS },
         lastVisitAt: EARLIER,
-        readAt: NOW.toISOString(),
-        isStale: false,
+        reads: { [ITEM.repo]: FRESH_READ },
       });
     });
 
@@ -78,14 +78,14 @@ describe(createApiHandler, () => {
 
     it('reports the issues as stale once they are older than the maximum age', async () => {
       let now = NOW;
-      const items = createItemsCache({ load: () => Promise.resolve([ITEM]), maxAgeMs: 1000, now: () => now });
+      const items = createItemsCache({ loadRepo: () => Promise.resolve([ITEM]), maxAgeMs: 1000, now: () => now });
       const baseUrl = await startServer({ items });
 
       await fetch(`${baseUrl}/api/items`);
       now = new Date(NOW.getTime() + 1001);
       const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
 
-      expect(body).toMatchObject({ readAt: NOW.toISOString(), isStale: true });
+      expect(body).toMatchObject({ reads: { [ITEM.repo]: { readAt: NOW.toISOString(), isStale: true } } });
     });
 
     it("reads the user's state afresh while it serves the issues from memory", async () => {
@@ -138,7 +138,7 @@ describe(createApiHandler, () => {
       expect(store.state.overrides).toStrictEqual({ [ITEM_KEY]: IN_PROGRESS });
     });
 
-    it('keeps the override of an item whose repository the host no longer loads', async () => {
+    it('keeps the override of an item whose repository the config no longer lists', async () => {
       const otherKey = 'williamthorsen/elsewhere#3';
       const store = createMemoryStore({ overrides: { [otherKey]: IN_PROGRESS } });
       const baseUrl = await startServer({ store });
@@ -180,10 +180,10 @@ describe(createApiHandler, () => {
       const baseUrl = await startServer({ loadItems });
 
       await fetch(`${baseUrl}/api/items`);
-      const response = await post(`${baseUrl}/api/items/refresh`, {});
+      const response = await post(`${baseUrl}/api/items/refresh`, { repos: [ITEM.repo] });
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toStrictEqual({ items: [renamed], readAt: NOW.toISOString() });
+      expect(await response.json()).toStrictEqual({ items: [renamed], reads: { [ITEM.repo]: FRESH_READ } });
       expect(await (await fetch(`${baseUrl}/api/items`)).json()).toMatchObject({ items: [renamed] });
     });
 
@@ -197,7 +197,7 @@ describe(createApiHandler, () => {
       const baseUrl = await startServer({ loadItems, store });
 
       await fetch(`${baseUrl}/api/items`);
-      await post(`${baseUrl}/api/items/refresh`, {});
+      await post(`${baseUrl}/api/items/refresh`, { repos: [ITEM.repo] });
 
       expect(store.state.overrides).toStrictEqual({});
     });
@@ -210,7 +210,7 @@ describe(createApiHandler, () => {
       const baseUrl = await startServer({ loadItems });
 
       await fetch(`${baseUrl}/api/items`);
-      const response = await post(`${baseUrl}/api/items/refresh`, {});
+      const response = await post(`${baseUrl}/api/items/refresh`, { repos: [ITEM.repo] });
 
       expect(response.status).toBe(502);
       expect(await response.json()).toStrictEqual({ error: 'GitHub did not respond.' });

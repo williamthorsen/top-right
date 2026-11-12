@@ -271,6 +271,54 @@ describe(Chart, () => {
       expect(getGutterLabels()).toEqual(['tr.1', 'ca.2']);
     });
   });
+
+  describe('with a host that follows the shown repositories', () => {
+    const ABBREVIATIONS = { [REPO]: 'tr', [CA]: 'ca', [TOOLS]: 'tb' };
+    const COLLECTIONS: Collection[] = [{ id: 'c1', name: 'Product', repos: [REPO, CA] }];
+    const ITEMS = [buildItem({ number: 1 }), buildItem({ number: 2, repo: CA }), buildItem({ number: 3, repo: TOOLS })];
+
+    it('reports the default collection once on mount', () => {
+      const onShownReposChange = vi.fn();
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS, 'c1', onShownReposChange);
+
+      expect(onShownReposChange.mock.calls).toStrictEqual([[new Set([REPO, CA])]]);
+    });
+
+    it('reports every repository as undefined without a default collection', () => {
+      const onShownReposChange = vi.fn();
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS, undefined, onShownReposChange);
+
+      expect(onShownReposChange.mock.calls).toStrictEqual([[undefined]]);
+    });
+
+    it('reports each change of the repositories, and not a change of the statuses', async () => {
+      const user = userEvent.setup();
+      const onShownReposChange = vi.fn();
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS, 'c1', onShownReposChange);
+
+      await user.click(screen.getByRole('button', { name: /^Done/ }));
+      await chooseRepos(user, 'toolbelt (tb)');
+
+      expect(onShownReposChange.mock.calls).toStrictEqual([[new Set([REPO, CA])], [new Set([REPO, CA, TOOLS])]]);
+    });
+
+    it('reports the repository that a host-selected item adds to the filter', () => {
+      const onShownReposChange = vi.fn();
+      render(
+        <Chart
+          abbreviations={ABBREVIATIONS}
+          collections={COLLECTIONS}
+          defaultCollectionId="c1"
+          items={ITEMS}
+          onSelectedKeyChange={vi.fn()}
+          onShownReposChange={onShownReposChange}
+          selectedKey={`${TOOLS}#3`}
+        />,
+      );
+
+      expect(onShownReposChange).toHaveBeenLastCalledWith(new Set([REPO, CA, TOOLS]));
+    });
+  });
 });
 
 // region | Helpers
@@ -309,6 +357,7 @@ function renderWithCollections(
   abbreviations: Record<string, string>,
   collections: Collection[],
   defaultCollectionId?: string,
+  onShownReposChange?: (repos: ReadonlySet<string> | undefined) => void,
 ) {
   return render(
     <Chart
@@ -316,6 +365,7 @@ function renderWithCollections(
       collections={collections}
       defaultCollectionId={defaultCollectionId}
       items={items}
+      onShownReposChange={onShownReposChange}
     />,
   );
 }

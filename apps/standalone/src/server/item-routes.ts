@@ -1,4 +1,4 @@
-import type { ServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { StatusStrategy } from '@top-right/adapter-github';
 import {
@@ -12,26 +12,28 @@ import {
   parseItemKey,
   resolveAbbreviations,
   type StatusOverride,
-  type WorkItem,
 } from '@top-right/model';
 import type { Store } from '@top-right/store';
 
-import type { ItemsResponse, RefreshResponse } from '#src/shared/items-response.ts';
+import type { ItemsResponse, RepoReadsResponse } from '#src/shared/items-response.ts';
 import {
   compactScores,
   keepRequestSchema,
+  repoReadsRequestSchema,
   scoresRequestSchema,
   statusRequestSchema,
 } from '#src/shared/write-requests.ts';
 
+import { resolveFirstLoadRepos } from './first-load-repos.ts';
 import { describeError, readRequest, sendJson } from './http-json.ts';
-import type { ItemsCache } from './items-cache.ts';
+import type { ItemsCache, ItemsRead, RepoRead } from './items-cache.ts';
 import { type LabelWriter, writeAuthorChange } from './label-write.ts';
 import type { RouteTable } from './route-table.ts';
 import { describeCollections } from './settings-routes.ts';
 import { writeStatusAtSource } from './status-write.ts';
 
 export const ITEMS_PATH = '/api/items';
+export const ITEMS_READ_PATH = '/api/items/read';
 export const ITEMS_REFRESH_PATH = '/api/items/refresh';
 export const KEEP_PATH = '/api/keep';
 export const SCORES_PATH = '/api/scores';
@@ -42,7 +44,7 @@ export interface ItemRoutesOptions {
   items: ItemsCache;
   /** Writes urgency, value, and effort to an issue's labels; without it, the host keeps every score in the store. */
   labelWriter?: LabelWriter | undefined;
-  /** The repositories (`owner/name`) whose open issues `items` holds in full, with their recently closed ones. */
+  /** The configured repositories (`owner/name`), whose open issues `items` reads with their recently closed ones. */
   repos: readonly string[];
   /** Returns how a repository tracks In progress; without one, the host keeps an item's status as an override. */
   statusStrategyFor?: ((repo: string) => StatusStrategy | undefined) | undefined;
@@ -69,12 +71,16 @@ export function createItemRoutes({
   const routes: RouteTable = {
     [ITEMS_PATH]: {
       method: 'GET',
-      handle: async (_request, response) => {
-        const cached = await readItems(itemsCache.get, response);
-        if (!cached) return;
-        const { items, readAt, isStale } = cached;
+      handle: async (request, response) => {
         const state = await store.readUserState(userId);
-        const overrides = await dropVoidOverrides(items, state.overrides);
+        const itemKey = new URL(request.url ?? '/', 'http://localhost').searchParams.get('item') ?? undefined;
+        const cached = await readItems(
+          () => itemsCache.get(resolveFirstLoadRepos(state.collections, repos, itemKey)),
+          response,
+        );
+        if (!cached) return;
+        const { items, reads } = cached;
+        const overrides = await dropVoidOverrides(cached, state.overrides);
         const abbreviations = resolveAbbreviations(repos, state.abbreviations);
         const body: ItemsResponse = {
           items,
@@ -86,22 +92,18 @@ export function createItemRoutes({
           scores: state.scores,
           overrides,
           ...(state.lastVisitAt !== undefined && { lastVisitAt: state.lastVisitAt }),
-          readAt: readAt.toISOString(),
-          isStale,
+          reads: serializeReads(reads),
         };
         sendJson(response, 200, body);
       },
     },
+    [ITEMS_READ_PATH]: {
+      method: 'POST',
+      handle: (request, response) => answerRepoReads(request, response, itemsCache.get),
+    },
     [ITEMS_REFRESH_PATH]: {
       method: 'POST',
-      handle: async (_request, response) => {
-        const read = await readItems(itemsCache.refresh, response);
-        if (!read) return;
-        const state = await store.readUserState(userId);
-        await dropVoidOverrides(read.items, state.overrides);
-        const body: RefreshResponse = { items: read.items, readAt: read.readAt.toISOString() };
-        sendJson(response, 200, body);
-      },
+      handle: (request, response) => answerRepoReads(request, response, itemsCache.refresh),
     },
     [KEEP_PATH]: {
       method: 'POST',
@@ -170,19 +172,44 @@ export function createItemRoutes({
   };
 
   /**
+   * Answers a request for the issues of the repositories that its body names, read by `read`, after deleting the
+   * overrides that the read voids; a repository that the config does not list is refused.
+   */
+  async function answerRepoReads(
+    request: IncomingMessage,
+    response: ServerResponse,
+    read: (repos: readonly string[]) => Promise<ItemsRead>,
+  ): Promise<void> {
+    const body = await readRequest(request, response, repoReadsRequestSchema);
+    if (!body) return;
+    const unconfigured = body.repos.find((repo) => !configuredRepos.has(repo));
+    if (unconfigured !== undefined) {
+      sendJson(response, 400, { error: `${unconfigured} is not a configured repository.` });
+      return;
+    }
+    const result = await readItems(() => read(body.repos), response);
+    if (!result) return;
+    const state = await store.readUserState(userId);
+    // The page keeps its own overrides, so the answer leaves them out.
+    await dropVoidOverrides(result, state.overrides);
+    const answer: RepoReadsResponse = { items: result.items, reads: serializeReads(result.reads) };
+    sendJson(response, 200, answer);
+  }
+
+  /**
    * Deletes each stored override whose item's source state has changed, and returns the ones that still apply. An item
-   * of a loaded repository that is missing from the open items has left the open state at its source, so its override
-   * is void too; an override of a repository that the host no longer loads is kept.
+   * of a repository in the read that is missing from its items has left the open state at its source, so its override
+   * is void too; an override of a repository outside the read is kept.
    */
   async function dropVoidOverrides(
-    items: readonly WorkItem[],
+    { items, reads }: ItemsRead,
     overrides: Readonly<Record<string, StatusOverride>>,
   ): Promise<Record<string, StatusOverride>> {
     const itemsByKey = new Map(items.map((item) => [formatItemKey(item), item]));
     const applying: Record<string, StatusOverride> = {};
     for (const [itemKey, override] of Object.entries(overrides)) {
       const item = itemsByKey.get(itemKey);
-      const isVoid = item ? isOverrideVoid(item, override) : configuredRepos.has(parseItemKey(itemKey)?.repo ?? '');
+      const isVoid = item ? isOverrideVoid(item, override) : Object.hasOwn(reads, parseItemKey(itemKey)?.repo ?? '');
       if (isVoid) await store.writeStatusOverride(userId, itemKey, undefined);
       else applying[itemKey] = override;
     }
@@ -203,4 +230,10 @@ async function readItems<T>(read: () => Promise<T>, response: ServerResponse): P
   }
 }
 
+/** Returns each repository's read with its time as an ISO string. */
+function serializeReads(reads: Readonly<Record<string, RepoRead>>): ItemsResponse['reads'] {
+  return Object.fromEntries(
+    Object.entries(reads).map(([repo, { readAt, isStale }]) => [repo, { readAt: readAt.toISOString(), isStale }]),
+  );
+}
 // endregion | Helpers

@@ -35,14 +35,20 @@ export function post(url: string, body: unknown): Promise<Response> {
   return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 }
 
-/** Starts the API on a free port, with an items cache over `loadItems` unless `overrides` supplies one. */
+/**
+ * Starts the API on a free port, with an items cache unless `overrides` supplies one; the cache reads each repository's
+ * items from what `loadItems` returns.
+ */
 export async function startServer({
   loadItems = () => Promise.resolve([ITEM]),
   ...overrides
 }: Partial<ApiOptions> & { loadItems?: () => Promise<WorkItem[]> }): Promise<string> {
   const handle = createApiHandler({
     configPath: CONFIG_PATH,
-    items: createItemsCache({ load: loadItems, now: () => NOW }),
+    items: createItemsCache({
+      loadRepo: async (repo) => (await loadItems()).filter((item) => item.repo === repo),
+      now: () => NOW,
+    }),
     repos: [ITEM.repo],
     store: createMemoryStore(),
     userId: 'github:author',
