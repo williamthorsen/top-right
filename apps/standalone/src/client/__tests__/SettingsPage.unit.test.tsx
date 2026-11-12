@@ -17,6 +17,8 @@ const SETTINGS: SettingsResponse = {
   abbreviations: { 'w/codeassembly': 'ca' },
   workTypeMapping: null,
   scoreLabelMapping: null,
+  collections: [],
+  defaultCollectionId: null,
 };
 
 afterEach(() => {

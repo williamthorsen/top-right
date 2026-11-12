@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { StatusStrategy } from '@top-right/adapter-github';
 import {
   applyScoreWrite,
+  type CollectionSettings,
   DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
   describeAbbreviationClash,
@@ -10,6 +11,7 @@ import {
   describeDuplicateScoreLabel,
   describeInvalidAbbreviation,
   findAbbreviationClashes,
+  findCollectionProblem,
   findDuplicateLabels,
   findDuplicateScoreLabels,
   formatItemKey,
@@ -28,6 +30,7 @@ import type { Store } from '@top-right/store';
 import type { ItemsResponse, RefreshResponse } from '#src/shared/items-response.ts';
 import {
   abbreviationsRequestSchema,
+  collectionsRequestSchema,
   scoreLabelMappingRequestSchema,
   type SettingsResponse,
   workTypeMappingRequestSchema,
@@ -45,6 +48,7 @@ import { type LabelWriter, writeAuthorChange } from './label-write.ts';
 import { writeStatusAtSource } from './status-write.ts';
 
 export const ABBREVIATIONS_PATH = '/api/abbreviations';
+export const COLLECTIONS_PATH = '/api/collections';
 export const ITEMS_PATH = '/api/items';
 export const ITEMS_REFRESH_PATH = '/api/items/refresh';
 export const KEEP_PATH = '/api/keep';
@@ -122,6 +126,24 @@ export function createApiHandler({
         sendJson(response, 200, { abbreviations: next });
       },
     },
+    [COLLECTIONS_PATH]: {
+      method: 'POST',
+      handle: async (request, response) => {
+        const body = await readRequest(request, response, collectionsRequestSchema);
+        if (!body) return;
+        const settings: CollectionSettings = {
+          collections: body.collections.map((collection) => ({ ...collection, name: collection.name.trim() })),
+          defaultCollectionId: body.defaultCollectionId ?? undefined,
+        };
+        const problem = findCollectionProblem(settings, repos);
+        if (problem !== undefined) {
+          sendJson(response, 400, { error: problem });
+          return;
+        }
+        await store.writeCollections(userId, settings);
+        sendJson(response, 200, { collections: settings.collections, defaultCollectionId: body.defaultCollectionId });
+      },
+    },
     [ITEMS_PATH]: {
       method: 'GET',
       handle: async (_request, response) => {
@@ -135,6 +157,7 @@ export function createApiHandler({
           items,
           abbreviations,
           abbreviationClashes: findAbbreviationClashes(abbreviations),
+          ...describeCollections(state.collections),
           workTypeMapping: state.workTypeMapping ?? DEFAULT_WORK_TYPE_MAPPING,
           scoreLabelMapping: state.scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING,
           scores: state.scores,
@@ -209,6 +232,7 @@ export function createApiHandler({
           abbreviations: state.abbreviations,
           workTypeMapping: state.workTypeMapping ?? null,
           scoreLabelMapping: state.scoreLabelMapping ?? null,
+          ...describeCollections(state.collections),
         };
         sendJson(response, 200, body);
       },
@@ -266,6 +290,17 @@ export function createApiHandler({
       },
     },
   };
+
+  /** Returns the collections and default of `settings` as a response states them, within the configured repositories. */
+  function describeCollections({ collections, defaultCollectionId }: CollectionSettings) {
+    return {
+      collections: collections.map((collection) => ({
+        ...collection,
+        repos: collection.repos.filter((repo) => configuredRepos.has(repo)),
+      })),
+      defaultCollectionId: defaultCollectionId ?? null,
+    };
+  }
 
   /**
    * Deletes each stored override whose item's source state has changed, and returns the ones that still apply. An item

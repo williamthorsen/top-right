@@ -44,6 +44,8 @@ const ITEMS: ItemsResponse = {
   ],
   abbreviations: {},
   abbreviationClashes: [],
+  collections: [],
+  defaultCollectionId: null,
   workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
   scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
   scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'author', at: AT } } },
