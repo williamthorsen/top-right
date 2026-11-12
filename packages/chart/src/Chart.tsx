@@ -19,22 +19,19 @@ import {
 } from '@top-right/model';
 import { type ReactElement, useMemo, useRef, useState } from 'react';
 
+import { ChartCanvas } from './ChartCanvas.tsx';
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
-import { DragProxy, DropTarget } from './DragMarks.tsx';
-import { Edges, focusItem, mergeChainEdges } from './Edges.tsx';
+import { focusItem, mergeChainEdges } from './Edges.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
-import { Grid, MARGIN_LEFT, MARGIN_TOP, measureFrame } from './Grid.tsx';
-import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
 import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
-import { ScoredCells } from './ScoredCells.tsx';
-import { listTrails, Trail } from './Trail.tsx';
+import { listTrails } from './Trail.tsx';
 import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
@@ -95,9 +92,6 @@ export interface ChartProps {
 const INITIAL_SPLIT = 60;
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
 const NO_OVERRIDES: Readonly<Record<string, StatusOverride>> = {};
-/** Where the matrix's origin sits in the SVG, past the axis margins. */
-const MATRIX_ORIGIN = { x: MARGIN_LEFT, y: MARGIN_TOP };
-const MATRIX_TRANSFORM = `translate(${MATRIX_ORIGIN.x} ${MATRIX_ORIGIN.y})`;
 
 /**
  * The Top Right chart: items by urgency and value, with the legend, the table, and the detail pane. It fills its
@@ -161,7 +155,6 @@ export function Chart({
   });
   const { cellSize } = zoom;
   const scale = zoom.magnification;
-  const frame = measureFrame(cellSize);
   const cells = useMemo(
     () => layoutCells(placeItems(visibleItems, scores, scopeMode), cellSize),
     [visibleItems, scores, scopeMode, cellSize],
@@ -255,89 +248,36 @@ export function Chart({
           />
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
-              <div className="tr-chart-scroll" ref={scrollRef}>
-                <div className="tr-canvas" style={{ width: frame.width * scale, height: frame.height * scale }}>
-                  <svg
-                    aria-label="Items by urgency and value"
-                    className="tr-chart"
-                    height={frame.height * scale}
-                    ref={svgRef}
-                    role="group"
-                    viewBox={`0 0 ${frame.width} ${frame.height}`}
-                    width={frame.width * scale}
-                  >
-                    <Grid cellSize={cellSize} />
-                    <g transform={MATRIX_TRANSFORM}>
-                      <DropTarget cellSize={cellSize} drag={drag} />
-                      {trails.map((trail) => (
-                        <Trail
-                          cellSize={cellSize}
-                          key={trail.id}
-                          origin={trail.origin}
-                          r={trail.r}
-                          x={trail.x}
-                          y={trail.y}
-                        />
-                      ))}
-                      <Edges edges={shownEdges} ends={ends} />
-                      <ScoredCells
-                        blockedKeys={blockedKeys}
-                        cells={cells}
-                        dragHandlersFor={dragHandlersFor}
-                        draggingKey={drag?.key}
-                        ghostOwner={ghostOwner}
-                        ghosts={ghostElements}
-                        highlightedKey={highlightedKey}
-                        isFaded={isFaded}
-                        itemsByKey={itemsByKey}
-                        labelOf={labelOf}
-                        onPreview={setPreviewKey}
-                        onSelect={selectItem}
-                        overrides={overrides}
-                        pickKey={pickKey}
-                        scopeMode={scopeMode}
-                        scores={scores}
-                        selectedKey={selectedKey}
-                        workTypeMapping={workTypeMapping}
-                      />
-                      {ghostOwner === undefined ? ghostElements : null}
-                    </g>
-                  </svg>
-                  {/* HTML rather than a foreignObject, which WebKit neither draws nor hit-tests at the SVG's scale. */}
-                  <div
-                    className="tr-gutters"
-                    style={{ width: frame.width, height: frame.height, transform: `scale(${scale})` }}
-                  >
-                    {cells.map((cell) =>
-                      cell.isGutter ? (
-                        <GutterCell
-                          blockedKeys={blockedKeys}
-                          cell={cell}
-                          cellSize={cellSize}
-                          dragHandlersFor={dragHandlersFor}
-                          draggingKey={drag?.key}
-                          highlightedKey={highlightedKey}
-                          isFaded={isFaded}
-                          itemsByKey={itemsByKey}
-                          key={`${cell.u},${cell.v}`}
-                          labelOf={labelOf}
-                          onPreview={setPreviewKey}
-                          onSelect={selectItem}
-                          origin={MATRIX_ORIGIN}
-                          scores={scores}
-                          selectedKey={selectedKey}
-                          workTypeMapping={workTypeMapping}
-                        />
-                      ) : null,
-                    )}
-                  </div>
-                  <svg aria-hidden="true" className="tr-chart-overlay" viewBox={`0 0 ${frame.width} ${frame.height}`}>
-                    <g transform={MATRIX_TRANSFORM}>
-                      <DragProxy drag={drag} />
-                    </g>
-                  </svg>
-                </div>
-              </div>
+              <ChartCanvas
+                cellSize={cellSize}
+                drag={drag}
+                edges={shownEdges}
+                ends={ends}
+                scale={scale}
+                scoredCells={{
+                  blockedKeys,
+                  cells,
+                  dragHandlersFor,
+                  draggingKey: drag?.key,
+                  ghostOwner,
+                  ghosts: ghostElements,
+                  highlightedKey,
+                  isFaded,
+                  itemsByKey,
+                  labelOf,
+                  onPreview: setPreviewKey,
+                  onSelect: selectItem,
+                  overrides,
+                  pickKey,
+                  scopeMode,
+                  scores,
+                  selectedKey,
+                  workTypeMapping,
+                }}
+                scrollRef={scrollRef}
+                svgRef={svgRef}
+                trails={trails}
+              />
               <Legend settingsHref={settingsHref} workTypeMapping={workTypeMapping} />
             </div>
             <Divider containerRef={splitRef} label="Chart and table" onChange={setSplit} value={split} />
