@@ -10,6 +10,8 @@ import {
 } from 'react';
 
 export interface MenuButtonItem {
+  /** Tells apart items of one group whose labels repeat; the label stands in without it. */
+  id?: string;
   label: string;
   role: 'menuitemcheckbox' | 'menuitemradio';
   isChecked: boolean;
@@ -141,7 +143,7 @@ export function MenuButton({
         aria-checked={item.isChecked}
         aria-disabled={item.isDisabled}
         className="tr-menu-item"
-        key={`${groupLabel}:${item.label}`}
+        key={`${groupLabel}:${item.id ?? item.label}`}
         onClick={() => choose(index)}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;

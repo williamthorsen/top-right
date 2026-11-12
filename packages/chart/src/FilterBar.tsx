@@ -53,7 +53,7 @@ export function FilterBar({ filter, abbreviations, collections = [], counts, onC
     {
       label: 'Collections',
       items: collections.map((collection) =>
-        buildToggle(collection.name, scope.collectionIds.has(collection.id), () =>
+        buildToggle(collection.id, collection.name, scope.collectionIds.has(collection.id), () =>
           changeScope({ ...scope, collectionIds: toggle(scope.collectionIds, collection.id) }),
         ),
       ),
@@ -61,7 +61,7 @@ export function FilterBar({ filter, abbreviations, collections = [], counts, onC
     {
       label: 'Repositories',
       items: repos.map((repo) =>
-        buildToggle(`${nameRepo(repo)} (${abbreviations[repo] ?? ''})`, scope.repos.has(repo), () =>
+        buildToggle(repo, `${nameRepo(repo)} (${abbreviations[repo] ?? ''})`, scope.repos.has(repo), () =>
           changeScope({ ...scope, repos: toggle(scope.repos, repo) }),
         ),
       ),
@@ -78,7 +78,7 @@ export function FilterBar({ filter, abbreviations, collections = [], counts, onC
         className="tr-filter-repos"
         closesOnChoose={false}
         items={[
-          buildToggle('All repos', isEveryRepo, () => changeScope(EMPTY_REPO_SCOPE)),
+          buildToggle('all', 'All repos', isEveryRepo, () => changeScope(EMPTY_REPO_SCOPE)),
           ...groups.filter((group) => group.items.length > 0),
         ]}
         menuLabel="Repos"
@@ -98,8 +98,8 @@ export function FilterBar({ filter, abbreviations, collections = [], counts, onC
 
 // region | Helpers
 /** Returns a checkable menu item. */
-function buildToggle(label: string, isChecked: boolean, onChoose: () => void): MenuButtonItem {
-  return { label, role: 'menuitemcheckbox', isChecked, onChoose };
+function buildToggle(id: string, label: string, isChecked: boolean, onChoose: () => void): MenuButtonItem {
+  return { id, label, role: 'menuitemcheckbox', isChecked, onChoose };
 }
 
 /** Returns the names of the scope's collections, then of its repositories, each in menu order, joined by commas. */

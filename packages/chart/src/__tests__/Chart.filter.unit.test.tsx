@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import type { Collection, StatusOverride, WorkItem } from '@top-right/model';
 import { type ReactElement, useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
@@ -54,6 +54,18 @@ describe(Chart, () => {
       ).toEqual(['✓All repos', 'codeassembly (ca)', 'top-right (tr)']);
       expect(within(menu).queryByRole('group', { name: 'Collections' })).not.toBeInTheDocument();
       expect(within(menu).getByRole('group', { name: 'Repositories' })).toBeInTheDocument();
+    });
+
+    it('offers two repos that share a name and an abbreviation as separate items', async () => {
+      const user = userEvent.setup();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      renderChart([buildItem({ number: 1 })], { 'alice/tools': 'T', 'bob/tools': 'T' });
+
+      await user.click(getReposButton());
+
+      expect(screen.getAllByRole('menuitemcheckbox', { name: 'tools (T)' })).toHaveLength(2);
+      expect(consoleError).not.toHaveBeenCalled();
+      consoleError.mockRestore();
     });
 
     it('when In progress is turned off, removes the items in progress and keeps the counts', async () => {
