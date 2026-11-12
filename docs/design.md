@@ -218,6 +218,10 @@ Decided at the prototype round, from the developer's comments on the baseline; n
 
 Revised at the sixth MVP iteration (#26): At 760 px wide or narrower, the panes stack without a divider and the page scrolls, because a scrolling table inside a scrolling page fails on touch. Hovering a row rings its circle without previewing the pane, as a relation row does. Rows do not fade, since the fade belongs to the chart, and neither the sort nor the split survives a reload, like the filter.
 
+### The host owns the shell
+
+The local host shows a header on every page, the chart and Settings alike, and while a page loads or has failed to load: the product's name, which links to the chart, and a link to each page, with the current page marked. The header's links carry the selected item, so that a round trip through Settings restores the selection. The host owns the header rather than the chart package, so that an embedding host, such as a Forge Custom UI app, keeps its own chrome; the chart and Settings components therefore do not link to the host's pages, except the legend's mapping popover, which links to Settings in context. Settings takes the host's own sections after its forms, and the local host adds a read-only Repositories section that lists the repositories and the path of the config file that it read; the list stays in the config file for the reason that "GitHub adapter first, Jira adapter second" gives for the closed window. Decided at #65: Neither page named the product, the links between the pages were small and placed apart, and only the README said where the repositories are configured.
+
 ## Rejected alternatives
 
 - Separate apps for GitHub and Jira: Each app would duplicate the model, scoring, layout, and chart. One core with an adapter per source keeps a single copy.
@@ -302,6 +306,6 @@ The package split is settled for the MVP, whose epic is #10. It follows the base
 - `packages/chart`: the browser chart, its detail pane, the table, and the Settings forms, which take props only, with the cell packing and the gutters inside it, and the selection that the chart and the table share
 - `packages/adapter-github`: the GitHub adapter, which reads issues, writes their labels, and provides the status strategies
 - `packages/store`: the store interface, with scores, status overrides, the last visit, and the settings that Settings edits (the type mapping, the score-label mapping, and the repo abbreviations), each per user, and the conformance tests that every store runs
-- `apps/standalone`: the local host, which implements the store on SQLite, keeps the last read of the issues in memory, writes the author's levels to labels through the adapter, serves the page, and keeps the selection in the page's URL
+- `apps/standalone`: the local host, which implements the store on SQLite, keeps the last read of the issues in memory, writes the author's levels to labels through the adapter, serves the page with its header and the Repositories section of Settings, and keeps the selection in the page's URL
 
 The Jira adapter, `packages/adapter-jira`, is added after the MVP, when its iteration starts. Every package under `packages/` is part of the published core. `apps/standalone` stays in this repository and is not published.
