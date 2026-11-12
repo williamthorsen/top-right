@@ -28,7 +28,7 @@ import { Grid, MARGIN_LEFT, MARGIN_TOP, measureFrame } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { findCellLevels, layoutCells, MIN_CELL_SIZE, placeItems, type ScopeMode } from './layout.ts';
+import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
@@ -77,6 +77,13 @@ export interface ChartProps {
    * record it as a history entry, and false for one that the chart makes itself, such as a review step.
    */
   onSelectedKeyChange?: (key: string | undefined, options: { push: boolean }) => void;
+  /**
+   * The scale from chart units to pixels, which sets the size of the chart's text and circles, read only while
+   * `onMagnificationChange` is passed; 100 % when undefined. The chart area sets the cells' size.
+   */
+  magnification?: number | undefined;
+  /** Reports a magnification that the author chose, which makes the magnification the host's to hold. */
+  onMagnificationChange?: (magnification: number) => void;
 }
 
 /** The chart pane's initial share of the height that it splits with the table, as a percentage. */
@@ -105,6 +112,8 @@ export function Chart({
   onKeep,
   selectedKey: hostSelectedKey,
   onSelectedKeyChange,
+  magnification,
+  onMagnificationChange,
 }: ChartProps): ReactElement {
   const selection = useSelection({ selectedKey: hostSelectedKey, onSelectedKeyChange });
   const [previewKey, setPreviewKey] = useState<string>();
@@ -131,7 +140,18 @@ export function Chart({
     return item !== undefined;
   });
   if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
-  const cellSize = MIN_CELL_SIZE;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const zoom = useZoom({
+    scrollRef,
+    contentRef: svgRef,
+    keyRootRef: rootRef,
+    magnification,
+    onMagnificationChange,
+  });
+  const { cellSize } = zoom;
+  const scale = zoom.magnification;
   const frame = measureFrame(cellSize);
   const cells = useMemo(
     () => layoutCells(placeItems(visibleItems, scores, scopeMode), cellSize),
@@ -146,11 +166,6 @@ export function Chart({
     setHighlightedKey(undefined);
   }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const zoom = useZoom({ scrollRef, contentRef: svgRef, keyRootRef: rootRef });
-  const scale = zoom.zoom.scale;
   const review = useReview({
     items: visibleItems,
     scores,

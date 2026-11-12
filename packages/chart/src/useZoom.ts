@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
-import { DEFAULT_ZOOM, fitScale, isAtEnd, NATURAL_SCALE, stepZoom, type Zoom, type ZoomDirection } from './zoom.ts';
+import { fitCellSize, isAtEnd, NATURAL_SCALE, stepZoom, type ZoomDirection } from './zoom.ts';
 
 export interface ZoomOptions {
   /** The scroll container whose content the zoom scales. */
@@ -9,17 +9,20 @@ export interface ZoomOptions {
   contentRef: RefObject<Element | null>;
   /** The element within which focus makes the zoom keys work; they also work while nothing on the page has focus. */
   keyRootRef: RefObject<HTMLElement | null>;
+  /** The host's magnification, read only while `onMagnificationChange` is passed; the natural size when undefined. */
+  magnification?: number | undefined;
+  onMagnificationChange?: ((magnification: number) => void) | undefined;
 }
 
-/** What a zoom input can choose: Fit, or a scale. */
-export type ZoomChoice = 'fit' | number;
-
 export interface ZoomState {
-  zoom: Zoom;
-  /** Steps the scale, keeping the centre of the visible area in place. */
+  /** The scale from chart units to pixels, which sets the size of the chart's text, circles, and strokes. */
+  magnification: number;
+  /** The size of a cell in chart units: the largest that fits the container at the magnification, never below the minimum. */
+  cellSize: number;
+  /** Steps the magnification, keeping the centre of the visible area in place. */
   step: (direction: ZoomDirection) => void;
-  /** Chooses a scale, or Fit, which follows the area's size until a manual zoom; either keeps the visible centre. */
-  choose: (choice: ZoomChoice) => void;
+  /** Chooses a magnification, keeping the centre of the visible area in place. */
+  choose: (magnification: number) => void;
 }
 
 /**
@@ -38,52 +41,55 @@ const KEY_EXEMPT_SELECTOR =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="slider"]';
 
 /**
- * Holds the matrix's zoom and wires its inputs: Ctrl or Cmd with the wheel (which a trackpad pinch also sends) and a
- * two-finger touch pinch over the scroll container, and the `+`, `-`, and `0` keys. Each change keeps an anchor point in
- * place by correcting the container's scroll: the pointer for the wheel and the pinch, the visible centre otherwise.
- * While the zoom is Fit, which it is on mount, a change in the container's size refits the matrix.
+ * Holds the matrix's magnification and wires its inputs: Ctrl or Cmd with the wheel (which a trackpad pinch also sends)
+ * and a two-finger touch pinch over the scroll container, and the `+`, `-`, and `0` keys. Each change keeps an anchor
+ * point in place by correcting the container's scroll: the pointer for the wheel and the pinch, the visible centre
+ * otherwise. The magnification is the hook's own, or, when the host passes `onMagnificationChange`, the host's, to
+ * which each change is reported. The cell size follows the container's size and the magnification.
  */
-export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): ZoomState {
-  const [zoom, setZoom] = useState<Zoom>(DEFAULT_ZOOM);
-  // Several wheel, pinch, or resize events can arrive before a commit, so each acts on the latest request.
-  const requested = useRef<Zoom>(DEFAULT_ZOOM);
+export function useZoom({
+  scrollRef,
+  contentRef,
+  keyRootRef,
+  magnification: hostMagnification,
+  onMagnificationChange,
+}: ZoomOptions): ZoomState {
+  const [ownMagnification, setOwnMagnification] = useState(NATURAL_SCALE);
+  const [area, setArea] = useState({ width: 0, height: 0 });
+  const magnification = onMagnificationChange === undefined ? ownMagnification : (hostMagnification ?? NATURAL_SCALE);
+  // Several wheel or pinch events can arrive before a commit, so each acts on the latest request.
+  const requested = useRef(magnification);
   const anchor = useRef<Anchor>(undefined);
+  useLayoutEffect(() => {
+    requested.current = magnification;
+  }, [magnification]);
 
-  /** Records a zoom change and the client point that it keeps in place, the visible centre by default. */
-  function request(next: Zoom, at?: ClientPoint): void {
+  /** Records a magnification and the client point that it keeps in place, the visible centre by default. */
+  function request(next: number, at?: ClientPoint): void {
+    if (next === requested.current) return;
     const container = scrollRef.current;
     const content = contentRef.current;
     if (container && content) anchor.current = locateAnchor(content, at ?? findVisibleCentre(container));
     requested.current = next;
-    setZoom(next);
+    if (onMagnificationChange === undefined) setOwnMagnification(next);
+    else onMagnificationChange(next);
   }
 
   function step(direction: ZoomDirection, at?: ClientPoint): void {
-    const scale = stepZoom(requested.current.scale, direction);
-    if (scale !== requested.current.scale) request({ kind: 'step', scale }, at);
+    request(stepZoom(requested.current, direction), at);
   }
 
-  function choose(choice: ZoomChoice): void {
-    if (choice === 'fit') request({ kind: 'fit', scale: measureFit() });
-    else request({ kind: 'step', scale: choice });
-  }
-
-  /** Returns the scale that fits the matrix to the scroll container's client area. */
-  function measureFit(): number {
+  /** Records the container's client size, which excludes its border and any scrollbar. */
+  function measureArea(): void {
     const container = scrollRef.current;
-    return fitScale(container?.clientWidth ?? 0, container?.clientHeight ?? 0);
+    const width = container?.clientWidth ?? 0;
+    const height = container?.clientHeight ?? 0;
+    setArea((current) => (current.width === width && current.height === height ? current : { width, height }));
   }
 
-  /** Refits the matrix to the container while the zoom is Fit. */
-  function refit(): void {
-    if (requested.current.kind !== 'fit') return;
-    const scale = measureFit();
-    if (scale !== requested.current.scale) request({ kind: 'fit', scale });
-  }
+  const handleResize = useEffectEvent(measureArea);
 
-  const handleResize = useEffectEvent(refit);
-
-  // Fit before the first paint, so that the matrix does not open at the natural size and then jump.
+  // Measure before the first paint, so that the matrix does not open at the smallest cell and then jump.
   useLayoutEffect(() => handleResize(), []);
 
   useEffect(() => {
@@ -110,7 +116,7 @@ export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): Zoo
         step('out');
         break;
       case '0':
-        request({ kind: 'step', scale: NATURAL_SCALE });
+        request(NATURAL_SCALE);
         break;
       default:
         return;
@@ -134,10 +140,10 @@ export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): Zoo
     const box = content.getBoundingClientRect();
     container.scrollLeft += box.left + held.fractionX * box.width - held.clientX;
     container.scrollTop += box.top + held.fractionY * box.height - held.clientY;
-  }, [scrollRef, contentRef, zoom.scale]);
+  }, [scrollRef, contentRef, magnification]);
 
   const stepAt = useEffectEvent((direction: ZoomDirection, at: ClientPoint) => step(direction, at));
-  const readScale = useEffectEvent(() => requested.current.scale);
+  const readScale = useEffectEvent(() => requested.current);
 
   // React's wheel and touch handlers are passive, and only an active listener can keep the page from zooming.
   useEffect(() => {
@@ -215,7 +221,12 @@ export function useZoom({ scrollRef, contentRef, keyRootRef }: ZoomOptions): Zoo
     };
   }, [scrollRef]);
 
-  return { zoom, step: (direction) => step(direction), choose };
+  return {
+    magnification,
+    cellSize: fitCellSize(area.width, area.height, magnification),
+    step: (direction) => step(direction),
+    choose: (next) => request(next),
+  };
 }
 
 /** A point in client coordinates. */

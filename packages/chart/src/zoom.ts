@@ -1,30 +1,26 @@
-import { measureFrame } from './Grid.tsx';
-import { MIN_CELL_SIZE } from './layout.ts';
-
-/** The matrix's scale and how it was chosen: a step, or Fit, which scales to the chart area. */
-export type Zoom = { kind: 'step'; scale: number } | { kind: 'fit'; scale: number };
+import { AXIS_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP } from './Grid.tsx';
+import { GRID_SIZE, MIN_CELL_SIZE } from './layout.ts';
 
 export type ZoomDirection = 'in' | 'out';
 
-/** The scales that the zoom control offers, where 1 is the matrix's natural size. */
+/** The magnifications that the zoom control offers, where 1 draws a chart unit as one pixel. */
 export const ZOOM_STEPS: readonly number[] = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
-/** The page opens in Fit, at the natural size until the chart area is measured. */
-export const DEFAULT_ZOOM: Zoom = { kind: 'fit', scale: 1 };
-/** The natural size, to which the `0` key returns. */
+/** The magnification at which the chart's text is at its 12 px floor, which the chart opens at and `0` returns to. */
 export const NATURAL_SCALE = 1;
 
 const MIN_STEP = 0.5;
 const MAX_STEP = 4;
-/** Fit never scales below the natural size, so that the chart's text keeps its floor. */
-const MIN_FIT = 1;
 
-/** Returns the scale that fits the matrix to an area, rounded down to a whole percent and clamped to 100–400 %. */
-export function fitScale(areaWidth: number, areaHeight: number): number {
-  if (areaWidth <= 0 || areaHeight <= 0) return MIN_FIT;
-  // The tolerance keeps an area of exactly a whole percent from rounding down a percent through float error.
-  const frame = measureFrame(MIN_CELL_SIZE);
-  const percent = Math.floor(Math.min(areaWidth / frame.width, areaHeight / frame.height) * 100 + 1e-9);
-  return Math.min(MAX_STEP, Math.max(MIN_FIT, percent / 100));
+/**
+ * Returns the largest whole cell size, in chart units, at which the matrix and its axis margins fit an area at
+ * `magnification`, and never less than `MIN_CELL_SIZE`.
+ */
+export function fitCellSize(areaWidth: number, areaHeight: number, magnification: number): number {
+  if (areaWidth <= 0 || areaHeight <= 0 || magnification <= 0) return MIN_CELL_SIZE;
+  const byWidth = (areaWidth / magnification - MARGIN_LEFT - MARGIN_RIGHT) / GRID_SIZE;
+  const byHeight = (areaHeight / magnification - MARGIN_TOP - AXIS_HEIGHT) / GRID_SIZE;
+  // The tolerance keeps an area of exactly a whole cell size from rounding down a unit through float error.
+  return Math.max(MIN_CELL_SIZE, Math.floor(Math.min(byWidth, byHeight) + 1e-9));
 }
 
 /** Formats a scale as the readout shows it, such as `125 %`, with a non-breaking space. */
