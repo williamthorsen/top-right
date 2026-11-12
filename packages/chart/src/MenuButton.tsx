@@ -17,13 +17,22 @@ export interface MenuButtonItem {
   onChoose: () => void;
 }
 
+/** Items shown under a visible heading, which names their group. */
+export interface MenuButtonGroup {
+  label: string;
+  items: readonly MenuButtonItem[];
+}
+
 export interface MenuButtonProps {
   /** The button's visible content, which the caret follows. */
   children: ReactNode;
   /** The button's accessible name when its content does not state it. */
   buttonLabel?: string;
   menuLabel: string;
-  items: readonly MenuButtonItem[];
+  /** The menu's items and groups of items, which the arrow keys move across as one list. */
+  items: readonly (MenuButtonGroup | MenuButtonItem)[];
+  /** Whether choosing an item closes the menu; without it, the menu stays open while its items are toggled. */
+  closesOnChoose?: boolean;
   /** A class added to the button, beside `tr-menu-button`. */
   className?: string;
 }
@@ -35,10 +44,19 @@ const VIEWPORT_GAP = 8;
 
 /**
  * A menu button that follows the WAI-ARIA menu button pattern: arrow keys move within the open menu, Escape closes it
- * and returns focus to the button, and choosing an item closes it.
+ * and returns focus to the button, and choosing an item closes it unless `closesOnChoose` is false.
  */
-export function MenuButton({ children, buttonLabel, menuLabel, items, className }: MenuButtonProps): ReactElement {
+export function MenuButton({
+  children,
+  buttonLabel,
+  menuLabel,
+  items: entries,
+  closesOnChoose = true,
+  className,
+}: MenuButtonProps): ReactElement {
   const menuId = useId();
+  const groupIdPrefix = useId();
+  const items = entries.flatMap((entry) => (isGroup(entry) ? entry.items : [entry]));
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -113,7 +131,49 @@ export function MenuButton({ children, buttonLabel, menuLabel, items, className 
     const item = items[index];
     if (!item || item.isDisabled) return;
     item.onChoose();
-    close(true);
+    if (closesOnChoose) close(true);
+    else setFocusIndex(index);
+  }
+
+  function renderItem(item: MenuButtonItem, index: number, groupLabel: string): ReactElement {
+    return (
+      <div
+        aria-checked={item.isChecked}
+        aria-disabled={item.isDisabled}
+        className="tr-menu-item"
+        key={`${groupLabel}:${item.label}`}
+        onClick={() => choose(index)}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          choose(index);
+        }}
+        role={item.role}
+        tabIndex={index === (focusIndex ?? 0) ? 0 : -1}
+      >
+        <span aria-hidden="true" className="tr-menu-check">
+          {item.isChecked ? '✓' : ''}
+        </span>
+        {item.label}
+      </div>
+    );
+  }
+
+  /** Returns each entry's element, numbering the items across groups as the arrow keys move through them. */
+  function renderEntries(): ReactElement[] {
+    let index = 0;
+    return entries.map((entry, entryIndex) => {
+      if (!isGroup(entry)) return renderItem(entry, index++, '');
+      const headingId = `${groupIdPrefix}-${entryIndex}`;
+      return (
+        <div aria-labelledby={headingId} className="tr-menu-group" key={`group:${entry.label}`} role="group">
+          <div className="tr-menu-group-label" id={headingId} role="presentation">
+            {entry.label}
+          </div>
+          {entry.items.map((item) => renderItem(item, index++, entry.label))}
+        </div>
+      );
+    });
   }
 
   return (
@@ -145,28 +205,14 @@ export function MenuButton({ children, buttonLabel, menuLabel, items, className 
         tabIndex={-1}
         style={{ left: shift }}
       >
-        {items.map((item, index) => (
-          <div
-            aria-checked={item.isChecked}
-            aria-disabled={item.isDisabled}
-            className="tr-menu-item"
-            key={item.label}
-            onClick={() => choose(index)}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' && event.key !== ' ') return;
-              event.preventDefault();
-              choose(index);
-            }}
-            role={item.role}
-            tabIndex={index === (focusIndex ?? 0) ? 0 : -1}
-          >
-            <span aria-hidden="true" className="tr-menu-check">
-              {item.isChecked ? '✓' : ''}
-            </span>
-            {item.label}
-          </div>
-        ))}
+        {renderEntries()}
       </div>
     </div>
   );
 }
+
+// region | Helpers
+function isGroup(entry: MenuButtonGroup | MenuButtonItem): entry is MenuButtonGroup {
+  return 'items' in entry;
+}
+// endregion | Helpers

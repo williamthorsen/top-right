@@ -827,6 +827,20 @@
   text-align: center;
 }
 
+.tr-menu-group + .tr-menu-group,
+.tr-menu-item + .tr-menu-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--tr-line);
+}
+
+.tr-menu-group-label {
+  padding: 2px 10px 2px 6px;
+  color: var(--tr-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* -- Edges: blocker arrows and sub-issue lines, weighted by focus -- */
 
 .tr-edges {
