@@ -38,6 +38,7 @@ import { useItemFilter } from './useItemFilter.ts';
 import { usePan } from './usePan.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
+import { useShownReposReport } from './useShownReposReport.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
 import { useZoom } from './useZoom.ts';
 
@@ -86,6 +87,11 @@ export interface ChartProps {
   magnification?: number | undefined;
   /** Reports a magnification that the author chose, which makes the magnification the host's to hold. */
   onMagnificationChange?: (magnification: number) => void;
+  /**
+   * Reports the repositories that the filter shows, on mount and whenever they change, so that the host can read the
+   * ones that it has not read; undefined stands for every repository.
+   */
+  onShownReposChange?: ((repos: ReadonlySet<string> | undefined) => void) | undefined;
 }
 
 /** The chart pane's initial share of the height that it splits with the table, as a percentage. */
@@ -115,6 +121,7 @@ export function Chart({
   onSelectedKeyChange,
   magnification,
   onMagnificationChange,
+  onShownReposChange,
 }: ChartProps): ReactElement {
   const selection = useSelection({ selectedKey: hostSelectedKey, onSelectedKeyChange });
   const [previewKey, setPreviewKey] = useState<string>();
@@ -137,6 +144,7 @@ export function Chart({
     collections,
     defaultCollectionId,
   );
+  useShownReposReport(shownRepos, onShownReposChange);
   const { selectedKey, isRevealing } = useVisibleSelection(selection, visibleKeys, (key) => {
     const item = itemsByKey.get(key);
     if (item) setFilter(revealItem(filter, item, overrides[key], shownRepos));
