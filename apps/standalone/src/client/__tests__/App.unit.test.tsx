@@ -97,16 +97,30 @@ describe(App, () => {
     );
   });
 
-  it('shows no clash alert while every abbreviation is distinct, and links the chart to Settings', async () => {
+  it('shows no clash alert while every abbreviation is distinct', async () => {
     stubFetch(() => Promise.resolve(Response.json(ITEMS)));
 
     render(<App />);
 
-    expect(await screen.findByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(await screen.findByRole('complementary', { name: 'Item detail' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('while the items load, shows a loading line', () => {
+  it('marks the chart as the current page and links the header to Settings with the selected item', async () => {
+    globalThis.history.replaceState(null, '', `/?item=${encodeURIComponent(ITEM_KEY)}`);
+    stubFetch(() => Promise.resolve(Response.json(ITEMS)));
+
+    render(<App />);
+
+    const nav = within(await screen.findByRole('navigation', { name: 'Pages' }));
+    expect(nav.getByRole('link', { name: 'Chart' })).toHaveAttribute('aria-current', 'page');
+    expect(nav.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      `/settings?item=${encodeURIComponent(ITEM_KEY)}`,
+    );
+  });
+
+  it('while the items load, shows the header and a loading line', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => new Promise<Response>(() => {})),
@@ -114,7 +128,17 @@ describe(App, () => {
 
     render(<App />);
 
+    expect(screen.getByRole('link', { name: 'Top Right' })).toBeInTheDocument();
     expect(screen.getByText('Loading issues')).toBeInTheDocument();
+  });
+
+  it('if loading fails, shows the header and an alert that names the cause', async () => {
+    stubFetch(() => Promise.resolve(Response.json({ error: 'GitHub is down' }, { status: 502 })));
+
+    render(<App />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Issues did not load: GitHub is down');
+    expect(screen.getByRole('navigation', { name: 'Pages' })).toBeInTheDocument();
   });
 
   it('shows a change before the host confirms it, then the scores that the host returns', async () => {

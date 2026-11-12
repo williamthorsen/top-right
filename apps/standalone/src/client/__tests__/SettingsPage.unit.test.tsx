@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe(SettingsPage, () => {
-  it('while the settings load, shows a loading line', () => {
+  it('while the settings load, shows the header and a loading line', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => new Promise<Response>(() => {})),
@@ -34,10 +34,11 @@ describe(SettingsPage, () => {
 
     render(<SettingsPage />);
 
+    expect(screen.getByRole('link', { name: 'Top Right' })).toBeInTheDocument();
     expect(screen.getByText('Loading settings')).toBeInTheDocument();
   });
 
-  it('if loading fails, shows one alert line that names the cause', async () => {
+  it('if loading fails, shows the header and one alert line that names the cause', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => Promise.resolve(Response.json({ error: 'disk full' }, { status: 500 }))),
@@ -46,15 +47,19 @@ describe(SettingsPage, () => {
     render(<SettingsPage />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Settings did not load: disk full');
+    expect(screen.getByRole('navigation', { name: 'Pages' })).toBeInTheDocument();
   });
 
-  it('links back to the chart with the item that was selected', async () => {
+  it('marks Settings as the current page and links the header back to the chart with the item that was selected', async () => {
     globalThis.history.replaceState(null, '', '/settings?item=w%2Ftop-right%2312');
     void stubFetch(() => Promise.resolve(Response.json(SETTINGS)));
 
     render(<SettingsPage />);
 
-    expect(await screen.findByRole('link', { name: 'Chart' })).toHaveAttribute('href', '/?item=w%2Ftop-right%2312');
+    const nav = within(await screen.findByRole('navigation', { name: 'Pages' }));
+    expect(nav.getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+    expect(nav.getByRole('link', { name: 'Chart' })).toHaveAttribute('href', '/?item=w%2Ftop-right%2312');
+    expect(screen.getByRole('link', { name: 'Top Right' })).toHaveAttribute('href', '/?item=w%2Ftop-right%2312');
   });
 
   it('posts a saved section and shows the refusal that the host returns', async () => {

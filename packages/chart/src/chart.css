@@ -986,15 +986,6 @@
   color: var(--tr-ink-2);
 }
 
-.tr-strip-link {
-  padding: 4px 2px;
-  text-underline-offset: 3px;
-  text-decoration: none;
-}
-.tr-strip-link:hover {
-  text-decoration: underline;
-}
-
 /* -- Table: the items as rows, sharing the chart's selection -- */
 
 .tr-table {
@@ -1484,13 +1475,7 @@
 .tr-settings > * {
   max-width: 640px;
 }
-.tr-settings-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-}
-.tr-settings-header h1 {
+.tr-settings h1 {
   margin: 0 0 8px;
   font-size: 22px;
 }

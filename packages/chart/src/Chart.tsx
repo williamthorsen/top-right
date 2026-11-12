@@ -52,7 +52,7 @@ export interface ChartProps {
   workTypeMapping?: WorkTypeMapping;
   /** The labels that supply urgency, value, and effort where an item has no stored score for them. */
   scoreLabelMapping?: ScoreLabelMapping;
-  /** Where the host's Settings page is; without it, the chart does not link to Settings. */
+  /** Where the host's Settings page is, to which the legend's mapping popover links; without it, the popover does not. */
   settingsHref?: string | undefined;
   /** The host's read of the items; without it, the chart shows neither the read time nor Refresh. */
   refresh?: ChartRefresh | undefined;
@@ -223,7 +223,6 @@ export function Chart({
             refresh={refresh}
             review={chainView.review}
             scopeMode={scopeMode}
-            settingsHref={settingsHref}
             showAllEdges={showAllEdges}
             zoom={zoom}
           />
