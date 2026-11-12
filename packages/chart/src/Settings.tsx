@@ -39,7 +39,7 @@ export type SaveSettings<T> = (value: T) => Promise<string | undefined>;
 export interface SettingsProps {
   /** The configured repositories, as `owner/name`. */
   repos: readonly string[];
-  /** The user's stored abbreviations; a repository without one takes its first letter. */
+  /** The user's stored abbreviations; a repository without one takes its uppercase first letter. */
   abbreviations: Readonly<Record<string, string>>;
   /** The user's saved mapping; undefined when the user keeps the default. */
   workTypeMapping: WorkTypeMapping | undefined;
