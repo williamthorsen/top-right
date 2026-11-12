@@ -1,5 +1,7 @@
 import {
   abbreviate,
+  type Collection,
+  type CollectionSettings,
   DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
   describeAbbreviationClash,
@@ -9,6 +11,7 @@ import {
   EFFORT_SCALE,
   type EffortPoints,
   findAbbreviationClashes,
+  findCollectionProblem,
   findDuplicateLabels,
   findDuplicateScoreLabels,
   isValidAbbreviation,
@@ -30,6 +33,7 @@ import { type ReactElement, type ReactNode, type SubmitEvent, useId, useState } 
 import { CircleIcon } from './CircleIcon.tsx';
 import { LEVEL_NAMES } from './level-names.ts';
 import { formatPoints } from './provenance.ts';
+import { sortRepos } from './repo-names.ts';
 
 import './chart.css';
 
@@ -45,26 +49,32 @@ export interface SettingsProps {
   workTypeMapping: WorkTypeMapping | undefined;
   /** The user's saved score-label mapping; undefined when the user keeps the default. */
   scoreLabelMapping: ScoreLabelMapping | undefined;
+  /** The user's collections and default collection. */
+  collections: CollectionSettings;
   /** Saves each configured repository's abbreviation, an empty string standing for its default. */
   onSaveAbbreviations: SaveSettings<Record<string, string>>;
   /** Saves the mapping, or restores the default when passed undefined. */
   onSaveWorkTypeMapping: SaveSettings<WorkTypeMapping | undefined>;
   /** Saves the score-label mapping, or restores the default when passed undefined. */
   onSaveScoreLabelMapping: SaveSettings<ScoreLabelMapping | undefined>;
+  /** Saves the collections and the default collection, replacing the saved ones. */
+  onSaveCollections: SaveSettings<CollectionSettings>;
   /** The host's own sections, shown after the forms. */
   children?: ReactNode;
 }
 
 /**
  * The Settings page: the labels that assign each work type, the labels that supply each urgency level, value level,
- * and effort, each repository's abbreviation, and the host's own sections.
+ * and effort, each repository's abbreviation, the collections of repositories, and the host's own sections.
  */
 export function Settings({
   repos,
   abbreviations,
   workTypeMapping,
   scoreLabelMapping,
+  collections,
   onSaveAbbreviations,
+  onSaveCollections,
   onSaveWorkTypeMapping,
   onSaveScoreLabelMapping,
   children,
@@ -75,6 +85,7 @@ export function Settings({
       <WorkTypeMappingForm onSave={onSaveWorkTypeMapping} saved={workTypeMapping} />
       <ScoreLabelMappingForm onSave={onSaveScoreLabelMapping} saved={scoreLabelMapping} />
       <AbbreviationsForm abbreviations={abbreviations} onSave={onSaveAbbreviations} repos={repos} />
+      <CollectionsForm onSave={onSaveCollections} repos={repos} saved={collections} />
       {children}
     </div>
   );
@@ -150,6 +161,154 @@ function AbbreviationsForm({
       </div>
     </form>
   );
+}
+
+/**
+ * The collections, each with its name, its repositories, and a Delete button, and the default collection, saved
+ * together and refused while `findCollectionProblem` reports a problem.
+ */
+function CollectionsForm({
+  repos,
+  saved,
+  onSave,
+}: {
+  repos: readonly string[];
+  saved: CollectionSettings;
+  onSave: SaveSettings<CollectionSettings>;
+}) {
+  const headingId = useId();
+  const defaultHintId = useId();
+  const sortedRepos = sortRepos(repos);
+  const [drafts, setDrafts] = useState<Collection[]>(() => {
+    const configured = new Set(repos);
+    return saved.collections.map((collection) => ({
+      ...collection,
+      repos: collection.repos.filter((repo) => configured.has(repo)),
+    }));
+  });
+  const [defaultId, setDefaultId] = useState(() =>
+    saved.collections.some((collection) => collection.id === saved.defaultCollectionId)
+      ? (saved.defaultCollectionId ?? '')
+      : '',
+  );
+  const [outcome, setOutcome] = useState<Outcome>();
+  const [isSaving, setIsSaving] = useState(false);
+
+  function updateDraft(id: string, update: (collection: Collection) => Collection): void {
+    setDrafts((current) => current.map((collection) => (collection.id === id ? update(collection) : collection)));
+  }
+
+  function toggleRepo(id: string, repo: string): void {
+    updateDraft(id, (collection) => ({
+      ...collection,
+      repos: collection.repos.includes(repo)
+        ? collection.repos.filter((kept) => kept !== repo)
+        : [...collection.repos, repo],
+    }));
+  }
+
+  function deleteDraft(id: string): void {
+    setDrafts((current) => current.filter((collection) => collection.id !== id));
+    if (defaultId === id) setDefaultId('');
+  }
+
+  async function save(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    const settings: CollectionSettings = {
+      collections: drafts.map((collection) => ({ ...collection, name: collection.name.trim() })),
+      defaultCollectionId: defaultId === '' ? undefined : defaultId,
+    };
+    const problem = findCollectionProblem(settings, repos);
+    if (problem !== undefined) {
+      setOutcome({ kind: 'error', message: problem });
+      return;
+    }
+    setIsSaving(true);
+    const refusal = await onSave(settings);
+    setIsSaving(false);
+    if (refusal !== undefined) {
+      setOutcome({ kind: 'error', message: refusal });
+      return;
+    }
+    setOutcome({ kind: 'saved' });
+    setDrafts([...settings.collections]);
+  }
+
+  return (
+    <form aria-labelledby={headingId} className="tr-settings-section" onSubmit={(event) => void save(event)}>
+      <h2 id={headingId}>Collections</h2>
+      {drafts.length === 0 ? <p className="tr-settings-hint">No collections</p> : null}
+      {drafts.map((collection) => (
+        <fieldset className="tr-settings-group tr-settings-collection" key={collection.id}>
+          <legend>{nameDraft(collection)}</legend>
+          <label className="tr-settings-field">
+            <span>Name</span>
+            <input
+              className="tr-input"
+              onChange={(event) => updateDraft(collection.id, (draft) => ({ ...draft, name: event.target.value }))}
+              value={collection.name}
+            />
+          </label>
+          <div className="tr-settings-checks">
+            {sortedRepos.map((repo) => (
+              <label className="tr-settings-check" key={repo}>
+                <input
+                  checked={collection.repos.includes(repo)}
+                  onChange={() => toggleRepo(collection.id, repo)}
+                  type="checkbox"
+                />
+                {repo}
+              </label>
+            ))}
+          </div>
+          <div className="tr-settings-actions">
+            <button className="tr-button" onClick={() => deleteDraft(collection.id)} type="button">
+              Delete
+            </button>
+          </div>
+        </fieldset>
+      ))}
+      <div className="tr-settings-actions">
+        <button
+          className="tr-button"
+          onClick={() => setDrafts((current) => [...current, { id: crypto.randomUUID(), name: '', repos: [] }])}
+          type="button"
+        >
+          Add collection
+        </button>
+      </div>
+      <label className="tr-settings-field">
+        <span>Default collection</span>
+        <select
+          aria-describedby={defaultHintId}
+          className="tr-select"
+          onChange={(event) => setDefaultId(event.target.value)}
+          value={defaultId}
+        >
+          <option value="">None (all repos)</option>
+          {drafts.map((collection) => (
+            <option key={collection.id} value={collection.id}>
+              {nameDraft(collection)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="tr-settings-hint" id={defaultHintId}>
+        The chart opens with this collection after each reload.
+      </p>
+      <OutcomeMessage outcome={outcome} />
+      <div className="tr-settings-actions">
+        <button className="tr-button" disabled={isSaving} type="submit">
+          Save
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** Returns the name under which the form shows a collection: its trimmed name, or "New collection" while empty. */
+function nameDraft(collection: Collection): string {
+  return collection.name.trim() || 'New collection';
 }
 
 /** The success note or the refusal of the last save. */

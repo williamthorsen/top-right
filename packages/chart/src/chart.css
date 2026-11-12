@@ -1547,6 +1547,34 @@
   display: flex;
   gap: 8px;
 }
+.tr-settings-collection {
+  padding-top: 8px;
+  border-top: 1px solid var(--tr-line);
+}
+.tr-settings-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.tr-settings-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.tr-settings-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--tr-accent);
+  cursor: pointer;
+}
+.tr-settings-check input:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: 2px;
+}
 .tr-settings-error,
 .tr-settings-saved {
   margin: 0;

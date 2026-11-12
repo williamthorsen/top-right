@@ -130,6 +130,20 @@ describe(SettingsPage, () => {
     );
     expect(await within(section).findByRole('status')).toHaveTextContent('Saved.');
   });
+
+  it('saves the collections through their own route, posting a missing default as null', async () => {
+    const saved = { collections: [{ id: 'c1', name: 'Core', repos: ['w/top-right'] }], defaultCollectionId: null };
+    const fetch = stubFetch((path) =>
+      Promise.resolve(Response.json(path === '/api/collections' ? saved : { ...SETTINGS, ...saved })),
+    );
+    render(<SettingsPage />);
+    const section = await screen.findByRole('form', { name: 'Collections' });
+
+    await userEvent.setup().click(within(section).getByRole('button', { name: 'Save' }));
+
+    expect(fetch).toHaveBeenCalledWith('/api/collections', expect.objectContaining({ body: JSON.stringify(saved) }));
+    expect(await within(section).findByRole('status')).toHaveTextContent('Saved.');
+  });
 });
 
 // region | Helpers
