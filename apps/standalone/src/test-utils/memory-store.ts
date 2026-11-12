@@ -1,4 +1,10 @@
-import { applyScoreWrite, clearScoreFields, keepItemScores, type StatusOverride } from '@top-right/model';
+import {
+  applyScoreWrite,
+  clearScoreFields,
+  EMPTY_COLLECTION_SETTINGS,
+  keepItemScores,
+  type StatusOverride,
+} from '@top-right/model';
 import type { Store, UserState } from '@top-right/store';
 
 /** A `Store` held in memory, whose first user's state a test reads directly. */
@@ -20,6 +26,7 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
       workTypeMapping: undefined,
       scoreLabelMapping: undefined,
       abbreviations: {},
+      collections: EMPTY_COLLECTION_SETTINGS,
       ...initial,
     });
   }
@@ -75,6 +82,10 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
     },
     writeAbbreviations: (userId, abbreviations) => {
       stateOf(userId).abbreviations = { ...abbreviations };
+      return Promise.resolve();
+    },
+    writeCollections: (userId, settings) => {
+      stateOf(userId).collections = structuredClone(settings);
       return Promise.resolve();
     },
     writeLastVisit: (userId, at) => {

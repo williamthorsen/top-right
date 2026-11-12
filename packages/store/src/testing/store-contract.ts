@@ -1,4 +1,4 @@
-import type { ScoreLabelMapping, StatusOverride, WorkTypeMapping } from '@top-right/model';
+import type { CollectionSettings, ScoreLabelMapping, StatusOverride, WorkTypeMapping } from '@top-right/model';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { Store } from '#src/store.ts';
@@ -38,6 +38,7 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
         workTypeMapping: undefined,
         scoreLabelMapping: undefined,
         abbreviations: {},
+        collections: { collections: [], defaultCollectionId: undefined },
       });
     });
 
@@ -214,6 +215,50 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
 
       expect((await opened.store.readUserState(USER)).abbreviations).toEqual({ 'owner/repo': 'rp' });
       expect((await opened.store.readUserState(OTHER_USER)).abbreviations).toEqual({});
+    });
+
+    it('reads back the collections and the default that it writes, per user', async () => {
+      const settings: CollectionSettings = {
+        collections: [
+          { id: 'c1', name: 'Core', repos: ['owner/repo', 'owner/other'] },
+          { id: 'c2', name: 'Tools', repos: ['owner/tool'] },
+        ],
+        defaultCollectionId: 'c2',
+      };
+      await opened.store.writeCollections(USER, settings);
+
+      expect((await opened.store.readUserState(USER)).collections).toEqual(settings);
+      expect((await opened.store.readUserState(OTHER_USER)).collections).toEqual({
+        collections: [],
+        defaultCollectionId: undefined,
+      });
+    });
+
+    it('replaces the collections, including clearing the default', async () => {
+      await opened.store.writeCollections(USER, {
+        collections: [{ id: 'c1', name: 'Core', repos: ['owner/repo'] }],
+        defaultCollectionId: 'c1',
+      });
+      const replacement: CollectionSettings = {
+        collections: [{ id: 'c2', name: 'Tools', repos: ['owner/tool'] }],
+        defaultCollectionId: undefined,
+      };
+      await opened.store.writeCollections(USER, replacement);
+
+      expect((await opened.store.readUserState(USER)).collections).toEqual(replacement);
+    });
+
+    it('reads the empty settings after an empty list without a default is written', async () => {
+      await opened.store.writeCollections(USER, {
+        collections: [{ id: 'c1', name: 'Core', repos: ['owner/repo'] }],
+        defaultCollectionId: 'c1',
+      });
+      await opened.store.writeCollections(USER, { collections: [], defaultCollectionId: undefined });
+
+      expect((await opened.store.readUserState(USER)).collections).toEqual({
+        collections: [],
+        defaultCollectionId: undefined,
+      });
     });
   });
 }

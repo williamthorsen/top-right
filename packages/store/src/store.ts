@@ -1,4 +1,5 @@
 import type {
+  CollectionSettings,
   ItemScores,
   ScoreField,
   ScoreLabelMapping,
@@ -20,6 +21,8 @@ export interface UserState {
   scoreLabelMapping: ScoreLabelMapping | undefined;
   /** The user's repository abbreviations, keyed by `owner/name`; a repository without one takes its default. */
   abbreviations: Record<string, string>;
+  /** The user's collections and default collection; empty when the user has not saved any. */
+  collections: CollectionSettings;
 }
 
 /** The storage that a host supplies for scores, status overrides, visits, and settings, each keyed by user. */
@@ -35,6 +38,8 @@ export interface Store {
   writeStatusOverride(userId: string, itemKey: string, override: StatusOverride | undefined): Promise<void>;
   /** Replaces the user's repository abbreviations with `abbreviations`. */
   writeAbbreviations(userId: string, abbreviations: Readonly<Record<string, string>>): Promise<void>;
+  /** Replaces the user's collections and default collection with `settings`, without validating them. */
+  writeCollections(userId: string, settings: CollectionSettings): Promise<void>;
   writeLastVisit(userId: string, at: string): Promise<void>;
   /** Sets the user's score-label mapping, or restores the default when `mapping` is undefined. */
   writeScoreLabelMapping(userId: string, mapping: ScoreLabelMapping | undefined): Promise<void>;
