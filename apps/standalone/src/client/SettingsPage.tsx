@@ -13,8 +13,9 @@ import {
 import { AppHeader } from './AppHeader.tsx';
 import { describeError, getJson, postJson } from './host-requests.ts';
 import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
+import { RepositoriesSection } from './RepositoriesSection.tsx';
 
-/** The Settings page, which reads and saves the user's settings through the host. */
+/** The Settings page, which reads and saves the user's settings through the host and lists the repositories. */
 export function SettingsPage(): ReactElement {
   type LoadState =
     { kind: 'error'; message: string } | { kind: 'loaded'; data: SettingsResponse } | { kind: 'loading' };
@@ -65,7 +66,9 @@ export function SettingsPage(): ReactElement {
         repos={data.repos}
         scoreLabelMapping={data.scoreLabelMapping ?? undefined}
         workTypeMapping={data.workTypeMapping ?? undefined}
-      />
+      >
+        <RepositoriesSection configPath={data.configPath} repos={data.repos} />
+      </Settings>
     </>
   );
 }

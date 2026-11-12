@@ -62,6 +62,20 @@ describe(SettingsPage, () => {
     expect(screen.getByRole('link', { name: 'Top Right' })).toHaveAttribute('href', '/?item=w%2Ftop-right%2312');
   });
 
+  it('lists the repositories and says that they are edited in the config file that the host read', async () => {
+    void stubFetch(() => Promise.resolve(Response.json(SETTINGS)));
+
+    render(<SettingsPage />);
+
+    const section = await screen.findByRole('region', { name: 'Repositories' });
+    expect(
+      within(section)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toStrictEqual(SETTINGS.repos);
+    expect(section).toHaveTextContent(`Edit repos in ${SETTINGS.configPath}, then restart the host.`);
+  });
+
   it('posts a saved section and shows the refusal that the host returns', async () => {
     const fetch = stubFetch((path) =>
       Promise.resolve(
