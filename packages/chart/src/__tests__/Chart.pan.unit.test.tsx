@@ -5,9 +5,12 @@ import { type ReactElement, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
-import { HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from '../Grid.tsx';
-import { CELL_SIZE, GRID_SIZE } from '../layout.ts';
+import { MARGIN_LEFT, MARGIN_TOP, measureFrame } from '../Grid.tsx';
+import { GRID_SIZE, MIN_CELL_SIZE } from '../layout.ts';
 import { buildItem, place, REPO } from '../test-utils/chart-fixtures.tsx';
+
+/** The chart's size in chart units at the smallest cell. */
+const FRAME = measureFrame(MIN_CELL_SIZE);
 
 const FIRST = `${REPO}#1`;
 const ITEMS = [buildItem({ number: 1 }), buildItem({ number: 2 })];
@@ -53,7 +56,12 @@ describe('Chart pan', () => {
 
   it('does not pan a matrix that fits the chart area', () => {
     renderPanHost();
-    const scroll = mockScrollGeometry(getScroll(), { width: WIDTH * 2, height: HEIGHT * 2, left: 0, top: 0 });
+    const scroll = mockScrollGeometry(getScroll(), {
+      width: FRAME.width * 2,
+      height: FRAME.height * 2,
+      left: 0,
+      top: 0,
+    });
 
     dragBy(getSvg(), { dx: -50, dy: -30 });
 
@@ -75,7 +83,8 @@ describe('Chart pan', () => {
     const { onScoresChange } = renderPanHost();
     await user.keyboard('+++');
     const scroll = mockScrollGeometry(getScroll(), OVERFLOWING);
-    getSvg().getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: WIDTH * 2, height: HEIGHT * 2 });
+    getSvg().getBoundingClientRect = () =>
+      DOMRect.fromRect({ x: 0, y: 0, width: FRAME.width * 2, height: FRAME.height * 2 });
     const circle = getCircle(1);
     await user.click(circle);
 
@@ -92,8 +101,8 @@ describe('Chart pan', () => {
 /** Returns the client position of a cell's centre in an SVG scaled by `scale` at the viewport's origin. */
 function centreOf(u: number, i: number, scale: number): { clientX: number; clientY: number } {
   return {
-    clientX: (MARGIN_LEFT + (u + 0.5) * CELL_SIZE) * scale,
-    clientY: (MARGIN_TOP + (GRID_SIZE - 1 - i + 0.5) * CELL_SIZE) * scale,
+    clientX: (MARGIN_LEFT + (u + 0.5) * MIN_CELL_SIZE) * scale,
+    clientY: (MARGIN_TOP + (GRID_SIZE - 1 - i + 0.5) * MIN_CELL_SIZE) * scale,
   };
 }
 
@@ -138,8 +147,8 @@ function mockScrollGeometry(
   return Object.defineProperties(element, {
     clientWidth: { configurable: true, value: geometry.width },
     clientHeight: { configurable: true, value: geometry.height },
-    scrollWidth: { configurable: true, value: Math.max(WIDTH, geometry.width) },
-    scrollHeight: { configurable: true, value: Math.max(HEIGHT, geometry.height) },
+    scrollWidth: { configurable: true, value: Math.max(FRAME.width, geometry.width) },
+    scrollHeight: { configurable: true, value: Math.max(FRAME.height, geometry.height) },
     scrollLeft: { configurable: true, writable: true, value: geometry.left },
     scrollTop: { configurable: true, writable: true, value: geometry.top },
   });

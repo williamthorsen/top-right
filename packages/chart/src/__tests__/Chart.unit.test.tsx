@@ -14,7 +14,7 @@ import { type ReactElement, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
-import { CELL_PADDING, CELL_SIZE, GUTTER_ROW_PITCH, sizeCircle } from '../layout.ts';
+import { CELL_PADDING, GUTTER_ROW_PITCH, MIN_CELL_SIZE, sizeCircle } from '../layout.ts';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getGroup, getPane } from '../test-utils/chart-queries.ts';
 
@@ -111,7 +111,7 @@ describe(Chart, () => {
   });
 
   it('when the unscored items do not fit the corner cell, lets its list scroll', () => {
-    const rowsThatFit = Math.floor((CELL_SIZE - 2 * CELL_PADDING) / GUTTER_ROW_PITCH);
+    const rowsThatFit = Math.floor((MIN_CELL_SIZE - 2 * CELL_PADDING) / GUTTER_ROW_PITCH);
     const items = Array.from({ length: rowsThatFit + 1 }, (_, index) => buildItem({ number: index + 1 }));
 
     renderChart(items);

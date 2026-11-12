@@ -2,10 +2,14 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { type UserEvent, userEvent } from '@testing-library/user-event';
 import { describe, expect, it, onTestFinished } from 'vitest';
 
-import { HEIGHT, WIDTH } from '../Grid.tsx';
+import { measureFrame } from '../Grid.tsx';
+import { MIN_CELL_SIZE } from '../layout.ts';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
 import { reportResize } from '../test-utils/resize-observer.ts';
 import { WHEEL_STEP_THRESHOLD } from '../useZoom.ts';
+
+/** The chart's size in chart units at the smallest cell. */
+const FRAME = measureFrame(MIN_CELL_SIZE);
 
 const ITEMS = [buildItem({ number: 1 })];
 const SCORES = { [`${REPO}#1`]: place(3, 3) };
@@ -23,7 +27,7 @@ describe('Chart zoom', () => {
   });
 
   it('fits the matrix to the chart area that it opens in', () => {
-    mockScrollAreaSize({ width: WIDTH * 1.4, height: HEIGHT * 2 });
+    mockScrollAreaSize({ width: FRAME.width * 1.4, height: FRAME.height * 2 });
 
     renderChart(ITEMS, {}, SCORES);
 
@@ -34,16 +38,16 @@ describe('Chart zoom', () => {
     renderChart(ITEMS, {}, SCORES);
     const scroll = getScroll();
 
-    resize(scroll, { width: WIDTH * 1.4, height: HEIGHT * 2 });
+    resize(scroll, { width: FRAME.width * 1.4, height: FRAME.height * 2 });
     expectScale(1.4);
-    resize(scroll, { width: WIDTH * 3, height: HEIGHT * 2.2 });
+    resize(scroll, { width: FRAME.width * 3, height: FRAME.height * 2.2 });
     expectScale(2.2);
   });
 
   it('keeps the natural size in a chart area too small for it', () => {
     renderChart(ITEMS, {}, SCORES);
 
-    resize(getScroll(), { width: WIDTH / 2, height: HEIGHT / 2 });
+    resize(getScroll(), { width: FRAME.width / 2, height: FRAME.height / 2 });
 
     expectScale(1);
   });
@@ -66,16 +70,16 @@ describe('Chart zoom', () => {
     const user = userEvent.setup();
     renderChart(ITEMS, {}, SCORES);
     const scroll = getScroll();
-    resize(scroll, { width: WIDTH * 1.4, height: HEIGHT * 2 });
+    resize(scroll, { width: FRAME.width * 1.4, height: FRAME.height * 2 });
 
     await zoomByHand(user);
     const manualScale = readScale();
-    resize(scroll, { width: WIDTH * 3, height: HEIGHT * 3 });
+    resize(scroll, { width: FRAME.width * 3, height: FRAME.height * 3 });
     expectScale(manualScale);
 
     await chooseFromMenu(user, 'Fit');
     expectScale(3);
-    resize(scroll, { width: WIDTH * 2, height: HEIGHT * 2 });
+    resize(scroll, { width: FRAME.width * 2, height: FRAME.height * 2 });
     expectScale(2);
   });
 
@@ -207,7 +211,7 @@ describe('Chart zoom', () => {
   it('fits the matrix to the chart area, keeps Fit checked, and steps from the Fit scale to the adjacent step', async () => {
     const user = userEvent.setup();
     renderChart(ITEMS, {}, SCORES);
-    mockLayout(getScroll(), { width: WIDTH * 1.4, height: HEIGHT * 2, left: 0, top: 0 });
+    mockLayout(getScroll(), { width: FRAME.width * 1.4, height: FRAME.height * 2, left: 0, top: 0 });
 
     await user.click(getReadout());
     await user.click(screen.getByRole('menuitemradio', { name: 'Fit' }));
@@ -236,7 +240,7 @@ describe('Chart zoom', () => {
   it('keeps the visible centre in place when a step takes a centred matrix past the chart area', async () => {
     const user = userEvent.setup();
     renderChart(ITEMS, {}, SCORES);
-    const centredOffset = (750 - WIDTH) / 2;
+    const centredOffset = (750 - FRAME.width) / 2;
     const scroll = mockLayout(getScroll(), { width: 750, height: 300, left: 0, top: 0 });
 
     await user.keyboard('+');
@@ -270,8 +274,8 @@ function expectReadoutText(text: string): void {
 
 function expectScale(scale: number): void {
   const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
-  expect(svg).toHaveAttribute('width', String(WIDTH * scale));
-  expect(svg).toHaveAttribute('height', String(HEIGHT * scale));
+  expect(svg).toHaveAttribute('width', String(FRAME.width * scale));
+  expect(svg).toHaveAttribute('height', String(FRAME.height * scale));
 }
 
 function getReadout(): HTMLElement {
@@ -308,7 +312,7 @@ function mockScrollAreaSize(size: { width: number; height: number }): void {
 /** Returns the matrix's current scale, read from its rendered width. */
 function readScale(): number {
   const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
-  return Number(svg.getAttribute('width')) / WIDTH;
+  return Number(svg.getAttribute('width')) / FRAME.width;
 }
 
 /** Gives the scroll container a new client size and reports the resize to its observers. */

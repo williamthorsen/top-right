@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { HEIGHT, WIDTH } from '../Grid.tsx';
+import { measureFrame } from '../Grid.tsx';
+import { MIN_CELL_SIZE } from '../layout.ts';
 import { fitScale, formatScale, isAtEnd, stepZoom } from '../zoom.ts';
+
+/** The chart's size in chart units at the smallest cell. */
+const FRAME = measureFrame(MIN_CELL_SIZE);
 
 describe(stepZoom, () => {
   it('moves to the adjacent step in either direction', () => {
@@ -32,16 +36,16 @@ describe(isAtEnd, () => {
 
 describe(fitScale, () => {
   it('scales the matrix to the smaller of the two ratios, rounded down to a whole percent', () => {
-    expect(fitScale(WIDTH * 1.509, HEIGHT * 2)).toBe(1.5);
-    expect(fitScale(WIDTH * 3, HEIGHT * 1.256)).toBe(1.25);
+    expect(fitScale(FRAME.width * 1.509, FRAME.height * 2)).toBe(1.5);
+    expect(fitScale(FRAME.width * 3, FRAME.height * 1.256)).toBe(1.25);
   });
 
   it('never scales below the natural size', () => {
-    expect(fitScale(WIDTH / 2, HEIGHT / 2)).toBe(1);
+    expect(fitScale(FRAME.width / 2, FRAME.height / 2)).toBe(1);
   });
 
   it('never scales above the largest step', () => {
-    expect(fitScale(WIDTH * 10, HEIGHT * 10)).toBe(4);
+    expect(fitScale(FRAME.width * 10, FRAME.height * 10)).toBe(4);
   });
 
   it('returns the natural size for an area without size', () => {

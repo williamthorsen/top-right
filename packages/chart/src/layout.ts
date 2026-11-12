@@ -11,7 +11,8 @@ import {
 
 // -- Geometry, in chart units at 1× --
 
-export const CELL_SIZE = 120;
+/** The smallest cell, and the cell at which the matrix has its natural size; a larger chart area gives larger cells. */
+export const MIN_CELL_SIZE = 120;
 /** Cells per axis: the gutter at index 0, then each level at its rank, 1 to 4. */
 export const GRID_SIZE = 5;
 /** The smallest legible circle radius. */
@@ -79,9 +80,9 @@ export interface CellLayout {
  * Returns the scored cell that contains a point in matrix units, or undefined for a point in a gutter or off the matrix.
  * A point on a shared edge belongs to the cell to its right or below it.
  */
-export function findScoredCellAt(x: number, y: number): { u: number; v: number } | undefined {
-  const u = Math.floor(x / CELL_SIZE);
-  const v = GRID_SIZE - 1 - Math.floor(y / CELL_SIZE);
+export function findScoredCellAt(x: number, y: number, cellSize: number): { u: number; v: number } | undefined {
+  const u = Math.floor(x / cellSize);
+  const v = GRID_SIZE - 1 - Math.floor(y / cellSize);
   if (u < 1 || u >= GRID_SIZE || v < 1 || v >= GRID_SIZE) return undefined;
   return { u, v };
 }
@@ -101,7 +102,7 @@ export function findItemCell(scores: ResolvedItemScores | undefined): { u: numbe
 }
 
 /** Groups placements into the cells that they occupy and lays out each cell's contents, in matrix order. */
-export function layoutCells(placements: readonly Placement[]): CellLayout[] {
+export function layoutCells(placements: readonly Placement[], cellSize: number): CellLayout[] {
   const cells = new Map<string, CellLayout>();
   const sizes = new Map<string, CircleSize>();
   for (const placement of placements) {
@@ -112,14 +113,18 @@ export function layoutCells(placements: readonly Placement[]): CellLayout[] {
     const key = `${placement.u},${placement.v}`;
     let cell = cells.get(key);
     if (!cell) {
-      cell = createCell(placement.u, placement.v);
+      cell = createCell(placement.u, placement.v, cellSize);
       cells.set(key, cell);
     }
     cell.ids.push(placement.id);
   }
   for (const cell of cells.values()) {
-    if (cell.isGutter) cell.overflow = cell.ids.length * GUTTER_ROW_PITCH + 2 * CELL_PADDING > CELL_SIZE;
-    else cell.circles = packCircles(cell.ids.map((id) => ({ id, ...(sizes.get(id) ?? FLOOR_SIZE) })));
+    if (cell.isGutter) cell.overflow = cell.ids.length * GUTTER_ROW_PITCH + 2 * CELL_PADDING > cellSize;
+    else
+      cell.circles = packCircles(
+        cell.ids.map((id) => ({ id, ...(sizes.get(id) ?? FLOOR_SIZE) })),
+        cellSize,
+      );
   }
   return cells
     .values()
@@ -139,7 +144,11 @@ export interface GhostPlacement {
  * Places a ghost for each placement in its scored cell, after the circles that `cells` already packs there and any
  * earlier ghost in the same cell, so that a ghost never moves a circle; `cells` is left unchanged.
  */
-export function placeGhosts(cells: readonly CellLayout[], placements: readonly Placement[]): GhostPlacement[] {
+export function placeGhosts(
+  cells: readonly CellLayout[],
+  placements: readonly Placement[],
+  cellSize: number,
+): GhostPlacement[] {
   const occupants = new Map<string, { cell: CellLayout; placed: PlacedCircle[] }>(
     cells.map((cell) => [`${cell.u},${cell.v}`, { cell, placed: [...cell.circles] }]),
   );
@@ -147,18 +156,21 @@ export function placeGhosts(cells: readonly CellLayout[], placements: readonly P
     const key = `${placement.u},${placement.v}`;
     let occupant = occupants.get(key);
     if (!occupant) {
-      occupant = { cell: createCell(placement.u, placement.v), placed: [] };
+      occupant = { cell: createCell(placement.u, placement.v, cellSize), placed: [] };
       occupants.set(key, occupant);
     }
     const { cell, placed } = occupant;
     const r = placement.r ?? FLOOR_RADIUS;
-    const limit = Math.max(0, CELL_SIZE / 2 - r - CELL_INSET);
+    const centre = cellSize / 2;
+    const limit = Math.max(0, centre - r - CELL_INSET);
     const offset =
-      placed.length === 0 ? { x: 0, y: 0 } : (findTangentOffset(r, limit, placed) ?? ringOffset(placed.length, limit));
+      placed.length === 0
+        ? { x: 0, y: 0 }
+        : (findTangentOffset(r, limit, placed, centre) ?? ringOffset(placed.length, limit));
     const circle = {
       id: placement.id,
-      cx: CELL_SIZE / 2 + offset.x,
-      cy: CELL_SIZE / 2 + offset.y,
+      cx: centre + offset.x,
+      cy: centre + offset.y,
       r,
       floored: placement.floored ?? placement.r === undefined,
     };
@@ -199,14 +211,14 @@ function assertIndex(value: number, axis: string): void {
   }
 }
 
-function createCell(u: number, v: number): CellLayout {
+function createCell(u: number, v: number, cellSize: number): CellLayout {
   assertIndex(u, 'urgency');
   assertIndex(v, 'value');
   return {
     u,
     v,
-    x: u * CELL_SIZE,
-    y: (GRID_SIZE - 1 - v) * CELL_SIZE,
+    x: u * cellSize,
+    y: (GRID_SIZE - 1 - v) * cellSize,
     isGutter: u === 0 || v === 0,
     ids: [],
     overflow: false,
@@ -219,36 +231,40 @@ function createCell(u: number, v: number): CellLayout {
  * centre. A circle for which no clear position remains takes a place on the cell's inner ring, overlapping its
  * neighbours but never leaving the cell. Circles come back largest first, the order in which they draw.
  */
-function packCircles(members: ReadonlyArray<CircleSize & { id: string }>): PlacedCircle[] {
+function packCircles(members: ReadonlyArray<CircleSize & { id: string }>, cellSize: number): PlacedCircle[] {
   const ordered = members.toSorted((a, b) => b.r - a.r || a.id.localeCompare(b.id));
+  const centre = cellSize / 2;
   const placed: PlacedCircle[] = [];
   for (const [index, member] of ordered.entries()) {
-    const limit = Math.max(0, CELL_SIZE / 2 - member.r - CELL_INSET);
+    const limit = Math.max(0, centre - member.r - CELL_INSET);
     const offset =
-      index === 0 ? { x: 0, y: 0 } : (findTangentOffset(member.r, limit, placed) ?? ringOffset(index, limit));
-    placed.push({ ...member, cx: CELL_SIZE / 2 + offset.x, cy: CELL_SIZE / 2 + offset.y });
+      index === 0 ? { x: 0, y: 0 } : (findTangentOffset(member.r, limit, placed, centre) ?? ringOffset(index, limit));
+    placed.push({ ...member, cx: centre + offset.x, cy: centre + offset.y });
   }
   return placed;
 }
 
-/** Returns the clear position tangent to a placed circle that lies nearest the centre, within `limit` of it. */
+/**
+ * Returns the clear position tangent to a placed circle that lies nearest the centre, within `limit` of it, as an offset
+ * from the centre, which is `centre` from the cell's top-left corner on each axis.
+ */
 function findTangentOffset(
   r: number,
   limit: number,
   placed: readonly PlacedCircle[],
+  centre: number,
 ): { x: number; y: number } | undefined {
   let best: { x: number; y: number; distance: number } | undefined;
   for (const other of placed) {
     const reach = other.r + r + CIRCLE_GAP;
     for (let degrees = 0; degrees < 360; degrees += TANGENT_STEP_DEGREES) {
       const angle = (degrees * Math.PI) / 180;
-      const x = other.cx - CELL_SIZE / 2 + Math.cos(angle) * reach;
-      const y = other.cy - CELL_SIZE / 2 + Math.sin(angle) * reach;
+      const x = other.cx - centre + Math.cos(angle) * reach;
+      const y = other.cy - centre + Math.sin(angle) * reach;
       if (Math.abs(x) > limit || Math.abs(y) > limit) continue;
       const isClear = placed.every(
         (neighbour) =>
-          Math.hypot(x - (neighbour.cx - CELL_SIZE / 2), y - (neighbour.cy - CELL_SIZE / 2)) >=
-          neighbour.r + r + CIRCLE_GAP - 0.01,
+          Math.hypot(x - (neighbour.cx - centre), y - (neighbour.cy - centre)) >= neighbour.r + r + CIRCLE_GAP - 0.01,
       );
       const distance = Math.hypot(x, y);
       if (isClear && (!best || distance < best.distance)) best = { x, y, distance };

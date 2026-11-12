@@ -5,10 +5,13 @@ import { type ReactElement, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
-import { HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from '../Grid.tsx';
-import { CELL_SIZE, GRID_SIZE } from '../layout.ts';
+import { MARGIN_LEFT, MARGIN_TOP, measureFrame } from '../Grid.tsx';
+import { GRID_SIZE, MIN_CELL_SIZE } from '../layout.ts';
 import { buildItem, place, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getPane } from '../test-utils/chart-queries.ts';
+
+/** The chart's size in chart units at the smallest cell. */
+const FRAME = measureFrame(MIN_CELL_SIZE);
 
 const FIRST = `${REPO}#1`;
 
@@ -184,8 +187,8 @@ describe('Chart drag', () => {
 /** Returns the client position of a cell's centre, with the chart drawn at 1× from the viewport's origin. */
 function centreOf(u: number, i: number): { clientX: number; clientY: number } {
   return {
-    clientX: MARGIN_LEFT + (u + 0.5) * CELL_SIZE,
-    clientY: MARGIN_TOP + (GRID_SIZE - 1 - i + 0.5) * CELL_SIZE,
+    clientX: MARGIN_LEFT + (u + 0.5) * MIN_CELL_SIZE,
+    clientY: MARGIN_TOP + (GRID_SIZE - 1 - i + 0.5) * MIN_CELL_SIZE,
   };
 }
 
@@ -233,7 +236,7 @@ function renderDragHost(items: WorkItem[], initialScores: Record<string, ItemSco
   }
   render(<DragHost />);
   const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
-  svg.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
+  svg.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: FRAME.width, height: FRAME.height });
   return { onScoresChange, onSelectedKeyChange };
 }
 

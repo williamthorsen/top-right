@@ -69,9 +69,10 @@ export function layoutGhosts(
   edges: readonly Edge[],
   focusKey: string | undefined,
   board: GhostBoard,
+  cellSize: number,
 ): { ends: Map<string, EdgeEnd>; ghosts: GhostPlacement[]; ghostOwner: string | undefined } {
   const ends = listEdgeEnds(cells);
-  const ghosts = placeGhosts(cells, listGhostPlacements(edges, { ...board, matrixKeys: ends }));
+  const ghosts = placeGhosts(cells, listGhostPlacements(edges, { ...board, matrixKeys: ends }), cellSize);
   const ghostOwner = focusKey !== undefined && ends.has(focusKey) ? focusKey : undefined;
   for (const ghost of ghosts) ends.set(ghost.id, ghost);
   return { ends, ghosts, ghostOwner };

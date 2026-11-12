@@ -1,4 +1,5 @@
-import { HEIGHT, WIDTH } from './Grid.tsx';
+import { measureFrame } from './Grid.tsx';
+import { MIN_CELL_SIZE } from './layout.ts';
 
 /** The matrix's scale and how it was chosen: a step, or Fit, which scales to the chart area. */
 export type Zoom = { kind: 'step'; scale: number } | { kind: 'fit'; scale: number };
@@ -21,7 +22,8 @@ const MIN_FIT = 1;
 export function fitScale(areaWidth: number, areaHeight: number): number {
   if (areaWidth <= 0 || areaHeight <= 0) return MIN_FIT;
   // The tolerance keeps an area of exactly a whole percent from rounding down a percent through float error.
-  const percent = Math.floor(Math.min(areaWidth / WIDTH, areaHeight / HEIGHT) * 100 + 1e-9);
+  const frame = measureFrame(MIN_CELL_SIZE);
+  const percent = Math.floor(Math.min(areaWidth / frame.width, areaHeight / frame.height) * 100 + 1e-9);
   return Math.min(MAX_STEP, Math.max(MIN_FIT, percent / 100));
 }
 
