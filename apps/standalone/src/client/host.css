@@ -8,7 +8,7 @@ body,
   height: 100%;
 }
 
-/* The failure alert and the chart share the viewport's height. */
+/* The header, the alerts, and the page share the viewport's height. */
 #root {
   display: flex;
   flex-direction: column;
@@ -118,10 +118,4 @@ body {
 .host-repo-list {
   margin: 0;
   padding-left: 20px;
-}
-
-.host-settings-hint {
-  margin: 0;
-  font-size: 12px;
-  overflow-wrap: anywhere;
 }

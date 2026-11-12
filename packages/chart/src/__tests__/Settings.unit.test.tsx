@@ -12,14 +12,14 @@ describe(Settings, () => {
   it("shows the host's sections after its own, each as a region named by its heading", () => {
     renderSettings({
       children: (
-        <SettingsSection heading="Repositories">
+        <SettingsSection heading="Repositories" hint="Edit the config file.">
           <p>w/top-right</p>
         </SettingsSection>
       ),
     });
 
     const section = screen.getByRole('region', { name: 'Repositories' });
-    expect(section).toHaveTextContent('w/top-right');
+    expect(section).toHaveTextContent('RepositoriesEdit the config file.w/top-right');
     expect(getSection('Repo abbreviations').compareDocumentPosition(section)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 

@@ -11,15 +11,19 @@ export interface RepositoriesSectionProps {
 /** The Settings section that lists the repositories that the host reads and says where they are configured. */
 export function RepositoriesSection({ repos, configPath }: RepositoriesSectionProps): ReactElement {
   return (
-    <SettingsSection heading="Repositories">
+    <SettingsSection
+      heading="Repositories"
+      hint={
+        <>
+          Edit <code>repos</code> in <code>{configPath}</code>, then restart the host.
+        </>
+      }
+    >
       <ul className="host-repo-list">
         {repos.map((repo) => (
           <li key={repo}>{repo}</li>
         ))}
       </ul>
-      <p className="host-settings-hint">
-        Edit <code>repos</code> in <code>{configPath}</code>, then restart the host.
-      </p>
     </SettingsSection>
   );
 }
