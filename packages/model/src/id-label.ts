@@ -1,9 +1,9 @@
 import type { ItemRef } from './work-item.ts';
 
-/** Returns the default abbreviation of an `owner/name` repository: the first letter of its name, lowercased. */
+/** Returns the default abbreviation of an `owner/name` repository: the first letter of its name, uppercased. */
 export function abbreviate(repo: string): string {
   const name = repo.slice(repo.indexOf('/') + 1);
-  return name.charAt(0).toLowerCase();
+  return name.charAt(0).toUpperCase();
 }
 
 /** Returns the label that a circle shows for an item, as `{abbreviation}.{number}`. */

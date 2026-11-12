@@ -113,7 +113,7 @@ describe('Chart zoom', () => {
     await user.keyboard('+');
     expectScale(1);
 
-    await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+    await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
     screen.getByRole('slider').focus();
     await user.keyboard('+');
     expectScale(1);

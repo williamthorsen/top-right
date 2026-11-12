@@ -72,7 +72,7 @@ describe(Settings, () => {
       renderSettings();
 
       expect(getLevelField('Urgency', 'High')).toHaveValue('urgency:high');
-      expect(getLevelField('Value', 'Must-have')).toHaveValue('value:must-have');
+      expect(getLevelField('Value', 'Must have')).toHaveValue('value:must-have');
       expect(getLevelField('Effort', '13 points')).toHaveValue('effort:13');
       expect(getLevelField('Effort', '1 point')).toHaveValue('effort:1');
     });
@@ -161,7 +161,7 @@ describe(Settings, () => {
 
       expect(getField('Repo abbreviations', 'w/codeassembly')).toHaveValue('ca');
       expect(getField('Repo abbreviations', 'w/configs.macos')).toHaveValue('');
-      expect(getField('Repo abbreviations', 'w/configs.macos')).toHaveAttribute('placeholder', 'c');
+      expect(getField('Repo abbreviations', 'w/configs.macos')).toHaveAttribute('placeholder', 'C');
     });
 
     it('reports nothing on load once the stored abbreviations resolve every clash', () => {

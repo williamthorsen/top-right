@@ -16,10 +16,10 @@ describe(Chart, () => {
       const user = userEvent.setup();
       const { onChange } = renderHosted([buildItem({ number: 1 })], { [`${REPO}#1`]: place(3, 3) });
 
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(onChange).toHaveBeenLastCalledWith(`${REPO}#1`, { push: true });
-      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).toBePressed();
     });
 
     it('reports Close and Escape as history entries', async () => {
@@ -29,7 +29,7 @@ describe(Chart, () => {
       await user.click(screen.getByRole('button', { name: 'Close' }));
       expect(onChange).toHaveBeenLastCalledWith(undefined, { push: true });
 
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
       await user.keyboard('{Escape}');
       expect(onChange).toHaveBeenLastCalledWith(undefined, { push: true });
     });
@@ -66,7 +66,7 @@ describe(Chart, () => {
       act(() => select(`${REPO}#2`));
 
       expect(toggle).toBePressed();
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
       expect(getPane()).toHaveTextContent('Issue 2');
       expect(onChange).not.toHaveBeenCalled();
     });
@@ -85,7 +85,7 @@ describe(Chart, () => {
       act(() => select(`${REPO}#2`));
 
       expect(toggle).toBePressed();
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
       expect(onChange).not.toHaveBeenCalled();
     });
 
@@ -103,7 +103,7 @@ describe(Chart, () => {
 
       act(() => select(`${REPO}#2`));
 
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
       expect(onChange).not.toHaveBeenCalled();
     });
   });

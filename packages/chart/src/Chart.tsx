@@ -47,7 +47,7 @@ import './chart.css';
 
 export interface ChartProps {
   items: readonly WorkItem[];
-  /** Repository abbreviations keyed by `owner/name`; a repository without one takes its first letter. */
+  /** Repository abbreviations keyed by `owner/name`; a repository without one takes its uppercase first letter. */
   abbreviations: Abbreviations;
   workTypeMapping?: WorkTypeMapping;
   /** The labels that supply urgency, value, and effort where an item has no stored score for them. */

@@ -36,7 +36,7 @@ export const abbreviationClashSchema = z.object({ abbreviation: z.string(), repo
 export const settingsResponseSchema = z.object({
   /** The configured repositories, as `owner/name`. */
   repos: z.array(z.string()),
-  /** The user's stored abbreviations; a configured repository without one takes its first letter. */
+  /** The user's stored abbreviations; a configured repository without one takes its uppercase first letter. */
   abbreviations: z.record(z.string(), z.string()),
   /** The user's saved mapping, or `null` when the user keeps the default. */
   workTypeMapping: workTypeMappingSchema.nullable(),

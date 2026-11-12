@@ -36,8 +36,8 @@ export function isValidAbbreviation(abbreviation: string): boolean {
 }
 
 /**
- * Returns the abbreviation of each of `repos`, keyed by `owner/name`: the stored one, or the repository's first letter.
- * A stored abbreviation of a repository outside `repos` is ignored.
+ * Returns the abbreviation of each of `repos`, keyed by `owner/name`: the stored one, or the repository's uppercase
+ * first letter. A stored abbreviation of a repository outside `repos` is ignored.
  */
 export function resolveAbbreviations(
   repos: readonly string[],

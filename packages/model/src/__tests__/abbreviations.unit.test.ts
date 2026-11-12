@@ -8,14 +8,18 @@ import {
 } from '../abbreviations.ts';
 
 describe(resolveAbbreviations, () => {
-  it('takes the stored abbreviation, else the first letter', () => {
+  it('takes the stored abbreviation, else the uppercase first letter', () => {
     const resolved = resolveAbbreviations(['w/top-right', 'w/codeassembly'], { 'w/codeassembly': 'ca' });
 
-    expect(resolved).toStrictEqual({ 'w/top-right': 't', 'w/codeassembly': 'ca' });
+    expect(resolved).toStrictEqual({ 'w/top-right': 'T', 'w/codeassembly': 'ca' });
+  });
+
+  it('keeps the case of a stored abbreviation that matches the default letter', () => {
+    expect(resolveAbbreviations(['w/top-right'], { 'w/top-right': 't' })).toStrictEqual({ 'w/top-right': 't' });
   });
 
   it('ignores a stored abbreviation of a repository outside the list', () => {
-    expect(resolveAbbreviations(['w/top-right'], { 'w/gone': 'g' })).toStrictEqual({ 'w/top-right': 't' });
+    expect(resolveAbbreviations(['w/top-right'], { 'w/gone': 'g' })).toStrictEqual({ 'w/top-right': 'T' });
   });
 });
 
