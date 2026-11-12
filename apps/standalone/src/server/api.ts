@@ -3,23 +3,12 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { StatusStrategy } from '@top-right/adapter-github';
 import {
   applyScoreWrite,
-  type CollectionSettings,
   DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
-  describeAbbreviationClash,
-  describeDuplicateLabel,
-  describeDuplicateScoreLabel,
-  describeInvalidAbbreviation,
   findAbbreviationClashes,
-  findCollectionProblem,
-  findDuplicateLabels,
-  findDuplicateScoreLabels,
   formatItemKey,
   isOverrideVoid,
-  isValidAbbreviation,
   keepItemScores,
-  normalizeScoreLabelMapping,
-  normalizeWorkTypeMapping,
   parseItemKey,
   resolveAbbreviations,
   type StatusOverride,
@@ -28,13 +17,6 @@ import {
 import type { Store } from '@top-right/store';
 
 import type { ItemsResponse, RefreshResponse } from '#src/shared/items-response.ts';
-import {
-  abbreviationsRequestSchema,
-  collectionsRequestSchema,
-  scoreLabelMappingRequestSchema,
-  type SettingsResponse,
-  workTypeMappingRequestSchema,
-} from '#src/shared/settings.ts';
 import {
   compactScores,
   keepRequestSchema,
@@ -46,19 +28,15 @@ import { describeError, readRequest, sendJson } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
 import { type LabelWriter, writeAuthorChange } from './label-write.ts';
 import type { RouteTable } from './route-table.ts';
+import { createSettingsRoutes, describeCollections } from './settings-routes.ts';
 import { writeStatusAtSource } from './status-write.ts';
 
-export const ABBREVIATIONS_PATH = '/api/abbreviations';
-export const COLLECTIONS_PATH = '/api/collections';
 export const ITEMS_PATH = '/api/items';
 export const ITEMS_REFRESH_PATH = '/api/items/refresh';
 export const KEEP_PATH = '/api/keep';
-export const SCORE_LABEL_MAPPING_PATH = '/api/score-label-mapping';
 export const SCORES_PATH = '/api/scores';
-export const SETTINGS_PATH = '/api/settings';
 export const STATUS_PATH = '/api/status';
 export const VISIT_PATH = '/api/visit';
-export const WORK_TYPE_MAPPING_PATH = '/api/work-type-mapping';
 
 export interface ApiOptions {
   /** The absolute path of the config file that lists `repos`. */
@@ -92,57 +70,7 @@ export function createApiHandler({
   const statusWrites = { items: itemsCache, store, userId };
 
   const routes: RouteTable = {
-    [ABBREVIATIONS_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, abbreviationsRequestSchema);
-        if (!body) return;
-        const entries = Object.entries(body.abbreviations).map(([repo, value]): [string, string] => [
-          repo,
-          value.trim(),
-        ]);
-        const unknownRepo = entries.find(([repo]) => !configuredRepos.has(repo));
-        if (unknownRepo) {
-          sendJson(response, 400, { error: `${unknownRepo[0]} is not a configured repository. Reload Settings.` });
-          return;
-        }
-        const invalid = entries.find(([, value]) => value !== '' && !isValidAbbreviation(value));
-        if (invalid) {
-          sendJson(response, 400, { error: describeInvalidAbbreviation(...invalid) });
-          return;
-        }
-        const { abbreviations: stored } = await store.readUserState(userId);
-        const next = Object.fromEntries([
-          ...Object.entries(stored).filter(([repo]) => !configuredRepos.has(repo)),
-          ...entries.filter(([, value]) => value !== ''),
-        ]);
-        const [clash] = findAbbreviationClashes(resolveAbbreviations(repos, next));
-        if (clash) {
-          sendJson(response, 400, { error: describeAbbreviationClash(clash) });
-          return;
-        }
-        await store.writeAbbreviations(userId, next);
-        sendJson(response, 200, { abbreviations: next });
-      },
-    },
-    [COLLECTIONS_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, collectionsRequestSchema);
-        if (!body) return;
-        const settings: CollectionSettings = {
-          collections: body.collections.map((collection) => ({ ...collection, name: collection.name.trim() })),
-          defaultCollectionId: body.defaultCollectionId ?? undefined,
-        };
-        const problem = findCollectionProblem(settings, repos);
-        if (problem !== undefined) {
-          sendJson(response, 400, { error: problem });
-          return;
-        }
-        await store.writeCollections(userId, settings);
-        sendJson(response, 200, { collections: settings.collections, defaultCollectionId: body.defaultCollectionId });
-      },
-    },
+    ...createSettingsRoutes({ configPath, repos, store, userId }),
     [ITEMS_PATH]: {
       method: 'GET',
       handle: async (_request, response) => {
@@ -156,7 +84,7 @@ export function createApiHandler({
           items,
           abbreviations,
           abbreviationClashes: findAbbreviationClashes(abbreviations),
-          ...describeCollections(state.collections),
+          ...describeCollections(state.collections, configuredRepos),
           workTypeMapping: state.workTypeMapping ?? DEFAULT_WORK_TYPE_MAPPING,
           scoreLabelMapping: state.scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING,
           scores: state.scores,
@@ -192,21 +120,6 @@ export function createApiHandler({
         sendJson(response, answer.status, answer.body);
       },
     },
-    [SCORE_LABEL_MAPPING_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, scoreLabelMappingRequestSchema);
-        if (!body) return;
-        const mapping = body.mapping === null ? undefined : normalizeScoreLabelMapping(body.mapping);
-        const [duplicate] = mapping ? findDuplicateScoreLabels(mapping) : [];
-        if (duplicate) {
-          sendJson(response, 400, { error: describeDuplicateScoreLabel(duplicate) });
-          return;
-        }
-        await store.writeScoreLabelMapping(userId, mapping);
-        sendJson(response, 200, { mapping: mapping ?? null });
-      },
-    },
     [SCORES_PATH]: {
       method: 'POST',
       handle: async (request, response) => {
@@ -219,21 +132,6 @@ export function createApiHandler({
           write: () => store.writeScores(userId, body.itemKey, changed, 'author', at),
         });
         sendJson(response, answer.status, answer.body);
-      },
-    },
-    [SETTINGS_PATH]: {
-      method: 'GET',
-      handle: async (_request, response) => {
-        const state = await store.readUserState(userId);
-        const body: SettingsResponse = {
-          repos: [...repos],
-          configPath,
-          abbreviations: state.abbreviations,
-          workTypeMapping: state.workTypeMapping ?? null,
-          scoreLabelMapping: state.scoreLabelMapping ?? null,
-          ...describeCollections(state.collections),
-        };
-        sendJson(response, 200, body);
       },
     },
     [STATUS_PATH]: {
@@ -273,33 +171,7 @@ export function createApiHandler({
         response.writeHead(204).end();
       },
     },
-    [WORK_TYPE_MAPPING_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, workTypeMappingRequestSchema);
-        if (!body) return;
-        const mapping = body.mapping === null ? undefined : normalizeWorkTypeMapping(body.mapping);
-        const [duplicate] = mapping ? findDuplicateLabels(mapping) : [];
-        if (duplicate) {
-          sendJson(response, 400, { error: describeDuplicateLabel(duplicate) });
-          return;
-        }
-        await store.writeWorkTypeMapping(userId, mapping);
-        sendJson(response, 200, { mapping: mapping ?? null });
-      },
-    },
   };
-
-  /** Returns the collections and default of `settings` as a response states them, within the configured repositories. */
-  function describeCollections({ collections, defaultCollectionId }: CollectionSettings) {
-    return {
-      collections: collections.map((collection) => ({
-        ...collection,
-        repos: collection.repos.filter((repo) => configuredRepos.has(repo)),
-      })),
-      defaultCollectionId: defaultCollectionId ?? null,
-    };
-  }
 
   /**
    * Deletes each stored override whose item's source state has changed, and returns the ones that still apply. An item
