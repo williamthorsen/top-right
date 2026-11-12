@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
 
 import { createApiHandler } from './api.ts';
+import { resolveFirstLoadRepos } from './first-load-repos.ts';
 import { openHostContext } from './host-context.ts';
 import { createItemsCache, type ItemsCache } from './items-cache.ts';
 import { StartupError } from './startup-error.ts';
@@ -21,13 +22,13 @@ try {
 
 /** Starts the local host: the items endpoint in front of Vite, which serves the page. */
 async function startHost(): Promise<void> {
-  const { configPath, databasePath, labelWriter, loadItems, repos, statusStrategyFor, store, userId } =
+  const { configPath, databasePath, labelWriter, loadRepo, repos, statusStrategyFor, store, userId } =
     await openHostContext();
 
   const vite = await createViteServer({ configFile: VITE_CONFIG_PATH, server: { middlewareMode: true } });
-  const items = createItemsCache({ load: loadItems });
+  const items = createItemsCache({ loadRepo });
   // Start the first read now, so that the first load waits only for what remains of it.
-  void startFirstRead(items);
+  void startFirstRead(items, resolveFirstLoadRepos((await store.readUserState(userId)).collections, repos));
   const handleApi = createApiHandler({ configPath, items, labelWriter, repos, statusStrategyFor, store, userId });
   const port = Number(process.env['PORT'] ?? DEFAULT_PORT);
 
@@ -43,10 +44,10 @@ async function startHost(): Promise<void> {
 }
 
 // region | Helpers
-/** Reads the issues into the cache, logging a failure, which the next load retries. */
-async function startFirstRead(items: ItemsCache): Promise<void> {
+/** Reads the issues of `repos` into the cache, logging a failure, which the next load retries. */
+async function startFirstRead(items: ItemsCache, repos: readonly string[]): Promise<void> {
   try {
-    await items.refresh();
+    await items.refresh(repos);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     console.error(`top-right: the first read of issues failed: ${reason}`);

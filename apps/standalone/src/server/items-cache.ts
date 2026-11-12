@@ -1,79 +1,105 @@
-import { formatItemKey, type ItemPatch, type WorkItem } from '@top-right/model';
+import { formatItemKey, type ItemPatch, parseItemKey, type WorkItem } from '@top-right/model';
 
-/** How long the last read's issues stay fresh before a load reports them as stale. */
+/** How long a repository's last read stays fresh before a load reports it as stale. */
 export const MAX_ITEMS_AGE_MS = 60_000;
 
-/** The issues of one successful read, with when the read started. */
-export interface ItemsRead {
-  items: WorkItem[];
+/** When a repository's issues were last read, and whether that read is older than the cache's maximum age. */
+export interface RepoRead {
   readAt: Date;
-}
-
-/** The last read's issues, as a load serves them. */
-export interface CachedItems extends ItemsRead {
-  /** Whether the issues are older than the cache's maximum age. */
   isStale: boolean;
 }
 
-/** The host's copy of the issues that it last read from their source. */
+/** The issues of the requested repositories, with each repository's read. */
+export interface ItemsRead {
+  items: WorkItem[];
+  reads: Record<string, RepoRead>;
+}
+
+/** The host's copy of the issues that it last read from their source, kept per repository. */
 export interface ItemsCache {
-  /** Returns the last read's issues, waiting for a read when none has finished. */
-  get: () => Promise<CachedItems>;
-  /** Reads the issues afresh, sharing a read in progress; a failed read keeps the last issues. */
-  refresh: () => Promise<ItemsRead>;
-  /** Replaces the fields that a write changed on an item, in the last read and in a read already in progress. */
+  /** Returns the last reads of `repos`, waiting only for the repositories that have not been read. */
+  get: (repos: readonly string[]) => Promise<ItemsRead>;
+  /** Reads `repos` afresh, sharing a read in progress; a repository whose read fails keeps its last issues. */
+  refresh: (repos: readonly string[]) => Promise<ItemsRead>;
+  /** Replaces the fields that a write changed on an item, in its repository's last read and in a read in progress. */
   patchItem: (itemKey: string, patch: ItemPatch) => void;
 }
 
 export interface ItemsCacheOptions {
-  load: () => Promise<WorkItem[]>;
+  loadRepo: (repo: string) => Promise<WorkItem[]>;
   maxAgeMs?: number;
   now?: () => Date;
 }
 
-/** Returns a cache that keeps the issues of its last successful read and shares one read among concurrent callers. */
+/** One successful read of one repository's issues. */
+interface StoredRead {
+  items: WorkItem[];
+  readAt: Date;
+}
+
+/**
+ * Returns a cache that keeps each repository's last successful read and shares one read of a repository among
+ * concurrent callers.
+ */
 export function createItemsCache({
-  load,
+  loadRepo,
   maxAgeMs = MAX_ITEMS_AGE_MS,
   now = () => new Date(),
 }: ItemsCacheOptions): ItemsCache {
-  let last: ItemsRead | undefined;
-  let pending: Promise<ItemsRead> | undefined;
+  const last = new Map<string, StoredRead>();
+  const pending = new Map<string, Promise<StoredRead>>();
   // A read in progress started before these writes, so its issues carry the fields from before them.
-  let patches = new Map<string, ItemPatch>();
+  const patches = new Map<string, Map<string, ItemPatch>>();
 
-  function refresh(): Promise<ItemsRead> {
-    pending ??= (async () => {
+  function refreshRepo(repo: string): Promise<StoredRead> {
+    const inProgress = pending.get(repo);
+    if (inProgress) return inProgress;
+    const started = (async () => {
       try {
-        // `read` is async, so even a `load` that throws at once suspends here, and the `finally` runs after `??=`.
-        return await read();
+        // `read` is async, so even a `loadRepo` that throws at once suspends here, and the `finally` runs after `set`.
+        return await read(repo);
       } finally {
-        pending = undefined;
+        pending.delete(repo);
+        patches.delete(repo);
       }
     })();
-    return pending;
+    pending.set(repo, started);
+    return started;
   }
 
-  /** Reads the issues and keeps them as the last read. */
-  async function read(): Promise<ItemsRead> {
+  /** Reads one repository's issues and keeps them as its last read. */
+  async function read(repo: string): Promise<StoredRead> {
     const readAt = now();
-    patches = new Map();
-    const result = { items: applyPatches(await load(), patches), readAt };
-    last = result;
+    const repoPatches = new Map<string, ItemPatch>();
+    patches.set(repo, repoPatches);
+    const result = { items: applyPatches(await loadRepo(repo), repoPatches), readAt };
+    last.set(repo, result);
     return result;
   }
 
+  /** Combines the reads of `repos`, in their order, judging each read's age now. */
+  async function collect(repos: readonly string[], readRepo: (repo: string) => Promise<StoredRead>) {
+    const stored = await Promise.all(repos.map(async (repo) => ({ repo, ...(await readRepo(repo)) })));
+    const time = now().getTime();
+    const reads: Record<string, RepoRead> = {};
+    for (const { repo, readAt } of stored) reads[repo] = { readAt, isStale: time - readAt.getTime() > maxAgeMs };
+    return { items: stored.flatMap((entry) => entry.items), reads };
+  }
+
   function patchItem(itemKey: string, patch: ItemPatch): void {
-    if (pending) patches.set(itemKey, { ...patches.get(itemKey), ...patch });
-    if (last) last = { ...last, items: applyPatches(last.items, new Map([[itemKey, patch]])) };
+    const repo = parseItemKey(itemKey)?.repo;
+    if (repo === undefined) return;
+    const repoPatches = patches.get(repo);
+    if (repoPatches) repoPatches.set(itemKey, { ...repoPatches.get(itemKey), ...patch });
+    const stored = last.get(repo);
+    if (stored) last.set(repo, { ...stored, items: applyPatches(stored.items, new Map([[itemKey, patch]])) });
   }
 
-  async function get(): Promise<CachedItems> {
-    const latest = last ?? (await refresh());
-    return { ...latest, isStale: now().getTime() - latest.readAt.getTime() > maxAgeMs };
-  }
-
-  return { get, patchItem, refresh };
+  return {
+    get: (repos) => collect(repos, (repo) => Promise.resolve(last.get(repo) ?? refreshRepo(repo))),
+    patchItem,
+    refresh: (repos) => collect(repos, refreshRepo),
+  };
 }
 
 // region | Helpers

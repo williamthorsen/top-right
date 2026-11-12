@@ -31,6 +31,10 @@ const LABEL_MAPPING: ScoreLabelMapping = {
   effort: { 1: [], 2: [], 3: ['size:m'], 5: [], 8: [], 13: [] },
 };
 const IN_PROGRESS: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
+const OTHER_REPO = 'williamthorsen/toolbelt';
+const OTHER_ITEM: WorkItem = { ...ITEM, repo: OTHER_REPO, url: 'https://github.com/williamthorsen/toolbelt/issues/11' };
+const OTHER_KEY = `${OTHER_REPO}#11`;
+const FRESH_READ = { readAt: NOW.toISOString(), isStale: false };
 
 afterEach(closeServers);
 
@@ -60,8 +64,7 @@ describe(createApiHandler, () => {
         scores,
         overrides: { [ITEM_KEY]: IN_PROGRESS },
         lastVisitAt: EARLIER,
-        readAt: NOW.toISOString(),
-        isStale: false,
+        reads: { [ITEM.repo]: FRESH_READ },
       });
     });
 
@@ -78,14 +81,14 @@ describe(createApiHandler, () => {
 
     it('reports the issues as stale once they are older than the maximum age', async () => {
       let now = NOW;
-      const items = createItemsCache({ load: () => Promise.resolve([ITEM]), maxAgeMs: 1000, now: () => now });
+      const items = createItemsCache({ loadRepo: () => Promise.resolve([ITEM]), maxAgeMs: 1000, now: () => now });
       const baseUrl = await startServer({ items });
 
       await fetch(`${baseUrl}/api/items`);
       now = new Date(NOW.getTime() + 1001);
       const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
 
-      expect(body).toMatchObject({ readAt: NOW.toISOString(), isStale: true });
+      expect(body).toMatchObject({ reads: { [ITEM.repo]: { readAt: NOW.toISOString(), isStale: true } } });
     });
 
     it("reads the user's state afresh while it serves the issues from memory", async () => {
@@ -138,7 +141,7 @@ describe(createApiHandler, () => {
       expect(store.state.overrides).toStrictEqual({ [ITEM_KEY]: IN_PROGRESS });
     });
 
-    it('keeps the override of an item whose repository the host no longer loads', async () => {
+    it('keeps the override of an item whose repository the config no longer lists', async () => {
       const otherKey = 'williamthorsen/elsewhere#3';
       const store = createMemoryStore({ overrides: { [otherKey]: IN_PROGRESS } });
       const baseUrl = await startServer({ store });
@@ -158,6 +161,36 @@ describe(createApiHandler, () => {
       expect(store.state.overrides).toStrictEqual({});
     });
 
+    it("reads only the default collection's repositories and the selected item's repository", async () => {
+      const third = 'williamthorsen/codeassembly';
+      const loadItems = vi.fn(() => Promise.resolve([ITEM, OTHER_ITEM, { ...ITEM, repo: third }]));
+      const store = createMemoryStore({
+        collections: { collections: [{ id: 'c1', name: 'Product', repos: [ITEM.repo] }], defaultCollectionId: 'c1' },
+      });
+      const baseUrl = await startServer({ loadItems, store, repos: [ITEM.repo, OTHER_REPO, third] });
+
+      const body: unknown = await (await fetch(`${baseUrl}/api/items?item=${encodeURIComponent(OTHER_KEY)}`)).json();
+
+      expect(body).toMatchObject({
+        items: [ITEM, OTHER_ITEM],
+        reads: { [ITEM.repo]: FRESH_READ, [OTHER_REPO]: FRESH_READ },
+      });
+      expect(loadItems).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps and returns the override of an item in a configured repository outside the read', async () => {
+      const store = createMemoryStore({
+        collections: { collections: [{ id: 'c1', name: 'Product', repos: [ITEM.repo] }], defaultCollectionId: 'c1' },
+        overrides: { [OTHER_KEY]: IN_PROGRESS },
+      });
+      const baseUrl = await startServer({ store, repos: [ITEM.repo, OTHER_REPO] });
+
+      const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
+
+      expect(body).toMatchObject({ overrides: { [OTHER_KEY]: IN_PROGRESS } });
+      expect(store.state.overrides).toStrictEqual({ [OTHER_KEY]: IN_PROGRESS });
+    });
+
     it('if loading fails, responds 502 with the failure message', async () => {
       const baseUrl = await startServer({
         loadItems: () => Promise.reject(new Error('GitHub rejected the token (401).')),
@@ -167,6 +200,33 @@ describe(createApiHandler, () => {
 
       expect(response.status).toBe(502);
       expect(await response.json()).toStrictEqual({ error: 'GitHub rejected the token (401).' });
+    });
+  });
+
+  describe('POST /api/items/read', () => {
+    it('answers with the named repositories, reading only those that the host has not read', async () => {
+      const loadItems = vi.fn(() => Promise.resolve([ITEM, OTHER_ITEM]));
+      const baseUrl = await startServer({ loadItems, repos: [ITEM.repo, OTHER_REPO] });
+      await post(`${baseUrl}/api/items/read`, { repos: [ITEM.repo] });
+
+      const response = await post(`${baseUrl}/api/items/read`, { repos: [ITEM.repo, OTHER_REPO] });
+
+      expect(await response.json()).toStrictEqual({
+        items: [ITEM, OTHER_ITEM],
+        reads: { [ITEM.repo]: FRESH_READ, [OTHER_REPO]: FRESH_READ },
+      });
+      expect(loadItems).toHaveBeenCalledTimes(2);
+    });
+
+    it('refuses a repository that the config does not list', async () => {
+      const baseUrl = await startServer({});
+
+      const response = await post(`${baseUrl}/api/items/read`, { repos: ['williamthorsen/elsewhere'] });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toStrictEqual({
+        error: 'williamthorsen/elsewhere is not a configured repository.',
+      });
     });
   });
 
@@ -180,10 +240,10 @@ describe(createApiHandler, () => {
       const baseUrl = await startServer({ loadItems });
 
       await fetch(`${baseUrl}/api/items`);
-      const response = await post(`${baseUrl}/api/items/refresh`, {});
+      const response = await post(`${baseUrl}/api/items/refresh`, { repos: [ITEM.repo] });
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toStrictEqual({ items: [renamed], readAt: NOW.toISOString() });
+      expect(await response.json()).toStrictEqual({ items: [renamed], reads: { [ITEM.repo]: FRESH_READ } });
       expect(await (await fetch(`${baseUrl}/api/items`)).json()).toMatchObject({ items: [renamed] });
     });
 
@@ -197,9 +257,20 @@ describe(createApiHandler, () => {
       const baseUrl = await startServer({ loadItems, store });
 
       await fetch(`${baseUrl}/api/items`);
-      await post(`${baseUrl}/api/items/refresh`, {});
+      await post(`${baseUrl}/api/items/refresh`, { repos: [ITEM.repo] });
 
       expect(store.state.overrides).toStrictEqual({});
+    });
+
+    it('reads only the named repositories, and keeps the override of an item outside them', async () => {
+      const loadItems = vi.fn(() => Promise.resolve([ITEM]));
+      const store = createMemoryStore({ overrides: { [ITEM_KEY]: IN_PROGRESS } });
+      const baseUrl = await startServer({ loadItems, store, repos: [ITEM.repo, OTHER_REPO] });
+
+      const response = await post(`${baseUrl}/api/items/refresh`, { repos: [OTHER_REPO] });
+
+      expect(await response.json()).toStrictEqual({ items: [], reads: { [OTHER_REPO]: FRESH_READ } });
+      expect(store.state.overrides).toStrictEqual({ [ITEM_KEY]: IN_PROGRESS });
     });
 
     it('if the read fails, responds 502 and keeps serving the last issues', async () => {
@@ -210,7 +281,7 @@ describe(createApiHandler, () => {
       const baseUrl = await startServer({ loadItems });
 
       await fetch(`${baseUrl}/api/items`);
-      const response = await post(`${baseUrl}/api/items/refresh`, {});
+      const response = await post(`${baseUrl}/api/items/refresh`, { repos: [ITEM.repo] });
 
       expect(response.status).toBe(502);
       expect(await response.json()).toStrictEqual({ error: 'GitHub did not respond.' });

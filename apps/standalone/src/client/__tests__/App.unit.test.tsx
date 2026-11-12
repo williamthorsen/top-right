@@ -28,6 +28,7 @@ beforeEach(() => {
 });
 
 const ITEM_KEY = 'williamthorsen/top-right#12';
+const REPO = 'williamthorsen/top-right';
 const AT = '2026-11-08T10:00:00.000Z';
 const ITEMS: ItemsResponse = {
   items: [
@@ -42,7 +43,7 @@ const ITEMS: ItemsResponse = {
       relations: [],
     },
   ],
-  abbreviations: {},
+  abbreviations: { [REPO]: 'T' },
   abbreviationClashes: [],
   collections: [],
   defaultCollectionId: null,
@@ -50,9 +51,9 @@ const ITEMS: ItemsResponse = {
   scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
   scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'author', at: AT } } },
   overrides: {},
-  readAt: AT,
-  isStale: false,
+  reads: { [REPO]: { readAt: AT, isStale: false } },
 };
+const STALE_ITEMS: ItemsResponse = { ...ITEMS, reads: { [REPO]: { readAt: AT, isStale: true } } };
 
 const CRITICAL_BY_LABEL = { itemKey: ITEM_KEY, scores: {}, labels: ['feature', 'urgency:critical'] };
 
@@ -217,14 +218,16 @@ describe(App, () => {
     const read = Promise.withResolvers<Response>();
     stubFetch((path) => {
       if (path === '/api/items/refresh') return read.promise;
-      return Promise.resolve(Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : { ...ITEMS, isStale: true }));
+      return Promise.resolve(Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : STALE_ITEMS));
     });
     render(<App />);
 
     await selectItem(user);
     await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
     expect(await screen.findByText('Label · urgency:critical')).toBeInTheDocument();
-    read.resolve(Response.json({ items: ITEMS.items, readAt: '2026-11-08T10:05:00.000Z' }));
+    read.resolve(
+      Response.json({ items: ITEMS.items, reads: { [REPO]: { readAt: '2026-11-08T10:05:00.000Z', isStale: false } } }),
+    );
 
     expect(await within(screen.getByRole('toolbar', { name: 'Issues' })).findByRole('time')).toHaveAttribute(
       'datetime',
@@ -365,13 +368,15 @@ describe('setting the status', () => {
 
 describe('refreshing the issues', () => {
   const RENAMED = 'Score every item';
-  const REFRESHED = { items: [{ ...ITEMS.items[0], title: RENAMED }], readAt: '2026-11-08T10:05:00.000Z' };
+  const READ_AT = '2026-11-08T10:05:00.000Z';
+  const REFRESHED = {
+    items: [{ ...ITEMS.items[0], title: RENAMED }],
+    reads: { [REPO]: { readAt: READ_AT, isStale: false } },
+  };
 
   it('shows the read time and, when the issues are stale, replaces them with a fresh read', async () => {
     const read = Promise.withResolvers<Response>();
-    stubFetch((path) =>
-      path === '/api/items/refresh' ? read.promise : Promise.resolve(Response.json({ ...ITEMS, isStale: true })),
-    );
+    stubFetch((path) => (path === '/api/items/refresh' ? read.promise : Promise.resolve(Response.json(STALE_ITEMS))));
     render(<App />);
 
     const toolbar = await screen.findByRole('toolbar', { name: 'Issues' });
@@ -381,7 +386,7 @@ describe('refreshing the issues', () => {
     read.resolve(Response.json(REFRESHED));
     expect((await screen.findAllByText(RENAMED)).length).toBeGreaterThan(0);
     expect(screen.queryByText('Score items')).not.toBeInTheDocument();
-    expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', REFRESHED.readAt);
+    expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', READ_AT);
   });
 
   it('reads the issues again on Refresh, keeping the scores on the page', async () => {
@@ -417,6 +422,82 @@ describe('refreshing the issues', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(new RegExp(`^${RegExp.escape(expected)}Dismiss$`));
     expect(screen.getAllByText('Score items').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Refresh' })).toHaveAttribute('aria-disabled', 'false');
+  });
+});
+
+describe('reading the shown repositories', () => {
+  const OTHER = 'williamthorsen/toolbelt';
+  const OTHER_ITEM = {
+    ...ITEMS.items[0],
+    repo: OTHER,
+    title: 'Sharpen the tools',
+    url: 'https://github.com/williamthorsen/toolbelt/issues/12',
+  };
+  const WITH_DEFAULT: ItemsResponse = {
+    ...ITEMS,
+    abbreviations: { [REPO]: 'T', [OTHER]: 'B' },
+    collections: [{ id: 'c1', name: 'Product', repos: [REPO] }],
+    defaultCollectionId: 'c1',
+  };
+
+  it("asks the host for the URL's item with the first load", async () => {
+    globalThis.history.replaceState(null, '', `/?item=${encodeURIComponent(ITEM_KEY)}`);
+    stubFetch(() => Promise.resolve(Response.json(ITEMS)));
+    render(<App />);
+
+    await screen.findByRole('complementary', { name: 'Item detail' });
+
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(`/api/items?item=${encodeURIComponent(ITEM_KEY)}`);
+  });
+
+  it('reads a repository once when the chart first shows it', async () => {
+    const user = userEvent.setup();
+    stubFetch((path) =>
+      Promise.resolve(
+        Response.json(
+          path === '/api/items/read'
+            ? { items: [OTHER_ITEM], reads: { [OTHER]: { readAt: AT, isStale: false } } }
+            : WITH_DEFAULT,
+        ),
+      ),
+    );
+    render(<App />);
+    await screen.findByRole('button', { name: 'Repos: Product' });
+    expect(listPostedRepos('/api/items/read')).toStrictEqual([]);
+
+    await chooseRepos(user, 'toolbelt (B)');
+    expect((await screen.findAllByText('Sharpen the tools')).length).toBeGreaterThan(0);
+    await chooseRepos(user, 'toolbelt (B)');
+    await chooseRepos(user, 'toolbelt (B)');
+
+    expect(listPostedRepos('/api/items/read')).toStrictEqual([[OTHER]]);
+  });
+
+  it('refreshes only the shown repositories, and shows the oldest of their reads', async () => {
+    const user = userEvent.setup();
+    const withOlderHidden: ItemsResponse = {
+      ...WITH_DEFAULT,
+      reads: {
+        [REPO]: { readAt: AT, isStale: false },
+        [OTHER]: { readAt: '2026-11-08T09:00:00.000Z', isStale: false },
+      },
+    };
+    stubFetch((path) =>
+      Promise.resolve(
+        Response.json(
+          path === '/api/items/refresh'
+            ? { items: ITEMS.items, reads: { [REPO]: { readAt: AT, isStale: false } } }
+            : withOlderHidden,
+        ),
+      ),
+    );
+    render(<App />);
+
+    const toolbar = await screen.findByRole('toolbar', { name: 'Issues' });
+    expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', AT);
+    await user.click(within(toolbar).getByRole('button', { name: 'Refresh' }));
+
+    await waitFor(() => expect(listPostedRepos('/api/items/refresh')).toStrictEqual([[REPO]]));
   });
 });
 
@@ -499,11 +580,32 @@ function readItemParameter(): string | null {
   return new URLSearchParams(globalThis.location.search).get('item');
 }
 
+/** Opens the Repos menu, toggles each entry named in `labels` in order, and closes the menu with Escape. */
+async function chooseRepos(user: ReturnType<typeof userEvent.setup>, ...labels: string[]): Promise<void> {
+  await user.click(screen.getByRole('button', { name: /^Repos: / }));
+  for (const label of labels) await user.click(screen.getByRole('menuitemcheckbox', { name: label }));
+  await user.keyboard('{Escape}');
+}
+
+/** Returns the repositories that each POST to `path` named, in the order in which the page sent them. */
+function listPostedRepos(path: string): unknown[] {
+  return vi
+    .mocked(fetch)
+    .mock.calls.filter(([input]) => input === path)
+    .map(([, init]) => {
+      const body: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
+      return typeof body === 'object' && body !== null && 'repos' in body ? body.repos : undefined;
+    });
+}
+
 function stubFetch(respond: (path: string) => Promise<Response>): void {
   vi.stubGlobal(
     'fetch',
     vi.fn((input: RequestInfo | URL) =>
-      respond(typeof input === 'string' ? input : input instanceof URL ? input.pathname : new URL(input.url).pathname),
+      respond(
+        new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost')
+          .pathname,
+      ),
     ),
   );
 }
