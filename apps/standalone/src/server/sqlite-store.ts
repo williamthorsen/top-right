@@ -4,7 +4,6 @@ import {
   applyScoreWrite,
   clearScoreFields,
   type CollectionSettings,
-  DEFAULT_SCORE_LABEL_MAPPING,
   EMPTY_COLLECTION_SETTINGS,
   isValidScore,
   type ItemScores,
@@ -22,79 +21,22 @@ import {
 import type { Store, UserState } from '@top-right/store';
 import { z } from 'zod';
 
+import { MIGRATIONS } from './sqlite-migrations.ts';
+import {
+  ABBREVIATIONS_SETTING,
+  abbreviationsSchema,
+  COLLECTIONS_SETTING,
+  collectionSettingsSchema,
+  SCORE_LABEL_MAPPING_SETTING,
+  scoreLabelMappingSchema,
+  WORK_TYPE_MAPPING_SETTING,
+  workTypeMappingSchema,
+} from './sqlite-settings.ts';
+
 /** A `Store` on a SQLite file, with the function that closes the file. */
 export interface SqliteStore extends Store {
   close: () => void;
 }
-
-/** Schema migrations, applied in order; migration `n` brings `PRAGMA user_version` to `n + 1`. */
-const MIGRATIONS: readonly string[] = [
-  `
-  CREATE TABLE scores (
-    user_id TEXT NOT NULL,
-    item_key TEXT NOT NULL,
-    field TEXT NOT NULL,
-    value REAL NOT NULL,
-    scored_by TEXT NOT NULL,
-    scored_at TEXT NOT NULL,
-    PRIMARY KEY (user_id, item_key, field)
-  ) STRICT;
-  CREATE TABLE status_overrides (
-    user_id TEXT NOT NULL,
-    item_key TEXT NOT NULL,
-    status TEXT NOT NULL,
-    source_state TEXT NOT NULL,
-    set_at TEXT NOT NULL,
-    PRIMARY KEY (user_id, item_key)
-  ) STRICT;
-  CREATE TABLE visits (
-    user_id TEXT PRIMARY KEY,
-    last_visit_at TEXT NOT NULL
-  ) STRICT;
-  `,
-  'ALTER TABLE scores ADD COLUMN previous_value REAL;',
-  `
-  CREATE TABLE settings (
-    user_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    value TEXT NOT NULL,
-    PRIMARY KEY (user_id, name)
-  ) STRICT;
-  `,
-  `
-  DROP TABLE scores;
-  CREATE TABLE scores (
-    user_id TEXT NOT NULL,
-    item_key TEXT NOT NULL,
-    field TEXT NOT NULL CHECK (field IN ('effort', 'progress', 'urgency', 'value')),
-    score ANY NOT NULL,
-    scored_by TEXT NOT NULL,
-    scored_at TEXT NOT NULL,
-    previous_score ANY,
-    PRIMARY KEY (user_id, item_key, field),
-    CHECK (
-      CASE field
-        WHEN 'urgency' THEN score IN ('low', 'medium', 'high', 'critical')
-        WHEN 'value' THEN score IN ('questionable', 'nice-to-have', 'should-have', 'must-have')
-        ELSE typeof(score) IN ('integer', 'real')
-      END
-    ),
-    CHECK (
-      previous_score IS NULL OR CASE field
-        WHEN 'urgency' THEN previous_score IN ('low', 'medium', 'high', 'critical')
-        WHEN 'value' THEN previous_score IN ('questionable', 'nice-to-have', 'should-have', 'must-have')
-        ELSE typeof(previous_score) IN ('integer', 'real')
-      END
-    )
-  ) STRICT;
-  `,
-];
-
-/** The name of each setting in the `settings` table, whose `value` holds the setting as JSON. */
-const ABBREVIATIONS_SETTING = 'abbreviations';
-const COLLECTIONS_SETTING = 'collections';
-const SCORE_LABEL_MAPPING_SETTING = 'score-label-mapping';
-const WORK_TYPE_MAPPING_SETTING = 'work-type-mapping';
 
 /** How long a statement waits for another process's lock on the file before it fails. */
 const BUSY_TIMEOUT_MS = 5000;
@@ -120,39 +62,6 @@ const visitRowSchema = z.object({ last_visit_at: z.string() });
 const userVersionSchema = z.object({ user_version: z.number() });
 
 const settingRowSchema = z.object({ value: z.string() });
-
-const labelsSchema = z.array(z.string());
-
-const workTypeMappingSchema = z.object({
-  bug: labelsSchema,
-  feature: labelsSchema,
-  ops: labelsSchema,
-  task: labelsSchema,
-});
-
-/** A stored score-label mapping; one without effort entries reads with the default effort labels. */
-const scoreLabelMappingSchema = z
-  .object({
-    urgency: z.object({ critical: labelsSchema, high: labelsSchema, low: labelsSchema, medium: labelsSchema }),
-    value: z.object({
-      'must-have': labelsSchema,
-      'nice-to-have': labelsSchema,
-      questionable: labelsSchema,
-      'should-have': labelsSchema,
-    }),
-    effort: z
-      .object({ 1: labelsSchema, 2: labelsSchema, 3: labelsSchema, 5: labelsSchema, 8: labelsSchema, 13: labelsSchema })
-      .optional(),
-  })
-  .transform(({ effort, ...mapping }) => ({ ...mapping, effort: effort ?? DEFAULT_SCORE_LABEL_MAPPING.effort }));
-
-const abbreviationsSchema = z.record(z.string(), z.string());
-
-/** Stored collection settings; JSON omits an undefined default, so an absent one reads as undefined. */
-const collectionSettingsSchema = z.object({
-  collections: z.array(z.object({ id: z.string(), name: z.string(), repos: z.array(z.string()) })),
-  defaultCollectionId: z.string().optional(),
-});
 
 /** Opens the SQLite store at `path` (`:memory:` for a store that lives as long as the process), migrating it. */
 export function openSqliteStore(path: string): SqliteStore {
