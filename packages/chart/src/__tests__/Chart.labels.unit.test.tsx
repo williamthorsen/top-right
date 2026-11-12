@@ -25,7 +25,7 @@ describe(Chart, () => {
       expect(within(gutter).queryByRole('button', { name: /^T\.1:/ })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^T\.1:/ })).toBeInTheDocument();
       expect(within(getGroup('Urgency')).getByRole('radio', { name: 'High' })).toBeChecked();
-      expect(within(getGroup('Value')).getByRole('radio', { name: 'Must-have' })).toBeChecked();
+      expect(within(getGroup('Value')).getByRole('radio', { name: 'Must have' })).toBeChecked();
       expect(within(getPane()).getByText('Label · urgency:high')).toBeInTheDocument();
       expect(within(getPane()).getByText('Label · value:must-have')).toBeInTheDocument();
     });
@@ -46,7 +46,7 @@ describe(Chart, () => {
         },
       );
 
-      expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice-to-have' })).toBeChecked();
+      expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice to have' })).toBeChecked();
       expect(within(getPane()).queryByText('Label · value:must-have')).not.toBeInTheDocument();
       expect(within(getPane()).getByText('Label · urgency:high')).toBeInTheDocument();
     });

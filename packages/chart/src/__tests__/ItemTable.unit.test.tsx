@@ -41,7 +41,7 @@ describe(ItemTable, () => {
 
     const row = screen.getByRole('row', { name: /Issue 1/ });
     expect(within(row).getByRole('cell', { name: 'High' })).toBeInTheDocument();
-    expect(within(row).getByRole('cell', { name: 'Must-have' })).toBeInTheDocument();
+    expect(within(row).getByRole('cell', { name: 'Must have' })).toBeInTheDocument();
   });
 
   it("shows the status that the item's source supplies", () => {

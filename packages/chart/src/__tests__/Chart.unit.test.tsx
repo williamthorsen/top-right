@@ -94,7 +94,7 @@ describe(Chart, () => {
     expect(within(subIssues).getByRole('link', { name: /T\.9 Done closed/ })).toBeInTheDocument();
   });
 
-  it.each(['Low', 'Medium', 'High', 'Critical', 'Questionable', 'Nice-to-have', 'Should-have', 'Must-have'])(
+  it.each(['Low', 'Medium', 'High', 'Critical', 'Questionable', 'Nice to have', 'Should have', 'Must have'])(
     'names the %s level on its axis',
     (level) => {
       renderChart([]);
@@ -375,10 +375,10 @@ describe(Chart, () => {
 
       await user.click(screen.getByRole('button', { name: 'Review agent scores (3)' }));
       await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'High' }));
-      await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Nice-to-have' }));
+      await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Nice to have' }));
 
       expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
-      expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice-to-have' })).toBeChecked();
+      expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice to have' })).toBeChecked();
       expect(hasHalo(screen.getByRole('button', { name: /^T\.2:/ }))).toBe(false);
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · – of 2');
 
@@ -398,7 +398,7 @@ describe(Chart, () => {
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 2');
       await user.click(
         within(within(getPane()).getByRole('radiogroup', { name: 'Value' })).getByRole('radio', {
-          name: 'Should-have',
+          name: 'Should have',
         }),
       );
 

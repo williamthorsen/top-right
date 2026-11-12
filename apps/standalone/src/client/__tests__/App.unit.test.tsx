@@ -229,7 +229,7 @@ describe(App, () => {
 
     await selectItem(user);
     expect(screen.getByRole('button', { name: 'Keep' })).toBeInTheDocument();
-    await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Should-have' }));
+    await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Should have' }));
 
     expect(screen.queryByRole('button', { name: 'Keep' })).not.toBeInTheDocument();
   });

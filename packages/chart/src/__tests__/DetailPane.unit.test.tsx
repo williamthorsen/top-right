@@ -29,7 +29,7 @@ describe(DetailPane, () => {
       const user = userEvent.setup();
       const { onKeep } = renderPane({ scores: moved });
 
-      expect(screen.getByText('Moved by the agent from Medium urgency, Must-have value')).toBeInTheDocument();
+      expect(screen.getByText('Moved by the agent from Medium urgency, Must have value')).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Keep' }));
 
       expect(onKeep).toHaveBeenCalledWith(ITEM_KEY);
@@ -52,7 +52,7 @@ describe(DetailPane, () => {
     const user = userEvent.setup();
     const { onScoresChange } = renderPane();
 
-    await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Should-have' }));
+    await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Should have' }));
     await user.click(within(getGroup('Effort')).getByRole('radio', { name: '8' }));
 
     expect(onScoresChange.mock.calls).toStrictEqual([

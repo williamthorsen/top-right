@@ -6,8 +6,8 @@ export const LEVEL_NAMES: Readonly<Record<UrgencyLevel | ValueLevel, string>> = 
   high: 'High',
   low: 'Low',
   medium: 'Medium',
-  'must-have': 'Must-have',
-  'nice-to-have': 'Nice-to-have',
+  'must-have': 'Must have',
+  'nice-to-have': 'Nice to have',
   questionable: 'Questionable',
-  'should-have': 'Should-have',
+  'should-have': 'Should have',
 };
