@@ -4,6 +4,7 @@ import type { ItemScores, Relation, RelationKind } from '@top-right/model';
 import { describe, expect, it } from 'vitest';
 
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
+import { chooseRepos } from '../test-utils/repo-menu.ts';
 
 const CA = 'williamthorsen/codeassembly';
 const ABBREVIATIONS = { [REPO]: 't', [CA]: 'c' };
@@ -87,9 +88,8 @@ describe('Chart longest chain', () => {
     const user = userEvent.setup();
     renderChart(ITEMS, ABBREVIATIONS, SCORES);
     await showChain(user);
-    const repo = screen.getByRole('combobox', { name: 'Repo' });
 
-    await user.selectOptions(repo, 'codeassembly (c)');
+    await chooseRepos(user, 'codeassembly (c)');
 
     expect(screen.getByRole('toolbar', { name: 'Longest chain' })).toHaveTextContent('Longest chain · 2 items');
     expect(getCircle('4')).toHaveAttribute('data-faded', 'false');

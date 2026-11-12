@@ -1,14 +1,16 @@
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import type { StatusOverride, WorkItem } from '@top-right/model';
+import type { Collection, StatusOverride, WorkItem } from '@top-right/model';
 import { type ReactElement, useState } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getGroup, getPane } from '../test-utils/chart-queries.ts';
+import { chooseRepos, getReposButton } from '../test-utils/repo-menu.ts';
 
 const CA = 'williamthorsen/codeassembly';
+const TOOLS = 'williamthorsen/toolbelt';
 const IN_PROGRESS: StatusOverride = { status: 'in-progress', sourceState: 'open', at: '2026-11-08T00:00:00.000Z' };
 
 describe(Chart, () => {
@@ -29,7 +31,7 @@ describe(Chart, () => {
       );
       expect(screen.getByRole('button', { name: /^ca\.3:/ })).toBeInTheDocument();
 
-      await user.selectOptions(screen.getByRole('combobox', { name: 'Repo' }), 'top-right (tr)');
+      await chooseRepos(user, 'top-right (tr)');
 
       expect(screen.getByRole('button', { name: /^1:/ })).toBeInTheDocument();
       expect(within(getGutter()).getByRole('button', { name: /^2:/ })).toBeInTheDocument();
@@ -37,11 +39,21 @@ describe(Chart, () => {
       expect(screen.queryByRole('button', { name: /^(ca\.)?4:/ })).not.toBeInTheDocument();
     });
 
-    it('offers each repo by name and abbreviation, sorted by name, after All repos', () => {
+    it('offers All repos, then each repo by name and abbreviation, sorted by name, without a Collections group', async () => {
+      const user = userEvent.setup();
       renderChart([buildItem({ number: 1 })], ABBREVIATIONS);
+      expect(getReposButton()).toHaveAccessibleName('Repos: All repos');
 
-      const options = within(screen.getByRole('combobox', { name: 'Repo' })).getAllByRole('option');
-      expect(options.map((option) => option.textContent)).toEqual(['All repos', 'codeassembly (ca)', 'top-right (tr)']);
+      await user.click(getReposButton());
+
+      const menu = screen.getByRole('menu', { name: 'Repos' });
+      expect(
+        within(menu)
+          .getAllByRole('menuitemcheckbox')
+          .map((item) => item.textContent),
+      ).toEqual(['✓All repos', 'codeassembly (ca)', 'top-right (tr)']);
+      expect(within(menu).queryByRole('group', { name: 'Collections' })).not.toBeInTheDocument();
+      expect(within(menu).getByRole('group', { name: 'Repositories' })).toBeInTheDocument();
     });
 
     it('when In progress is turned off, removes the items in progress and keeps the counts', async () => {
@@ -83,7 +95,7 @@ describe(Chart, () => {
       );
       expect(screen.getByRole('button', { name: /^To do/ })).toHaveAccessibleName('To do 2');
 
-      await user.selectOptions(screen.getByRole('combobox', { name: 'Repo' }), 'codeassembly (ca)');
+      await chooseRepos(user, 'codeassembly (ca)');
 
       expect(screen.getByRole('button', { name: /^To do/ })).toHaveAccessibleName('To do 1');
       expect(screen.getByRole('button', { name: /^In progress/ })).toHaveAccessibleName('In progress 0');
@@ -97,7 +109,7 @@ describe(Chart, () => {
       });
       expect(screen.getByRole('button', { name: /^tr\.1:.*, next pick$/ })).toBeInTheDocument();
 
-      await user.selectOptions(screen.getByRole('combobox', { name: 'Repo' }), 'codeassembly (ca)');
+      await chooseRepos(user, 'codeassembly (ca)');
 
       expect(screen.getByRole('button', { name: /^2:.*, next pick$/ })).toBeInTheDocument();
     });
@@ -107,7 +119,7 @@ describe(Chart, () => {
       renderChart([buildItem({ number: 1 }), buildItem({ number: 2, repo: CA })], ABBREVIATIONS);
       expect(screen.getByRole('button', { name: 'Review unscored (2)' })).toBeInTheDocument();
 
-      await user.selectOptions(screen.getByRole('combobox', { name: 'Repo' }), 'top-right (tr)');
+      await chooseRepos(user, 'top-right (tr)');
 
       expect(screen.getByRole('button', { name: 'Review unscored (1)' })).toBeInTheDocument();
     });
@@ -118,7 +130,7 @@ describe(Chart, () => {
       await user.click(screen.getByRole('button', { name: 'Review unscored (2)' }));
       expect(screen.getByRole('button', { name: /^ca\.2:/ })).toBePressed();
 
-      await user.selectOptions(screen.getByRole('combobox', { name: 'Repo' }), 'top-right (tr)');
+      await chooseRepos(user, 'top-right (tr)');
 
       expect(screen.getByRole('button', { name: 'Review unscored (1)' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^1:/ })).not.toBePressed();
@@ -148,11 +160,103 @@ describe(Chart, () => {
         ABBREVIATIONS,
       );
 
-      await user.selectOptions(screen.getByRole('combobox', { name: 'Repo' }), 'top-right (tr)');
+      await chooseRepos(user, 'top-right (tr)');
       await user.click(screen.getByRole('button', { name: /^1:/ }));
 
       expect(within(getPane()).getByRole('link', { name: /ca\.2 Issue 2/ })).toBeInTheDocument();
       expect(within(getPane()).getByText('tr.1')).toBeInTheDocument();
+    });
+  });
+
+  describe('with collections', () => {
+    const ABBREVIATIONS = { [REPO]: 'tr', [CA]: 'ca', [TOOLS]: 'tb' };
+    const COLLECTIONS: Collection[] = [
+      { id: 'c1', name: 'Product', repos: [REPO, CA] },
+      { id: 'c2', name: 'Solo', repos: [TOOLS] },
+    ];
+    const ITEMS = [buildItem({ number: 1 }), buildItem({ number: 2, repo: CA }), buildItem({ number: 3, repo: TOOLS })];
+
+    it('offers the collections in their order in a group of their own, before the repositories', async () => {
+      const user = userEvent.setup();
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS);
+
+      await user.click(getReposButton());
+
+      const collections = screen.getByRole('group', { name: 'Collections' });
+      expect(
+        within(collections)
+          .getAllByRole('menuitemcheckbox')
+          .map((item) => item.textContent),
+      ).toEqual(['Product', 'Solo']);
+      expect(collections.compareDocumentPosition(screen.getByRole('group', { name: 'Repositories' }))).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+
+    it('shows the union of the selected collections and repositories, naming them in the label', async () => {
+      const user = userEvent.setup();
+      renderWithCollections(
+        [...ITEMS, buildItem({ number: 4, repo: 'williamthorsen/other' })],
+        { ...ABBREVIATIONS, 'williamthorsen/other': 'o' },
+        COLLECTIONS,
+      );
+
+      await chooseRepos(user, 'Product', 'toolbelt (tb)');
+
+      expect(getReposButton()).toHaveAccessibleName('Repos: Product, toolbelt');
+      expect(getReposButton()).toHaveTextContent('Product, toolbelt');
+      expect(getGutterLabels()).toEqual(['tr.1', 'ca.2', 'tb.3']);
+      expect(screen.getByRole('button', { name: /^To do/ })).toHaveAccessibleName('To do 3');
+    });
+
+    it('stays open while entries are toggled, and checks each selected entry', async () => {
+      const user = userEvent.setup();
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS);
+      await user.click(getReposButton());
+
+      await user.click(screen.getByRole('menuitemcheckbox', { name: 'Product' }));
+      await user.click(screen.getByRole('menuitemcheckbox', { name: 'toolbelt (tb)' }));
+
+      expect(screen.getByRole('menu', { name: 'Repos' })).toBeVisible();
+      expect(screen.getByRole('menuitemcheckbox', { name: 'All repos' })).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByRole('menuitemcheckbox', { name: 'Product' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('menuitemcheckbox', { name: 'toolbelt (tb)' })).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('clears the selection on All repos', async () => {
+      const user = userEvent.setup();
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS, 'c1');
+
+      await chooseRepos(user, 'All repos');
+
+      expect(getReposButton()).toHaveAccessibleName('Repos: All repos');
+      expect(getGutterLabels()).toEqual(['tr.1', 'ca.2', 'tb.3']);
+    });
+
+    it('starts at the default collection, which the label names', () => {
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS, 'c1');
+
+      expect(getReposButton()).toHaveAccessibleName('Repos: Product');
+      expect(getGutterLabels()).toEqual(['tr.1', 'ca.2']);
+    });
+
+    it('starts at every repo when the default names an unknown collection', () => {
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS, 'gone');
+
+      expect(getReposButton()).toHaveAccessibleName('Repos: All repos');
+      expect(getGutterLabels()).toEqual(['tr.1', 'ca.2', 'tb.3']);
+    });
+
+    it('labels items by number alone when a collection of one repo is shown', () => {
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS, 'c2');
+
+      expect(getGutterLabels()).toEqual(['3']);
+    });
+
+    it('labels items by their abbreviated ids when a collection of two repos is shown', () => {
+      renderWithCollections(ITEMS, ABBREVIATIONS, COLLECTIONS, 'c1');
+
+      expect(getGutterLabels()).toEqual(['tr.1', 'ca.2']);
     });
   });
 });
@@ -160,6 +264,13 @@ describe(Chart, () => {
 // region | Helpers
 function getGutter(): HTMLElement {
   return screen.getByRole('list', { name: 'Unscored items' });
+}
+
+/** Returns the id label of each item in the gutter, read from the start of its button's accessible name. */
+function getGutterLabels(): string[] {
+  return within(getGutter())
+    .getAllByRole('button')
+    .map((button) => button.getAttribute('aria-label')?.split(':')[0] ?? '');
 }
 
 /** Renders the chart with a host that applies the author's status changes to its overrides, as the page does. */
@@ -178,5 +289,22 @@ function renderBoard(items: WorkItem[]) {
     );
   }
   return render(<BoardHost />);
+}
+
+/** Renders the chart with the user's collections and default collection, as the host passes them. */
+function renderWithCollections(
+  items: WorkItem[],
+  abbreviations: Record<string, string>,
+  collections: Collection[],
+  defaultCollectionId?: string,
+) {
+  return render(
+    <Chart
+      abbreviations={abbreviations}
+      collections={collections}
+      defaultCollectionId={defaultCollectionId}
+      items={items}
+    />,
+  );
 }
 // endregion | Helpers
