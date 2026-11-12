@@ -14,8 +14,8 @@ try {
     isStdinTerminal: process.stdin.isTTY,
     now: () => new Date(),
     openContext: async () => {
-      const { loadItems, store, userId } = await openHostContext();
-      return { loadItems, store, userId, close: () => store.close() };
+      const { loadItems, repos, store, userId } = await openHostContext();
+      return { loadItems, repos, store, userId, close: () => store.close() };
     },
     readFile: (path) => readFile(path, 'utf8'),
     readStdin: () => text(process.stdin),

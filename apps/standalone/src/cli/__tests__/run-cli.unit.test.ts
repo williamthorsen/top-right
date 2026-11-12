@@ -119,7 +119,59 @@ describe(runCli, () => {
     expect(run.store.state.scores).toStrictEqual({});
   });
 
+  it('sets the abbreviations of repositories without a stored one, keeps the stored ones, and reports both', async () => {
+    const run = await runWith(['seed-abbreviations', 'o/r=R1', 'o/s=S1'], {
+      abbreviations: { 'o/s': 'SS', 'o/gone': 'G' },
+    });
+
+    expect(run.code).toBe(0);
+    expect(run.stdout).toBe('o/r → R1\no/s left at SS (stored)\ntop-right: set 1 abbreviation; left 1 stored\n');
+    expect(run.store.state.abbreviations).toStrictEqual({ 'o/s': 'SS', 'o/gone': 'G', 'o/r': 'R1' });
+  });
+
+  it('reports what a dry run would set and writes nothing', async () => {
+    const run = await runWith(['seed-abbreviations', '--dry-run', 'o/r=R1']);
+
+    expect(run.code).toBe(0);
+    expect(run.stdout).toBe('o/r → R1\ntop-right: 1 abbreviation would be set; run without --dry-run to set them\n');
+    expect(run.store.state.abbreviations).toStrictEqual({});
+  });
+
+  it.each([{ isDryRun: true }, { isDryRun: false }])(
+    'refuses a seed that names an unconfigured repository, writes nothing, and exits 2 (dry run: $isDryRun)',
+    async ({ isDryRun }) => {
+      const run = await runWith(['seed-abbreviations', ...(isDryRun ? ['-n'] : []), 'o/r=R1', 'o/x=X']);
+
+      expect(run.code).toBe(2);
+      expect(run.stdout).toBe('');
+      expect(run.stderr).toBe(
+        'top-right seed-abbreviations: the batch is refused, and nothing was written:\n  argument 2: o/x is not a configured repository\n',
+      );
+      expect(run.store.state.abbreviations).toStrictEqual({});
+    },
+  );
+
+  it('prints the seed-abbreviations help', async () => {
+    const run = await runWith(['seed-abbreviations', '--help']);
+
+    expect(run.code).toBe(0);
+    expect(run.stdout).toContain('Usage: top-right seed-abbreviations [--dry-run] <owner/name=ABBR>...');
+  });
+
+  it('lists every command when an unknown one is not near any', async () => {
+    const run = await runWith(['xyzzy']);
+
+    expect(run.stderr).toBe(
+      'top-right: unknown command xyzzy; the commands are list-items, seed-abbreviations, and write-scores; run top-right --help\n',
+    );
+  });
+
   it.each([
+    {
+      case: 'no pair is given',
+      args: ['seed-abbreviations'],
+      message: 'expects one or more owner/name=ABBR pairs',
+    },
     { case: 'the file is missing', args: ['write-scores', 'missing.json'], message: 'missing.json: file not found' },
     { case: 'the file is not JSON', args: ['write-scores', 'bad.json'], message: 'bad.json: not valid JSON' },
     { case: 'stdin is a terminal', args: ['write-scores', '-'], message: 'stdin is a terminal' },
@@ -144,6 +196,8 @@ describe(runCli, () => {
 
 // region | Helpers
 interface RunOptions {
+  /** The user's stored abbreviations. */
+  abbreviations?: Record<string, string>;
   files?: Record<string, string>;
   /** The labels of the open item `o/r#1`. */
   labels?: string[];
@@ -152,9 +206,12 @@ interface RunOptions {
   failure?: Error;
 }
 
-/** Runs the CLI against a memory store, with the open item `o/r#1` and the closed `o/r#2` loaded, and returns its output and exit code. */
+/**
+ * Runs the CLI against a memory store, with the repositories `o/r` and `o/s` configured and the open item `o/r#1` and
+ * the closed `o/r#2` loaded, and returns its output and exit code.
+ */
 async function runWith(argv: string[], options: RunOptions = {}) {
-  const store: MemoryStore = createMemoryStore();
+  const store: MemoryStore = createMemoryStore({ abbreviations: options.abbreviations ?? {} });
   let stdout = '';
   let stderr = '';
   const io: CliIo = {
@@ -168,6 +225,7 @@ async function runWith(argv: string[], options: RunOptions = {}) {
           options.failure
             ? Promise.reject(options.failure)
             : Promise.resolve([{ ...ITEM, labels: options.labels ?? [] }, CLOSED_ITEM]),
+        repos: ['o/r', 'o/s'],
         store,
         userId: 'github:author',
         close: () => {},
