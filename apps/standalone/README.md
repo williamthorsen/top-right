@@ -62,7 +62,7 @@ An agent writes scores through the `top-right` CLI, and the chart marks each one
 pnpm --filter @top-right/standalone top-right list-items --json > items.json             # read the open issues and their scores
 pnpm --filter @top-right/standalone top-right write-scores --dry-run scores.json         # report what would change
 pnpm --filter @top-right/standalone top-right write-scores scores.json                   # write the scores as the agent's
-pnpm --filter @top-right/standalone top-right seed-abbreviations owner/name=ABBR ...    # set abbreviations not yet stored
+pnpm --filter @top-right/standalone top-right seed-abbreviations owner/name=ABBR ...     # set abbreviations not yet stored
 ```
 
 An issue whose label maps to an urgency or value level, such as `value:must-have`, is placed at that level until a score is stored for it, and one whose label maps to an effort, such as `effort:5`, is drawn at that size until an effort is stored for it; [`DEFAULT_SCORE_LABEL_MAPPING`](../../packages/model/src/score-labels.ts) defines the default labels. `list-items` reports such a score with `by: "label"` and the label in its JSON, and with `(label)` after the score in its text.
