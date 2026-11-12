@@ -45,6 +45,7 @@ import {
 import { describeError, readRequest, sendJson } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
 import { type LabelWriter, writeAuthorChange } from './label-write.ts';
+import type { RouteTable } from './route-table.ts';
 import { writeStatusAtSource } from './status-write.ts';
 
 export const ABBREVIATIONS_PATH = '/api/abbreviations';
@@ -90,9 +91,7 @@ export function createApiHandler({
   const authorWrites = { items: itemsCache, labelWriter, store, userId };
   const statusWrites = { items: itemsCache, store, userId };
 
-  type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
-
-  const routes: Record<string, { method: string; handle: Route }> = {
+  const routes: RouteTable = {
     [ABBREVIATIONS_PATH]: {
       method: 'POST',
       handle: async (request, response) => {
