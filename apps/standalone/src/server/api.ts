@@ -1,63 +1,14 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { StatusStrategy } from '@top-right/adapter-github';
-import {
-  applyScoreWrite,
-  type CollectionSettings,
-  DEFAULT_SCORE_LABEL_MAPPING,
-  DEFAULT_WORK_TYPE_MAPPING,
-  describeAbbreviationClash,
-  describeDuplicateLabel,
-  describeDuplicateScoreLabel,
-  describeInvalidAbbreviation,
-  findAbbreviationClashes,
-  findCollectionProblem,
-  findDuplicateLabels,
-  findDuplicateScoreLabels,
-  formatItemKey,
-  isOverrideVoid,
-  isValidAbbreviation,
-  keepItemScores,
-  normalizeScoreLabelMapping,
-  normalizeWorkTypeMapping,
-  parseItemKey,
-  resolveAbbreviations,
-  type StatusOverride,
-  type WorkItem,
-} from '@top-right/model';
 import type { Store } from '@top-right/store';
 
-import type { ItemsResponse, RefreshResponse } from '#src/shared/items-response.ts';
-import {
-  abbreviationsRequestSchema,
-  collectionsRequestSchema,
-  scoreLabelMappingRequestSchema,
-  type SettingsResponse,
-  workTypeMappingRequestSchema,
-} from '#src/shared/settings.ts';
-import {
-  compactScores,
-  keepRequestSchema,
-  scoresRequestSchema,
-  statusRequestSchema,
-} from '#src/shared/write-requests.ts';
-
-import { describeError, readRequest, sendJson } from './http-json.ts';
+import { describeError, sendJson } from './http-json.ts';
+import { createItemRoutes } from './item-routes.ts';
 import type { ItemsCache } from './items-cache.ts';
-import { type LabelWriter, writeAuthorChange } from './label-write.ts';
-import { writeStatusAtSource } from './status-write.ts';
-
-export const ABBREVIATIONS_PATH = '/api/abbreviations';
-export const COLLECTIONS_PATH = '/api/collections';
-export const ITEMS_PATH = '/api/items';
-export const ITEMS_REFRESH_PATH = '/api/items/refresh';
-export const KEEP_PATH = '/api/keep';
-export const SCORE_LABEL_MAPPING_PATH = '/api/score-label-mapping';
-export const SCORES_PATH = '/api/scores';
-export const SETTINGS_PATH = '/api/settings';
-export const STATUS_PATH = '/api/status';
-export const VISIT_PATH = '/api/visit';
-export const WORK_TYPE_MAPPING_PATH = '/api/work-type-mapping';
+import type { LabelWriter } from './label-write.ts';
+import type { RouteTable } from './route-table.ts';
+import { createSettingsRoutes } from './settings-routes.ts';
 
 export interface ApiOptions {
   /** The absolute path of the config file that lists `repos`. */
@@ -78,7 +29,7 @@ export interface ApiOptions {
 /** Returns a handler that answers the host's `/api/` routes and passes every other request to `next`. */
 export function createApiHandler({
   configPath,
-  items: itemsCache,
+  items,
   labelWriter,
   repos,
   statusStrategyFor,
@@ -86,241 +37,10 @@ export function createApiHandler({
   userId,
   now = () => new Date(),
 }: ApiOptions) {
-  const configuredRepos = new Set(repos);
-  const authorWrites = { items: itemsCache, labelWriter, store, userId };
-  const statusWrites = { items: itemsCache, store, userId };
-
-  type Route = (request: IncomingMessage, response: ServerResponse) => Promise<void>;
-
-  const routes: Record<string, { method: string; handle: Route }> = {
-    [ABBREVIATIONS_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, abbreviationsRequestSchema);
-        if (!body) return;
-        const entries = Object.entries(body.abbreviations).map(([repo, value]): [string, string] => [
-          repo,
-          value.trim(),
-        ]);
-        const unknownRepo = entries.find(([repo]) => !configuredRepos.has(repo));
-        if (unknownRepo) {
-          sendJson(response, 400, { error: `${unknownRepo[0]} is not a configured repository. Reload Settings.` });
-          return;
-        }
-        const invalid = entries.find(([, value]) => value !== '' && !isValidAbbreviation(value));
-        if (invalid) {
-          sendJson(response, 400, { error: describeInvalidAbbreviation(...invalid) });
-          return;
-        }
-        const { abbreviations: stored } = await store.readUserState(userId);
-        const next = Object.fromEntries([
-          ...Object.entries(stored).filter(([repo]) => !configuredRepos.has(repo)),
-          ...entries.filter(([, value]) => value !== ''),
-        ]);
-        const [clash] = findAbbreviationClashes(resolveAbbreviations(repos, next));
-        if (clash) {
-          sendJson(response, 400, { error: describeAbbreviationClash(clash) });
-          return;
-        }
-        await store.writeAbbreviations(userId, next);
-        sendJson(response, 200, { abbreviations: next });
-      },
-    },
-    [COLLECTIONS_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, collectionsRequestSchema);
-        if (!body) return;
-        const settings: CollectionSettings = {
-          collections: body.collections.map((collection) => ({ ...collection, name: collection.name.trim() })),
-          defaultCollectionId: body.defaultCollectionId ?? undefined,
-        };
-        const problem = findCollectionProblem(settings, repos);
-        if (problem !== undefined) {
-          sendJson(response, 400, { error: problem });
-          return;
-        }
-        await store.writeCollections(userId, settings);
-        sendJson(response, 200, { collections: settings.collections, defaultCollectionId: body.defaultCollectionId });
-      },
-    },
-    [ITEMS_PATH]: {
-      method: 'GET',
-      handle: async (_request, response) => {
-        const cached = await readItems(itemsCache.get, response);
-        if (!cached) return;
-        const { items, readAt, isStale } = cached;
-        const state = await store.readUserState(userId);
-        const overrides = await dropVoidOverrides(items, state.overrides);
-        const abbreviations = resolveAbbreviations(repos, state.abbreviations);
-        const body: ItemsResponse = {
-          items,
-          abbreviations,
-          abbreviationClashes: findAbbreviationClashes(abbreviations),
-          ...describeCollections(state.collections),
-          workTypeMapping: state.workTypeMapping ?? DEFAULT_WORK_TYPE_MAPPING,
-          scoreLabelMapping: state.scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING,
-          scores: state.scores,
-          overrides,
-          ...(state.lastVisitAt !== undefined && { lastVisitAt: state.lastVisitAt }),
-          readAt: readAt.toISOString(),
-          isStale,
-        };
-        sendJson(response, 200, body);
-      },
-    },
-    [ITEMS_REFRESH_PATH]: {
-      method: 'POST',
-      handle: async (_request, response) => {
-        const read = await readItems(itemsCache.refresh, response);
-        if (!read) return;
-        const state = await store.readUserState(userId);
-        await dropVoidOverrides(read.items, state.overrides);
-        const body: RefreshResponse = { items: read.items, readAt: read.readAt.toISOString() };
-        sendJson(response, 200, body);
-      },
-    },
-    [KEEP_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, keepRequestSchema);
-        if (!body) return;
-        const at = now().toISOString();
-        const answer = await writeAuthorChange(authorWrites, body.itemKey, {
-          apply: (stored) => keepItemScores(stored, at),
-          write: () => store.keepScores(userId, body.itemKey, at),
-        });
-        sendJson(response, answer.status, answer.body);
-      },
-    },
-    [SCORE_LABEL_MAPPING_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, scoreLabelMappingRequestSchema);
-        if (!body) return;
-        const mapping = body.mapping === null ? undefined : normalizeScoreLabelMapping(body.mapping);
-        const [duplicate] = mapping ? findDuplicateScoreLabels(mapping) : [];
-        if (duplicate) {
-          sendJson(response, 400, { error: describeDuplicateScoreLabel(duplicate) });
-          return;
-        }
-        await store.writeScoreLabelMapping(userId, mapping);
-        sendJson(response, 200, { mapping: mapping ?? null });
-      },
-    },
-    [SCORES_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, scoresRequestSchema);
-        if (!body) return;
-        const changed = compactScores(body.scores);
-        const at = now().toISOString();
-        const answer = await writeAuthorChange(authorWrites, body.itemKey, {
-          apply: (stored) => applyScoreWrite(stored, changed, 'author', at),
-          write: () => store.writeScores(userId, body.itemKey, changed, 'author', at),
-        });
-        sendJson(response, answer.status, answer.body);
-      },
-    },
-    [SETTINGS_PATH]: {
-      method: 'GET',
-      handle: async (_request, response) => {
-        const state = await store.readUserState(userId);
-        const body: SettingsResponse = {
-          repos: [...repos],
-          configPath,
-          abbreviations: state.abbreviations,
-          workTypeMapping: state.workTypeMapping ?? null,
-          scoreLabelMapping: state.scoreLabelMapping ?? null,
-          ...describeCollections(state.collections),
-        };
-        sendJson(response, 200, body);
-      },
-    },
-    [STATUS_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, statusRequestSchema);
-        if (!body) return;
-        if (body.sourceState === 'closed') {
-          sendJson(response, 400, { error: 'The item is closed at its source; Done is read from the source.' });
-          return;
-        }
-        const ref = parseItemKey(body.itemKey);
-        const strategy = ref && statusStrategyFor?.(ref.repo);
-        if (ref && strategy) {
-          const answer = await writeStatusAtSource(statusWrites, strategy, ref, body.itemKey, body.status);
-          sendJson(response, answer.status, answer.body);
-          return;
-        }
-        // Without a strategy, an open item is To do at its source, so To do needs no override.
-        const override: StatusOverride | undefined =
-          body.status === 'to-do'
-            ? undefined
-            : { status: body.status, sourceState: body.sourceState, at: now().toISOString() };
-        await store.writeStatusOverride(userId, body.itemKey, override);
-        sendJson(response, 200, { itemKey: body.itemKey, override: override ?? null });
-      },
-    },
-    [VISIT_PATH]: {
-      method: 'POST',
-      handle: async (_request, response) => {
-        try {
-          await store.writeLastVisit(userId, now().toISOString());
-        } catch (error) {
-          // `sendBeacon` discards the response, so the log is the only report of the failure.
-          console.error(`top-right: the end of the visit was not recorded: ${describeError(error)}`);
-        }
-        response.writeHead(204).end();
-      },
-    },
-    [WORK_TYPE_MAPPING_PATH]: {
-      method: 'POST',
-      handle: async (request, response) => {
-        const body = await readRequest(request, response, workTypeMappingRequestSchema);
-        if (!body) return;
-        const mapping = body.mapping === null ? undefined : normalizeWorkTypeMapping(body.mapping);
-        const [duplicate] = mapping ? findDuplicateLabels(mapping) : [];
-        if (duplicate) {
-          sendJson(response, 400, { error: describeDuplicateLabel(duplicate) });
-          return;
-        }
-        await store.writeWorkTypeMapping(userId, mapping);
-        sendJson(response, 200, { mapping: mapping ?? null });
-      },
-    },
+  const routes: RouteTable = {
+    ...createSettingsRoutes({ configPath, repos, store, userId }),
+    ...createItemRoutes({ items, labelWriter, repos, statusStrategyFor, store, userId, now }),
   };
-
-  /** Returns the collections and default of `settings` as a response states them, within the configured repositories. */
-  function describeCollections({ collections, defaultCollectionId }: CollectionSettings) {
-    return {
-      collections: collections.map((collection) => ({
-        ...collection,
-        repos: collection.repos.filter((repo) => configuredRepos.has(repo)),
-      })),
-      defaultCollectionId: defaultCollectionId ?? null,
-    };
-  }
-
-  /**
-   * Deletes each stored override whose item's source state has changed, and returns the ones that still apply. An item
-   * of a loaded repository that is missing from the open items has left the open state at its source, so its override
-   * is void too; an override of a repository that the host no longer loads is kept.
-   */
-  async function dropVoidOverrides(
-    items: readonly WorkItem[],
-    overrides: Readonly<Record<string, StatusOverride>>,
-  ): Promise<Record<string, StatusOverride>> {
-    const itemsByKey = new Map(items.map((item) => [formatItemKey(item), item]));
-    const applying: Record<string, StatusOverride> = {};
-    for (const [itemKey, override] of Object.entries(overrides)) {
-      const item = itemsByKey.get(itemKey);
-      const isVoid = item ? isOverrideVoid(item, override) : configuredRepos.has(parseItemKey(itemKey)?.repo ?? '');
-      if (isVoid) await store.writeStatusOverride(userId, itemKey, undefined);
-      else applying[itemKey] = override;
-    }
-    return applying;
-  }
 
   return async (request: IncomingMessage, response: ServerResponse, next: () => void): Promise<void> => {
     const route = routes[new URL(request.url ?? '/', 'http://localhost').pathname];
@@ -340,16 +60,3 @@ export function createApiHandler({
     }
   };
 }
-
-// region | Helpers
-/** Returns the result of a read of the issues, or answers 502 and resolves to `undefined`. */
-async function readItems<T>(read: () => Promise<T>, response: ServerResponse): Promise<T | undefined> {
-  try {
-    return await read();
-  } catch (error) {
-    sendJson(response, 502, { error: describeError(error) });
-    return undefined;
-  }
-}
-
-// endregion | Helpers
