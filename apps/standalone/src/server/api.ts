@@ -16,7 +16,7 @@ export interface ApiOptions {
   items: ItemsCache;
   /** Writes urgency, value, and effort to an issue's labels; without it, the host keeps every score in the store. */
   labelWriter?: LabelWriter | undefined;
-  /** The repositories (`owner/name`) whose open issues `items` holds in full, with their recently closed ones. */
+  /** The configured repositories (`owner/name`), whose open issues `items` reads with their recently closed ones. */
   repos: readonly string[];
   /** Returns how a repository tracks In progress; without one, the host keeps an item's status as an override. */
   statusStrategyFor?: ((repo: string) => StatusStrategy | undefined) | undefined;
