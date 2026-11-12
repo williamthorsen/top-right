@@ -207,6 +207,8 @@ export function App(): ReactElement {
       )}
       <Chart
         abbreviations={data.abbreviations}
+        collections={data.collections}
+        defaultCollectionId={data.defaultCollectionId ?? undefined}
         items={data.items}
         magnification={magnification}
         onKeep={keepScores}

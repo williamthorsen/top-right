@@ -1,6 +1,12 @@
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { DEFAULT_SCORE_LABEL_MAPPING, DEFAULT_WORK_TYPE_MAPPING, type WorkTypeMapping } from '@top-right/model';
+import {
+  type CollectionSettings,
+  DEFAULT_SCORE_LABEL_MAPPING,
+  DEFAULT_WORK_TYPE_MAPPING,
+  EMPTY_COLLECTION_SETTINGS,
+  type WorkTypeMapping,
+} from '@top-right/model';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Settings, type SettingsProps } from '../Settings.tsx';
@@ -223,10 +229,174 @@ describe(Settings, () => {
       expect(screen.getByRole('alert')).toHaveTextContent(message);
     });
   });
+
+  describe('collections', () => {
+    const SAVED: CollectionSettings = {
+      collections: [
+        { id: 'c1', name: 'Core', repos: ['w/top-right'] },
+        { id: 'c2', name: 'Tools', repos: ['w/codeassembly', 'w/configs.macos'] },
+      ],
+      defaultCollectionId: 'c2',
+    };
+
+    it('shows the empty state without collections', () => {
+      renderSettings();
+
+      expect(getSection('Collections')).toHaveTextContent('No collections');
+      expect(getDefaultSelect()).toHaveDisplayValue('None (all repos)');
+    });
+
+    it('shows each collection with its repositories checked, sorted by name, and the default', () => {
+      renderSettings({ collections: SAVED });
+
+      const tools = getCollection('Tools');
+      expect(within(tools).getByRole('textbox', { name: 'Name' })).toHaveValue('Tools');
+      expect(within(tools).getAllByRole('checkbox')).toEqual(
+        ['w/codeassembly', 'w/configs.macos', 'w/top-right'].map((name) =>
+          within(tools).getByRole('checkbox', { name }),
+        ),
+      );
+      expect(within(tools).getByRole('checkbox', { name: 'w/codeassembly' })).toBeChecked();
+      expect(within(tools).getByRole('checkbox', { name: 'w/top-right' })).not.toBeChecked();
+      expect(getDefaultSelect()).toHaveDisplayValue('Tools');
+    });
+
+    it('leaves unchecked a saved repository that the config no longer lists, and drops it on save', async () => {
+      const onSaveCollections = vi.fn<SettingsProps['onSaveCollections']>(() => Promise.resolve(undefined));
+      renderSettings({
+        collections: {
+          collections: [{ id: 'c1', name: 'Core', repos: ['w/gone', 'w/top-right'] }],
+          defaultCollectionId: undefined,
+        },
+        onSaveCollections,
+      });
+
+      await userEvent.setup().click(getSaveButton());
+
+      expect(onSaveCollections).toHaveBeenCalledWith({
+        collections: [{ id: 'c1', name: 'Core', repos: ['w/top-right'] }],
+        defaultCollectionId: undefined,
+      });
+    });
+
+    it('creates a collection and sets it as the default', async () => {
+      const onSaveCollections = vi.fn<SettingsProps['onSaveCollections']>(() => Promise.resolve(undefined));
+      renderSettings({ onSaveCollections });
+
+      const user = userEvent.setup();
+      await user.click(within(getSection('Collections')).getByRole('button', { name: 'Add collection' }));
+      const draft = getCollection('New collection');
+      await user.type(within(draft).getByRole('textbox', { name: 'Name' }), ' Work ');
+      await user.click(within(getCollection('Work')).getByRole('checkbox', { name: 'w/top-right' }));
+      await user.selectOptions(getDefaultSelect(), 'Work');
+      await user.click(getSaveButton());
+
+      expect(onSaveCollections).toHaveBeenCalledWith({
+        collections: [{ id: expect.any(String), name: 'Work', repos: ['w/top-right'] }],
+        defaultCollectionId: expect.any(String),
+      });
+      const [saved] = onSaveCollections.mock.calls[0] ?? [];
+      expect(saved?.defaultCollectionId).toBe(saved?.collections[0]?.id);
+      expect(screen.getByRole('status')).toHaveTextContent('Saved.');
+    });
+
+    it('renames a collection and edits its repositories, keeping its id', async () => {
+      const onSaveCollections = vi.fn<SettingsProps['onSaveCollections']>(() => Promise.resolve(undefined));
+      renderSettings({ collections: SAVED, onSaveCollections });
+
+      const user = userEvent.setup();
+      const name = within(getCollection('Core')).getByRole('textbox', { name: 'Name' });
+      await user.clear(name);
+      await user.type(name, 'Product');
+      await user.click(within(getCollection('Product')).getByRole('checkbox', { name: 'w/codeassembly' }));
+      await user.click(within(getCollection('Product')).getByRole('checkbox', { name: 'w/top-right' }));
+      await user.click(getSaveButton());
+
+      expect(onSaveCollections).toHaveBeenCalledWith({
+        collections: [{ id: 'c1', name: 'Product', repos: ['w/codeassembly'] }, SAVED.collections[1]],
+        defaultCollectionId: 'c2',
+      });
+    });
+
+    it('deletes a collection, clearing the default when it was the default', async () => {
+      const onSaveCollections = vi.fn<SettingsProps['onSaveCollections']>(() => Promise.resolve(undefined));
+      renderSettings({ collections: SAVED, onSaveCollections });
+
+      const user = userEvent.setup();
+      await user.click(within(getCollection('Tools')).getByRole('button', { name: 'Delete' }));
+
+      expect(getDefaultSelect()).toHaveDisplayValue('None (all repos)');
+      await user.click(getSaveButton());
+      expect(onSaveCollections).toHaveBeenCalledWith({
+        collections: [SAVED.collections[0]],
+        defaultCollectionId: undefined,
+      });
+    });
+
+    it('clears the default', async () => {
+      const onSaveCollections = vi.fn<SettingsProps['onSaveCollections']>(() => Promise.resolve(undefined));
+      renderSettings({ collections: SAVED, onSaveCollections });
+
+      const user = userEvent.setup();
+      await user.selectOptions(getDefaultSelect(), 'None (all repos)');
+      await user.click(getSaveButton());
+
+      expect(onSaveCollections).toHaveBeenCalledWith({ ...SAVED, defaultCollectionId: undefined });
+    });
+
+    it.each([
+      { case: 'an empty name', name: '', message: 'Give every collection a name.' },
+      { case: 'a duplicate name', name: 'core', message: 'More than one collection is named "core".' },
+    ])('refuses $case without saving', async ({ name, message }) => {
+      const onSaveCollections = vi.fn<SettingsProps['onSaveCollections']>(() => Promise.resolve(undefined));
+      renderSettings({ collections: SAVED, onSaveCollections });
+
+      const user = userEvent.setup();
+      const field = within(getCollection('Tools')).getByRole('textbox', { name: 'Name' });
+      await user.clear(field);
+      if (name !== '') await user.type(field, name);
+      await user.click(getSaveButton());
+
+      expect(onSaveCollections).not.toHaveBeenCalled();
+      expect(within(getSection('Collections')).getByRole('alert')).toHaveTextContent(message);
+    });
+
+    it('refuses a collection without repositories without saving', async () => {
+      const onSaveCollections = vi.fn<SettingsProps['onSaveCollections']>(() => Promise.resolve(undefined));
+      renderSettings({ collections: SAVED, onSaveCollections });
+
+      const user = userEvent.setup();
+      await user.click(within(getCollection('Core')).getByRole('checkbox', { name: 'w/top-right' }));
+      await user.click(getSaveButton());
+
+      expect(onSaveCollections).not.toHaveBeenCalled();
+      expect(within(getSection('Collections')).getByRole('alert')).toHaveTextContent(
+        '"Core" does not include any repository.',
+      );
+    });
+
+    it('shows the refusal that the save returns', async () => {
+      renderSettings({ onSaveCollections: () => Promise.resolve('Not saved: the host did not respond. Try again.') });
+
+      await userEvent.setup().click(getSaveButton());
+
+      expect(within(getSection('Collections')).getByRole('alert')).toHaveTextContent(
+        'Not saved: the host did not respond. Try again.',
+      );
+    });
+  });
 });
 
 // region | Helpers
 const MAPPING: WorkTypeMapping = { bug: ['defect'], feature: ['story'], ops: ['ops'], task: ['chore'] };
+
+function getCollection(name: string): HTMLElement {
+  return within(getSection('Collections')).getByRole('group', { name });
+}
+
+function getDefaultSelect(): HTMLElement {
+  return within(getSection('Collections')).getByRole('combobox', { name: 'Default collection' });
+}
 
 function getField(section: string, label: string): HTMLElement {
   return within(getSection(section)).getByRole('textbox', { name: label });
@@ -237,6 +407,10 @@ function getLevelField(dimension: string, level: string): HTMLElement {
   return within(group).getByRole('textbox', { name: level });
 }
 
+function getSaveButton(): HTMLElement {
+  return within(getSection('Collections')).getByRole('button', { name: 'Save' });
+}
+
 function getSection(name: string): HTMLElement {
   return screen.getByRole('form', { name });
 }
@@ -245,7 +419,9 @@ function renderSettings(overrides: Partial<SettingsProps> = {}): void {
   render(
     <Settings
       abbreviations={{}}
+      collections={EMPTY_COLLECTION_SETTINGS}
       onSaveAbbreviations={() => Promise.resolve(undefined)}
+      onSaveCollections={() => Promise.resolve(undefined)}
       onSaveScoreLabelMapping={() => Promise.resolve(undefined)}
       onSaveWorkTypeMapping={() => Promise.resolve(undefined)}
       repos={REPOS}

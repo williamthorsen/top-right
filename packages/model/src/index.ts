@@ -6,7 +6,16 @@ export {
   isValidAbbreviation,
   resolveAbbreviations,
 } from './abbreviations.ts';
-export { countByStatus, DEFAULT_ITEM_FILTER, filterItems, type ItemFilter, revealItem } from './filter.ts';
+export {
+  type Collection,
+  type CollectionSettings,
+  EMPTY_COLLECTION_SETTINGS,
+  EMPTY_REPO_SCOPE,
+  findCollectionProblem,
+  type RepoScope,
+  resolveShownRepos,
+} from './collections.ts';
+export { buildDefaultFilter, countByStatus, filterItems, type ItemFilter, revealItem } from './filter.ts';
 export { abbreviate, formatIdLabel } from './id-label.ts';
 export { findNextPick } from './pick.ts';
 export {

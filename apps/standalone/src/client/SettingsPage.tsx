@@ -1,9 +1,10 @@
 import { Settings } from '@top-right/chart';
-import type { ScoreLabelMapping, WorkTypeMapping } from '@top-right/model';
+import type { CollectionSettings, ScoreLabelMapping, WorkTypeMapping } from '@top-right/model';
 import { type ReactElement, useEffect, useState } from 'react';
 
 import {
   abbreviationsResponseSchema,
+  collectionsResponseSchema,
   scoreLabelMappingResponseSchema,
   type SettingsResponse,
   settingsResponseSchema,
@@ -60,7 +61,12 @@ export function SettingsPage(): ReactElement {
       {header}
       <Settings
         abbreviations={data.abbreviations}
+        collections={{
+          collections: data.collections,
+          defaultCollectionId: data.defaultCollectionId ?? undefined,
+        }}
         onSaveAbbreviations={saveAbbreviations}
+        onSaveCollections={saveCollections}
         onSaveScoreLabelMapping={saveScoreLabelMapping}
         onSaveWorkTypeMapping={saveWorkTypeMapping}
         repos={data.repos}
@@ -88,6 +94,17 @@ async function refuseOnFailure(save: () => Promise<unknown>): Promise<string | u
 /** Saves the abbreviations, and returns the reason that the host refused them, if it did. */
 async function saveAbbreviations(abbreviations: Record<string, string>): Promise<string | undefined> {
   return await refuseOnFailure(() => postJson('/api/abbreviations', { abbreviations }, abbreviationsResponseSchema));
+}
+
+/** Saves the collections and the default collection, and returns the reason that the host refused them, if it did. */
+async function saveCollections({ collections, defaultCollectionId }: CollectionSettings): Promise<string | undefined> {
+  return await refuseOnFailure(() =>
+    postJson(
+      '/api/collections',
+      { collections, defaultCollectionId: defaultCollectionId ?? null },
+      collectionsResponseSchema,
+    ),
+  );
 }
 
 /**

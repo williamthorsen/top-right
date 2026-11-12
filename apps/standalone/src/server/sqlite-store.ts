@@ -3,7 +3,9 @@ import { DatabaseSync } from 'node:sqlite';
 import {
   applyScoreWrite,
   clearScoreFields,
+  type CollectionSettings,
   DEFAULT_SCORE_LABEL_MAPPING,
+  EMPTY_COLLECTION_SETTINGS,
   isValidScore,
   type ItemScores,
   keepItemScores,
@@ -90,6 +92,7 @@ const MIGRATIONS: readonly string[] = [
 
 /** The name of each setting in the `settings` table, whose `value` holds the setting as JSON. */
 const ABBREVIATIONS_SETTING = 'abbreviations';
+const COLLECTIONS_SETTING = 'collections';
 const SCORE_LABEL_MAPPING_SETTING = 'score-label-mapping';
 const WORK_TYPE_MAPPING_SETTING = 'work-type-mapping';
 
@@ -144,6 +147,12 @@ const scoreLabelMappingSchema = z
   .transform(({ effort, ...mapping }) => ({ ...mapping, effort: effort ?? DEFAULT_SCORE_LABEL_MAPPING.effort }));
 
 const abbreviationsSchema = z.record(z.string(), z.string());
+
+/** Stored collection settings; JSON omits an undefined default, so an absent one reads as undefined. */
+const collectionSettingsSchema = z.object({
+  collections: z.array(z.object({ id: z.string(), name: z.string(), repos: z.array(z.string()) })),
+  defaultCollectionId: z.string().optional(),
+});
 
 /** Opens the SQLite store at `path` (`:memory:` for a store that lives as long as the process), migrating it. */
 export function openSqliteStore(path: string): SqliteStore {
@@ -214,6 +223,13 @@ export function openSqliteStore(path: string): SqliteStore {
     return undefined;
   }
 
+  /** Reads the user's collection settings, or the empty settings when none are stored. */
+  function readCollections(userId: string): CollectionSettings {
+    const stored = readSetting(userId, COLLECTIONS_SETTING, collectionSettingsSchema);
+    if (!stored) return EMPTY_COLLECTION_SETTINGS;
+    return { collections: stored.collections, defaultCollectionId: stored.defaultCollectionId };
+  }
+
   return {
     clearScores(userId: string, itemKey: string, fields: readonly ScoreField[]): Promise<ItemScores> {
       return Promise.resolve(updateItemScores(userId, itemKey, (existing) => clearScoreFields(existing, fields)));
@@ -241,11 +257,21 @@ export function openSqliteStore(path: string): SqliteStore {
         workTypeMapping: readSetting(userId, WORK_TYPE_MAPPING_SETTING, workTypeMappingSchema),
         scoreLabelMapping: readSetting(userId, SCORE_LABEL_MAPPING_SETTING, scoreLabelMappingSchema),
         abbreviations: readSetting(userId, ABBREVIATIONS_SETTING, abbreviationsSchema) ?? {},
+        collections: readCollections(userId),
       });
     },
 
     writeAbbreviations(userId: string, abbreviations: Readonly<Record<string, string>>): Promise<void> {
       upsertSetting.run(userId, ABBREVIATIONS_SETTING, JSON.stringify(abbreviations));
+      return Promise.resolve();
+    },
+
+    writeCollections(userId: string, settings: CollectionSettings): Promise<void> {
+      if (settings.collections.length === 0 && settings.defaultCollectionId === undefined) {
+        deleteSetting.run(userId, COLLECTIONS_SETTING);
+      } else {
+        upsertSetting.run(userId, COLLECTIONS_SETTING, JSON.stringify(settings));
+      }
       return Promise.resolve();
     },
 

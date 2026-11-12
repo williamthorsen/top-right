@@ -26,8 +26,8 @@ Scripts are run with `nmr`, a workspace bin. For the bare `nmr` command to resol
 - `_workspace`: scaffold for creating new libraries
 - `adapter-github`: reads GitHub issues as work items
 - `chart`: the chart as a React component
-- `model`: work items, relations, scores and status, and the work-type classifier
-- `store`: the store interface for scores, status overrides, and visits
+- `model`: work items, relations, scores and status, the work-type classifier, and collections
+- `store`: the store interface for scores, status overrides, visits, and settings, including collections
 
 `apps/` contains runnable apps that nothing imports:
 

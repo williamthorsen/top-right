@@ -1,7 +1,12 @@
 import { URGENCY_LEVELS, VALUE_LEVELS } from '@top-right/model';
 import { z } from 'zod';
 
-import { abbreviationClashSchema, scoreLabelMappingSchema, workTypeMappingSchema } from './settings.ts';
+import {
+  abbreviationClashSchema,
+  collectionSchema,
+  scoreLabelMappingSchema,
+  workTypeMappingSchema,
+} from './settings.ts';
 
 const itemRefSchema = z.object({
   repo: z.string(),
@@ -41,6 +46,10 @@ export const itemsResponseSchema = z.object({
   abbreviations: z.record(z.string(), z.string()),
   /** The configured repositories that share an abbreviation. */
   abbreviationClashes: z.array(abbreviationClashSchema),
+  /** The user's collections, each without the repositories that the config does not list. */
+  collections: z.array(collectionSchema),
+  /** The id of the collection that the chart starts at, or `null` for every repository. */
+  defaultCollectionId: z.string().nullable(),
   /** The user's work-type mapping, or the default. */
   workTypeMapping: workTypeMappingSchema,
   /** The user's score-label mapping, or the default. */

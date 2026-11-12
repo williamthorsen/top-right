@@ -1,5 +1,6 @@
 import {
   buildRelationGraph,
+  type Collection,
   DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
   findNextPick,
@@ -49,6 +50,10 @@ export interface ChartProps {
   items: readonly WorkItem[];
   /** Repository abbreviations keyed by `owner/name`; a repository without one takes its uppercase first letter. */
   abbreviations: Abbreviations;
+  /** The user's collections of repositories, which the filter offers beside the repositories. */
+  collections?: readonly Collection[];
+  /** The collection that the filter starts at on mount; without it, or for an unknown id, every repository. */
+  defaultCollectionId?: string | undefined;
   workTypeMapping?: WorkTypeMapping;
   /** The labels that supply urgency, value, and effort where an item has no stored score for them. */
   scoreLabelMapping?: ScoreLabelMapping;
@@ -101,6 +106,8 @@ const MATRIX_TRANSFORM = `translate(${MATRIX_ORIGIN.x} ${MATRIX_ORIGIN.y})`;
 export function Chart({
   items,
   abbreviations,
+  collections,
+  defaultCollectionId,
   workTypeMapping = DEFAULT_WORK_TYPE_MAPPING,
   scoreLabelMapping = DEFAULT_SCORE_LABEL_MAPPING,
   settingsHref,
@@ -129,14 +136,16 @@ export function Chart({
   );
   const blockedKeys = useMemo(() => listBlockedKeys(items), [items]);
   const graph = useMemo(() => buildRelationGraph(items), [items]);
-  const { filter, setFilter, visibleItems, visibleKeys, statusCounts, labelOf } = useItemFilter(
+  const { filter, setFilter, shownRepos, visibleItems, visibleKeys, statusCounts, labelOf } = useItemFilter(
     items,
     overrides,
     abbreviations,
+    collections,
+    defaultCollectionId,
   );
   const { selectedKey, isRevealing } = useVisibleSelection(selection, visibleKeys, (key) => {
     const item = itemsByKey.get(key);
-    if (item) setFilter(revealItem(filter, item, overrides[key]));
+    if (item) setFilter(revealItem(filter, item, overrides[key], shownRepos));
     return item !== undefined;
   });
   if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
@@ -235,7 +244,7 @@ export function Chart({
         <div className="tr-chart-area">
           <ChartStrip
             chainView={chainView}
-            filterBar={{ abbreviations, counts: statusCounts, filter, onChange: changeFilter }}
+            filterBar={{ abbreviations, collections, counts: statusCounts, filter, onChange: changeFilter }}
             onScopeModeChange={setScopeMode}
             onShowAllEdgesChange={setShowAllEdges}
             refresh={refresh}

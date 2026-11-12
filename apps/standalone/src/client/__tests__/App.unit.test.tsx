@@ -44,6 +44,8 @@ const ITEMS: ItemsResponse = {
   ],
   abbreviations: {},
   abbreviationClashes: [],
+  collections: [],
+  defaultCollectionId: null,
   workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
   scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
   scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'author', at: AT } } },
@@ -96,6 +98,20 @@ describe(App, () => {
       'href',
       `/settings?item=${encodeURIComponent(ITEM_KEY)}`,
     );
+  });
+
+  it("starts the chart's filter at the user's default collection", async () => {
+    const withDefault: ItemsResponse = {
+      ...ITEMS,
+      abbreviations: { 'williamthorsen/top-right': 'TR' },
+      collections: [{ id: 'c1', name: 'Product', repos: ['williamthorsen/top-right'] }],
+      defaultCollectionId: 'c1',
+    };
+    stubFetch(() => Promise.resolve(Response.json(withDefault)));
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Repos: Product' })).toBeInTheDocument();
   });
 
   it('shows no clash alert while every abbreviation is distinct', async () => {

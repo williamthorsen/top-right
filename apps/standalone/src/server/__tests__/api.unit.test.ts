@@ -53,6 +53,8 @@ describe(createApiHandler, () => {
         items: [ITEM],
         abbreviations: { [ITEM.repo]: 'T' },
         abbreviationClashes: [],
+        collections: [],
+        defaultCollectionId: null,
         workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
         scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
         scores,
@@ -392,6 +394,8 @@ describe(createApiHandler, () => {
         abbreviations: { [ITEM.repo]: 'tr' },
         workTypeMapping: MAPPING,
         scoreLabelMapping: LABEL_MAPPING,
+        collections: [],
+        defaultCollectionId: null,
       });
     });
 

@@ -1,5 +1,6 @@
 import {
   abbreviate,
+  type CollectionSettings,
   DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
   describeAbbreviationClash,
@@ -28,13 +29,12 @@ import {
 import { type ReactElement, type ReactNode, type SubmitEvent, useId, useState } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
+import { CollectionsForm } from './CollectionsForm.tsx';
 import { LEVEL_NAMES } from './level-names.ts';
+import { type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
 import { formatPoints } from './provenance.ts';
 
 import './chart.css';
-
-/** Reports the outcome of a save: the host's refusal message, or undefined when the save succeeded. */
-export type SaveSettings<T> = (value: T) => Promise<string | undefined>;
 
 export interface SettingsProps {
   /** The configured repositories, as `owner/name`. */
@@ -45,26 +45,32 @@ export interface SettingsProps {
   workTypeMapping: WorkTypeMapping | undefined;
   /** The user's saved score-label mapping; undefined when the user keeps the default. */
   scoreLabelMapping: ScoreLabelMapping | undefined;
+  /** The user's collections and default collection. */
+  collections: CollectionSettings;
   /** Saves each configured repository's abbreviation, an empty string standing for its default. */
   onSaveAbbreviations: SaveSettings<Record<string, string>>;
   /** Saves the mapping, or restores the default when passed undefined. */
   onSaveWorkTypeMapping: SaveSettings<WorkTypeMapping | undefined>;
   /** Saves the score-label mapping, or restores the default when passed undefined. */
   onSaveScoreLabelMapping: SaveSettings<ScoreLabelMapping | undefined>;
+  /** Saves the collections and the default collection, replacing the saved ones. */
+  onSaveCollections: SaveSettings<CollectionSettings>;
   /** The host's own sections, shown after the forms. */
   children?: ReactNode;
 }
 
 /**
  * The Settings page: the labels that assign each work type, the labels that supply each urgency level, value level,
- * and effort, each repository's abbreviation, and the host's own sections.
+ * and effort, each repository's abbreviation, the collections of repositories, and the host's own sections.
  */
 export function Settings({
   repos,
   abbreviations,
   workTypeMapping,
   scoreLabelMapping,
+  collections,
   onSaveAbbreviations,
+  onSaveCollections,
   onSaveWorkTypeMapping,
   onSaveScoreLabelMapping,
   children,
@@ -75,14 +81,13 @@ export function Settings({
       <WorkTypeMappingForm onSave={onSaveWorkTypeMapping} saved={workTypeMapping} />
       <ScoreLabelMappingForm onSave={onSaveScoreLabelMapping} saved={scoreLabelMapping} />
       <AbbreviationsForm abbreviations={abbreviations} onSave={onSaveAbbreviations} repos={repos} />
+      <CollectionsForm onSave={onSaveCollections} repos={repos} saved={collections} />
       {children}
     </div>
   );
 }
 
 // region | Helpers
-type Outcome = { kind: 'error'; message: string } | { kind: 'saved' } | undefined;
-
 /** The repository abbreviations, refused while invalid or shared by two repositories. */
 function AbbreviationsForm({
   repos,
@@ -149,23 +154,6 @@ function AbbreviationsForm({
         </button>
       </div>
     </form>
-  );
-}
-
-/** The success note or the refusal of the last save. */
-function OutcomeMessage({ outcome }: { outcome: Outcome }) {
-  if (outcome === undefined) return null;
-  if (outcome.kind === 'saved') {
-    return (
-      <p className="tr-settings-saved" role="status">
-        Saved.
-      </p>
-    );
-  }
-  return (
-    <p className="tr-settings-error" role="alert">
-      {outcome.message}
-    </p>
   );
 }
 

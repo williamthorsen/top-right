@@ -577,6 +577,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The button's accessible name keeps the full selection that a long label cuts. */
+.tr-filter-repos-label {
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* A filter chip: a pill that, while on, shows a check on an accent tint inside an accent border. */
 .tr-filter-chip {
   display: inline-flex;
@@ -825,6 +833,20 @@
 .tr-menu-check {
   width: 1em;
   text-align: center;
+}
+
+.tr-menu-group + .tr-menu-group,
+.tr-menu-item + .tr-menu-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--tr-line);
+}
+
+.tr-menu-group-label {
+  padding: 2px 10px 2px 6px;
+  color: var(--tr-ink-2);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 /* -- Edges: blocker arrows and sub-issue lines, weighted by focus -- */
@@ -1546,6 +1568,34 @@
 .tr-settings-actions {
   display: flex;
   gap: 8px;
+}
+.tr-settings-collection {
+  padding-top: 8px;
+  border-top: 1px solid var(--tr-line);
+}
+.tr-settings-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.tr-settings-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.tr-settings-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--tr-accent);
+  cursor: pointer;
+}
+.tr-settings-check input:focus-visible {
+  outline: 3px solid var(--tr-focus);
+  outline-offset: 2px;
 }
 .tr-settings-error,
 .tr-settings-saved {

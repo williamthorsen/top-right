@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Chart } from '../Chart.tsx';
 import { buildItem, place, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getPane } from '../test-utils/chart-queries.ts';
+import { getReposButton } from '../test-utils/repo-menu.ts';
 
 const AGENT_AT = '2026-11-08T00:00:00.000Z';
 
@@ -105,6 +106,30 @@ describe(Chart, () => {
 
       expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
       expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("adds the repo of an item that the host selects outside the default collection to the filter's scope", () => {
+      const other = 'williamthorsen/codeassembly';
+      const tools = 'williamthorsen/toolbelt';
+      const items = [
+        buildItem({ number: 1 }),
+        buildItem({ number: 2, repo: other }),
+        buildItem({ number: 3, repo: tools }),
+      ];
+      render(
+        <Chart
+          abbreviations={{ [REPO]: 'tr', [other]: 'ca', [tools]: 'tb' }}
+          collections={[{ id: 'c1', name: 'Product', repos: [REPO] }]}
+          defaultCollectionId="c1"
+          items={items}
+          onSelectedKeyChange={() => undefined}
+          selectedKey={`${other}#2`}
+        />,
+      );
+
+      expect(getReposButton()).toHaveAccessibleName('Repos: Product, codeassembly');
+      expect(screen.getByRole('button', { name: /^ca\.2:/ })).toBePressed();
+      expect(screen.queryByRole('button', { name: /^tb\.3:/ })).not.toBeInTheDocument();
     });
   });
 });
