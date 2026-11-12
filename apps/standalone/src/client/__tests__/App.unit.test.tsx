@@ -239,7 +239,7 @@ describe(App, () => {
     vi.stubGlobal('navigator', { sendBeacon });
     stubFetch(() => Promise.resolve(Response.json(ITEMS)));
     render(<App />);
-    await screen.findByRole('button', { name: /^t\.12:/ });
+    await screen.findByRole('button', { name: /^T\.12:/ });
 
     globalThis.dispatchEvent(new Event('pagehide'));
 
@@ -414,7 +414,7 @@ describe('with the selection in the URL', () => {
     render(<App />);
     const entries = globalThis.history.length;
 
-    const other = await screen.findByRole('button', { name: /^t\.13:/ });
+    const other = await screen.findByRole('button', { name: /^T\.13:/ });
     await user.click(other);
     await user.unhover(other);
     expect(readItemParameter()).toBe(OTHER_KEY);
@@ -451,7 +451,7 @@ function getGroup(name: string): HTMLElement {
 }
 
 async function selectItem(user: ReturnType<typeof userEvent.setup>): Promise<void> {
-  await user.click(await screen.findByRole('button', { name: /^t\.12:/ }));
+  await user.click(await screen.findByRole('button', { name: /^T\.12:/ }));
 }
 
 function readItemParameter(): string | null {

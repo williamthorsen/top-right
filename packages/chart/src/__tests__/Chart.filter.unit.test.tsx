@@ -55,8 +55,8 @@ describe(Chart, () => {
       expect(toggle).not.toBePressed();
       expect(toggle).toHaveAccessibleName('In progress 1');
       expect(screen.getByRole('button', { name: /^To do/ })).toHaveAccessibleName('To do 1');
-      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /^t\.2:/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^T\.2:/ })).not.toBeInTheDocument();
     });
 
     it('hides closed items until Done is turned on, and counts them under Done', async () => {
@@ -65,12 +65,12 @@ describe(Chart, () => {
       const toggle = screen.getByRole('button', { name: /^Done/ });
       expect(toggle).not.toBePressed();
       expect(toggle).toHaveAccessibleName('Done 1');
-      expect(screen.queryByRole('button', { name: /^t\.2:/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^T\.2:/ })).not.toBeInTheDocument();
 
       await user.click(toggle);
 
       expect(toggle).toBePressed();
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBeInTheDocument();
     });
 
     it('counts each status within the repo filter', async () => {
@@ -130,14 +130,14 @@ describe(Chart, () => {
       renderBoard([buildItem({ number: 1 }), buildItem({ number: 2 }), buildItem({ number: 3 })]);
       await user.click(screen.getByRole('button', { name: /^In progress/ }));
       await user.click(screen.getByRole('button', { name: 'Review unscored (3)' }));
-      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).toBePressed();
 
       await user.click(within(getGroup('Status')).getByRole('radio', { name: 'In progress' }));
 
-      expect(screen.queryByRole('button', { name: /^t\.1:/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^T\.1:/ })).not.toBeInTheDocument();
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · – of 2');
       await user.click(screen.getByRole('button', { name: 'Skip' }));
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
     });
 
     it('keeps listing a relation to a filtered-out item in the pane, by its abbreviated id', async () => {

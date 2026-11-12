@@ -113,7 +113,7 @@ function dragBy(target: Element, offset: { dx: number; dy: number }, pointerType
 }
 
 function getCircle(number: number): HTMLElement {
-  const circle = screen.getByRole('button', { name: new RegExp(String.raw`^t\.${number}:`) });
+  const circle = screen.getByRole('button', { name: new RegExp(String.raw`^T\.${number}:`) });
   stubPointerCapture(circle);
   return circle;
 }

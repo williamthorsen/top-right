@@ -42,7 +42,7 @@ describe(createApiHandler, () => {
       expect(response.status).toBe(200);
       expect(await response.json()).toStrictEqual({
         items: [ITEM],
-        abbreviations: { [ITEM.repo]: 't' },
+        abbreviations: { [ITEM.repo]: 'T' },
         abbreviationClashes: [],
         workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
         scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
@@ -100,7 +100,7 @@ describe(createApiHandler, () => {
 
       const body: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
 
-      expect(body).toMatchObject({ abbreviations: { [ITEM.repo]: 'tr', 'w/codeassembly': 'c' } });
+      expect(body).toMatchObject({ abbreviations: { [ITEM.repo]: 'tr', 'w/codeassembly': 'C' } });
     });
 
     it("answers with the user's mappings and the repositories that share an abbreviation", async () => {

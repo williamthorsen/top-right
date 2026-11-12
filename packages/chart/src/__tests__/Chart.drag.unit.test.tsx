@@ -151,7 +151,7 @@ describe('Chart drag', () => {
 
   it('drags a selected gutter row to a scored cell', async () => {
     const { onScoresChange } = renderDragHost([buildItem({ number: 1 })], {});
-    const row = within(screen.getByRole('list', { name: 'Unscored items' })).getByRole('button', { name: /^t\.1:/ });
+    const row = within(screen.getByRole('list', { name: 'Unscored items' })).getByRole('button', { name: /^T\.1:/ });
     await userEvent.setup().click(row);
     stubPointerCapture(row);
 
@@ -168,7 +168,7 @@ describe('Chart drag', () => {
 
     await user.click(screen.getByRole('button', { name: 'Review unscored (2)' }));
     expect(within(getPane()).getByText('Issue 1')).toBeInTheDocument();
-    const row = within(screen.getByRole('list', { name: 'Unscored items' })).getByRole('button', { name: /^t\.1:/ });
+    const row = within(screen.getByRole('list', { name: 'Unscored items' })).getByRole('button', { name: /^T\.1:/ });
     stubPointerCapture(row);
 
     fireEvent.pointerDown(row, { pointerId: 1, ...centreOf(0, 0) });
@@ -198,7 +198,7 @@ function countMarks(selector: string): number {
 
 /** Returns the scored circle of the item numbered `number`, with its pointer capture stubbed. */
 function getCircle(number: number): HTMLElement {
-  const circle = screen.getByRole('button', { name: new RegExp(String.raw`^t\.${number}:`) });
+  const circle = screen.getByRole('button', { name: new RegExp(String.raw`^T\.${number}:`) });
   stubPointerCapture(circle);
   return circle;
 }

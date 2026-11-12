@@ -19,31 +19,31 @@ import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixture
 import { getGroup, getPane } from '../test-utils/chart-queries.ts';
 
 describe(Chart, () => {
-  it('lists each item by its abbreviation and number, defaulting to the first letter', () => {
+  it('lists each item by its abbreviation and number, defaulting to the uppercase first letter', () => {
     renderChart([buildItem({ number: 1 }), buildItem({ number: 2, repo: 'williamthorsen/codeassembly' })], {
       [REPO]: 'tr',
     });
 
     expect(screen.getByRole('button', { name: /^tr\.1:/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^c\.2:/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^C\.2:/ })).toBeInTheDocument();
   });
 
   it('when a circle is hovered, previews it in the pane, and clears the preview on leave', async () => {
     const user = userEvent.setup();
     renderChart([buildItem({ number: 1, title: 'First issue' })]);
 
-    await user.hover(screen.getByRole('button', { name: /^t\.1:/ }));
+    await user.hover(screen.getByRole('button', { name: /^T\.1:/ }));
     expect(getPane()).toHaveTextContent('Preview');
     expect(getPane()).toHaveTextContent('First issue');
 
-    await user.unhover(screen.getByRole('button', { name: /^t\.1:/ }));
+    await user.unhover(screen.getByRole('button', { name: /^T\.1:/ }));
     expect(getPane()).toHaveTextContent('No item selected');
   });
 
   it('when a circle is selected, pins it in the pane until Escape', async () => {
     const user = userEvent.setup();
     renderChart([buildItem({ number: 1, title: 'First issue' })]);
-    const button = screen.getByRole('button', { name: /^t\.1:/ });
+    const button = screen.getByRole('button', { name: /^T\.1:/ });
 
     await user.click(button);
     await user.unhover(button);
@@ -57,7 +57,7 @@ describe(Chart, () => {
   it('when Close is pressed, clears the selection', async () => {
     const user = userEvent.setup();
     renderChart([buildItem({ number: 1 })]);
-    const button = screen.getByRole('button', { name: /^t\.1:/ });
+    const button = screen.getByRole('button', { name: /^T\.1:/ });
 
     await user.click(button);
     await user.unhover(button);
@@ -87,11 +87,11 @@ describe(Chart, () => {
     });
     renderChart([parent, blocker, blocked]);
 
-    await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+    await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
     const subIssues = within(getPane()).getByRole('region', { name: 'Sub-issues' });
-    expect(within(subIssues).getByRole('link', { name: /t\.3 Blocked blocked/ })).toBeInTheDocument();
-    expect(within(subIssues).getByRole('link', { name: /t\.9 Done closed/ })).toBeInTheDocument();
+    expect(within(subIssues).getByRole('link', { name: /T\.3 Blocked blocked/ })).toBeInTheDocument();
+    expect(within(subIssues).getByRole('link', { name: /T\.9 Done closed/ })).toBeInTheDocument();
   });
 
   it.each(['Low', 'Medium', 'High', 'Critical', 'Questionable', 'Nice-to-have', 'Should-have', 'Must-have'])(
@@ -138,17 +138,17 @@ describe(Chart, () => {
         },
       );
 
-      expect(screen.getByRole('button', { name: /^t\.1:/ })).toHaveAttribute('data-status', 'to-do');
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).toHaveAttribute('data-status', 'to-do');
       const gutter = screen.getByRole('list', { name: 'Unscored items' });
-      expect(within(gutter).queryByRole('button', { name: /^t\.1:/ })).not.toBeInTheDocument();
-      expect(within(gutter).getByRole('button', { name: /^t\.2:/ })).toBeInTheDocument();
+      expect(within(gutter).queryByRole('button', { name: /^T\.1:/ })).not.toBeInTheDocument();
+      expect(within(gutter).getByRole('button', { name: /^T\.2:/ })).toBeInTheDocument();
     });
 
     it('keeps an item with only one of urgency and value in the gutter', () => {
       renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: { urgency: { score: 'high', by: author, at } } });
 
       const gutter = screen.getByRole('list', { name: 'Unscored items' });
-      expect(within(gutter).getByRole('button', { name: /^t\.1:/ })).toBeInTheDocument();
+      expect(within(gutter).getByRole('button', { name: /^T\.1:/ })).toBeInTheDocument();
     });
 
     it('draws an in-progress item with a pie and a to-do item without one', () => {
@@ -165,8 +165,8 @@ describe(Chart, () => {
         { [`${REPO}#1`]: inProgress },
       );
 
-      const first = screen.getByRole('button', { name: /^t\.1:/ });
-      const second = screen.getByRole('button', { name: /^t\.2:/ });
+      const first = screen.getByRole('button', { name: /^T\.1:/ });
+      const second = screen.getByRole('button', { name: /^T\.2:/ });
       expect(first).toHaveAttribute('data-status', 'in-progress');
       // eslint-disable-next-line testing-library/no-node-access -- the pie is decorative SVG, which has no role to query.
       expect(first.querySelector('.tr-node-pie')).not.toBeNull();
@@ -189,7 +189,7 @@ describe(Chart, () => {
         { [`${REPO}#1`]: halfDone },
         { [`${REPO}#1`]: { status: 'in-progress', sourceState: 'open', at } },
       );
-      const circle = screen.getByRole('button', { name: /^t\.1:/ });
+      const circle = screen.getByRole('button', { name: /^T\.1:/ });
       const scope = screen.getByRole('radiogroup', { name: 'Scope' });
       const original = within(scope).getByRole('radio', { name: 'Original' });
       const remaining = within(scope).getByRole('radio', { name: 'Remaining' });
@@ -228,8 +228,8 @@ describe(Chart, () => {
           },
         },
       );
-      const first = screen.getByRole('button', { name: /^t\.1:/ });
-      const second = screen.getByRole('button', { name: /^t\.2:/ });
+      const first = screen.getByRole('button', { name: /^T\.1:/ });
+      const second = screen.getByRole('button', { name: /^T\.2:/ });
 
       await user.click(first);
       expect(first).toBePressed();
@@ -262,16 +262,16 @@ describe(Chart, () => {
         [`${REPO}#1`]: MOVED,
         [`${REPO}#2`]: { urgency: { score: 'high', by: 'agent', at } },
       });
-      const circle = screen.getByRole('button', { name: /^t\.1:/ });
+      const circle = screen.getByRole('button', { name: /^T\.1:/ });
       const gutter = screen.getByRole('list', { name: 'Unscored items' });
 
       expect(hasHalo(circle)).toBe(true);
-      expect(hasHalo(within(gutter).getByRole('button', { name: /^t\.2:/ }))).toBe(true);
+      expect(hasHalo(within(gutter).getByRole('button', { name: /^T\.2:/ }))).toBe(true);
 
       await user.click(circle);
       await user.click(screen.getByRole('button', { name: 'Keep' }));
 
-      expect(hasHalo(screen.getByRole('button', { name: /^t\.1:/ }))).toBe(false);
+      expect(hasHalo(screen.getByRole('button', { name: /^T\.1:/ }))).toBe(false);
     });
 
     it('shows a trail only while the circle is hovered or selected, or during the Agent-scored review', async () => {
@@ -282,9 +282,9 @@ describe(Chart, () => {
       });
 
       expect(countTrails()).toBe(0);
-      await user.hover(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.hover(screen.getByRole('button', { name: /^T\.1:/ }));
       expect(countTrails()).toBe(1);
-      await user.unhover(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.unhover(screen.getByRole('button', { name: /^T\.1:/ }));
       expect(countTrails()).toBe(0);
 
       await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
@@ -303,12 +303,12 @@ describe(Chart, () => {
       await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
 
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · 1 of 2');
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
-      expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-faded', 'true');
-      expect(screen.getByRole('button', { name: /^t\.1:/ })).toHaveAttribute('data-faded', 'false');
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.3:/ })).toHaveAttribute('data-faded', 'true');
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).toHaveAttribute('data-faded', 'false');
 
       await user.keyboard('{Enter}');
-      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).toBePressed();
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · 1 of 1');
 
       await user.keyboard('{Enter}');
@@ -331,8 +331,8 @@ describe(Chart, () => {
       // The table also scrolls its selected row into view; only the chart's calls are under test here.
       const chartContexts = scrollIntoView.mock.contexts.filter((element) => !(element instanceof HTMLTableRowElement));
       expect(chartContexts).toEqual([
-        screen.getByRole('button', { name: /^t\.2:/ }),
-        screen.getByRole('button', { name: /^t\.1:/ }),
+        screen.getByRole('button', { name: /^T\.2:/ }),
+        screen.getByRole('button', { name: /^T\.1:/ }),
       ]);
     });
 
@@ -345,21 +345,21 @@ describe(Chart, () => {
 
       await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
       await user.click(screen.getByRole('button', { name: 'Skip' }));
-      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).toBePressed();
       await user.click(screen.getByRole('button', { name: 'Skip' }));
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
-      expect(hasHalo(screen.getByRole('button', { name: /^t\.2:/ }))).toBe(true);
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
+      expect(hasHalo(screen.getByRole('button', { name: /^T\.2:/ }))).toBe(true);
 
       await user.click(screen.getByRole('button', { name: 'End review' }));
       expect(screen.getByRole('button', { name: 'Review agent scores (2)' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
 
       await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
       await user.keyboard('{Escape}');
       expect(screen.getByRole('button', { name: 'Review agent scores (2)' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
       await user.keyboard('{Escape}');
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).not.toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).not.toBePressed();
     });
 
     it('keeps a corrected item selected during the Agent-scored review, and Enter moves on to the next', async () => {
@@ -377,13 +377,13 @@ describe(Chart, () => {
       await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'High' }));
       await user.click(within(getGroup('Value')).getByRole('radio', { name: 'Nice-to-have' }));
 
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
       expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice-to-have' })).toBeChecked();
-      expect(hasHalo(screen.getByRole('button', { name: /^t\.2:/ }))).toBe(false);
+      expect(hasHalo(screen.getByRole('button', { name: /^T\.2:/ }))).toBe(false);
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · – of 2');
 
       await user.keyboard('{Enter}');
-      expect(screen.getByRole('button', { name: /^t\.1:/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).toBePressed();
     });
 
     it('moves an Unscored review on once the selected item has both urgency and value', async () => {
@@ -410,7 +410,7 @@ describe(Chart, () => {
   });
 
   describe('with edges', () => {
-    // t.1 blocks t.2, which blocks t.3; t.4 is a sub-issue of t.2; t.5 stands apart.
+    // T.1 blocks T.2, which blocks T.3; T.4 is a sub-issue of T.2; T.5 stands apart.
     const chainItems = [
       buildItem({ number: 1, relations: [relate('blocking', 2)] }),
       buildItem({ number: 2, relations: [relate('blocked-by', 1), relate('blocking', 3), relate('sub-issue', 4)] }),
@@ -436,26 +436,26 @@ describe(Chart, () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
 
-      await user.hover(screen.getByRole('button', { name: /^t\.2:/ }));
+      await user.hover(screen.getByRole('button', { name: /^T\.2:/ }));
 
       expect(listEdges()).toStrictEqual(['blocker:1>2:direct', 'blocker:2>3:direct', 'sub-issue:4>2:direct']);
-      expect(screen.getByRole('button', { name: /^t\.5:/ })).toHaveAttribute('data-faded', 'true');
-      expect(screen.getByRole('button', { name: /^t\.4:/ })).toHaveAttribute('data-faded', 'false');
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toHaveAttribute('data-faded', 'false');
+      expect(screen.getByRole('button', { name: /^T\.5:/ })).toHaveAttribute('data-faded', 'true');
+      expect(screen.getByRole('button', { name: /^T\.4:/ })).toHaveAttribute('data-faded', 'false');
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toHaveAttribute('data-faded', 'false');
     });
 
     it('when a circle is selected, draws its blocker chain at reduced weight and keeps a faded circle selectable', async () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
 
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
-      await user.unhover(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+      await user.unhover(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(listEdges()).toStrictEqual(['blocker:2>3:chain', 'blocker:1>2:direct']);
-      expect(screen.getByRole('button', { name: /^t\.4:/ })).toHaveAttribute('data-faded', 'true');
+      expect(screen.getByRole('button', { name: /^T\.4:/ })).toHaveAttribute('data-faded', 'true');
 
-      await user.click(screen.getByRole('button', { name: /^t\.4:/ }));
-      expect(screen.getByRole('button', { name: /^t\.4:/ })).toBePressed();
+      await user.click(screen.getByRole('button', { name: /^T\.4:/ }));
+      expect(screen.getByRole('button', { name: /^T\.4:/ })).toBePressed();
     });
 
     it('with All edges on, draws every edge once, faintly when nothing is focused', async () => {
@@ -482,8 +482,8 @@ describe(Chart, () => {
 
       await user.click(screen.getByRole('button', { name: 'Review agent scores (1)' }));
 
-      expect(screen.getByRole('button', { name: /^t\.5:/ })).toHaveAttribute('data-faded', 'false');
-      expect(screen.getByRole('button', { name: /^t\.2:/ })).toHaveAttribute('data-faded', 'true');
+      expect(screen.getByRole('button', { name: /^T\.5:/ })).toHaveAttribute('data-faded', 'false');
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toHaveAttribute('data-faded', 'true');
     });
 
     it('draws a blocker cycle', async () => {
@@ -494,7 +494,7 @@ describe(Chart, () => {
       ];
       renderChart(cycle, {}, { [`${REPO}#1`]: place(1, 1), [`${REPO}#2`]: place(3, 3) });
 
-      await user.hover(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.hover(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(listEdges()).toStrictEqual(['blocker:1>2:direct', 'blocker:2>1:direct']);
     });
@@ -503,11 +503,11 @@ describe(Chart, () => {
       const inGutter = buildItem({ number: 6, relations: [relate('blocked-by', 1)] });
       renderChart([...chainItems, inGutter], {}, chainScores);
 
-      const circle = screen.getByRole('button', { name: /^t\.2:.*, blocked$/ });
+      const circle = screen.getByRole('button', { name: /^T\.2:.*, blocked$/ });
       expect(hasMark(circle, 'tr-node-blocked')).toBe(true);
-      expect(hasMark(screen.getByRole('button', { name: /^t\.1:/ }), 'tr-node-blocked')).toBe(false);
+      expect(hasMark(screen.getByRole('button', { name: /^T\.1:/ }), 'tr-node-blocked')).toBe(false);
       const row = within(screen.getByRole('list', { name: 'Unscored items' })).getByRole('button', {
-        name: /^t\.6:.*, blocked$/,
+        name: /^T\.6:.*, blocked$/,
       });
       expect(hasMark(row, 'tr-circle-blocked')).toBe(true);
     });
@@ -516,13 +516,13 @@ describe(Chart, () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
 
-      const pick = screen.getByRole('button', { name: /^t\.5:.*, next pick$/ });
+      const pick = screen.getByRole('button', { name: /^T\.5:.*, next pick$/ });
       expect(hasMark(pick, 'tr-node-pick')).toBe(true);
       expect(getPane()).toHaveTextContent('Next pick');
       expect(getPane()).toHaveTextContent('Issue 5');
       expect(within(getPane()).queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
 
-      await user.click(screen.getByRole('button', { name: /^t\.4:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.4:/ }));
       expect(getPane()).toHaveTextContent('Selected');
       expect(getPane()).toHaveTextContent('Issue 4');
       expect(hasMark(pick, 'tr-node-pick')).toBe(true);
@@ -531,25 +531,25 @@ describe(Chart, () => {
     it("when a relation row in the pane is hovered, rings that row's circle", async () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
-      await user.click(screen.getByRole('button', { name: /^t\.2:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.2:/ }));
 
-      const row = within(getPane()).getByRole('link', { name: /t\.3 Issue 3/ });
+      const row = within(getPane()).getByRole('link', { name: /T\.3 Issue 3/ });
       await user.hover(row);
-      expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-highlighted', 'true');
+      expect(screen.getByRole('button', { name: /^T\.3:/ })).toHaveAttribute('data-highlighted', 'true');
 
       await user.unhover(row);
-      expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-highlighted', 'false');
+      expect(screen.getByRole('button', { name: /^T\.3:/ })).toHaveAttribute('data-highlighted', 'false');
     });
 
     it("ends a relation row's highlight when the pane leaves its item under the pointer", async () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
-      await user.click(screen.getByRole('button', { name: /^t\.2:/ }));
-      await user.hover(within(getPane()).getByRole('link', { name: /t\.3 Issue 3/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.2:/ }));
+      await user.hover(within(getPane()).getByRole('link', { name: /T\.3 Issue 3/ }));
 
       await user.keyboard('{Escape}');
 
-      expect(screen.getByRole('button', { name: /^t\.3:/ })).toHaveAttribute('data-highlighted', 'false');
+      expect(screen.getByRole('button', { name: /^T\.3:/ })).toHaveAttribute('data-highlighted', 'false');
     });
   });
 });

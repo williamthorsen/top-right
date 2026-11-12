@@ -13,7 +13,7 @@ describe(ItemTable, () => {
 
     await user.click(getRow('Issue 2'));
 
-    expect(screen.getByRole('button', { name: /^t\.2:/ })).toBePressed();
+    expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
     expect(getPane()).toHaveTextContent('Issue 2');
   });
 
@@ -22,7 +22,7 @@ describe(ItemTable, () => {
     renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: place(3, 3) });
     expect(getRow('Issue 1')).not.toHaveAttribute('aria-current');
 
-    await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+    await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
     expect(getRow('Issue 1')).toHaveAttribute('aria-current', 'true');
   });

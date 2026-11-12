@@ -161,7 +161,7 @@ describe(Settings, () => {
 
       expect(getField('Repo abbreviations', 'w/codeassembly')).toHaveValue('ca');
       expect(getField('Repo abbreviations', 'w/configs.macos')).toHaveValue('');
-      expect(getField('Repo abbreviations', 'w/configs.macos')).toHaveAttribute('placeholder', 'c');
+      expect(getField('Repo abbreviations', 'w/configs.macos')).toHaveAttribute('placeholder', 'C');
     });
 
     it('reports nothing on load once the stored abbreviations resolve every clash', () => {

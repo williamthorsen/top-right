@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { Chart } from '../Chart.tsx';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
 
-// t.1 is open and blocked by t.2, which is closed; t.3 is closed and unrelated; t.4 is closed, related, and unscored.
+// T.1 is open and blocked by T.2, which is closed; T.3 is closed and unrelated; T.4 is closed, related, and unscored.
 const items: WorkItem[] = [
   buildItem({ number: 1, relations: [relate('blocked-by', 2), relate('sub-issue', 4)] }),
   buildItem({ number: 2, state: 'closed', relations: [relate('blocking', 1)] }),
@@ -18,7 +18,7 @@ const scores = {
   [`${REPO}#2`]: place(4, 4),
   [`${REPO}#3`]: place(4, 4),
 };
-const GHOST_NAME = 't.2: Issue 2, done, hidden';
+const GHOST_NAME = 'T.2: Issue 2, done, hidden';
 
 describe(Chart, () => {
   describe('with a hidden done item at the end of an edge', () => {
@@ -31,7 +31,7 @@ describe(Chart, () => {
     it('draws a ghost with the edge to it while the related item is hovered, without moving the circle', async () => {
       const user = userEvent.setup();
       renderChart(items, {}, scores);
-      const circle = screen.getByRole('button', { name: /^t\.1:/ });
+      const circle = screen.getByRole('button', { name: /^T\.1:/ });
       const position = circle.getAttribute('transform');
 
       await user.hover(circle);
@@ -45,43 +45,43 @@ describe(Chart, () => {
       const user = userEvent.setup();
       renderChart(items, {}, scores);
 
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
-      expect(screen.queryByRole('button', { name: /^t\.4:/ })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /^t\.3:/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^T\.4:/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^T\.3:/ })).not.toBeInTheDocument();
     });
 
     it('when the ghost is clicked, selects and reveals that item alone and leaves Done off', async () => {
       const user = userEvent.setup();
       renderChart(items, {}, scores);
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       await user.click(screen.getByRole('button', { name: GHOST_NAME }));
 
-      expect(screen.getByRole('button', { name: /^t\.2: Issue 2$/ })).toBePressed();
-      expect(screen.queryByRole('button', { name: /^t\.3:/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^T\.2: Issue 2$/ })).toBePressed();
+      expect(screen.queryByRole('button', { name: /^T\.3:/ })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^Done/ })).not.toBePressed();
     });
 
     it('is reached by Tab from the selected circle, past the other circles, and reveals by Enter', async () => {
       const user = userEvent.setup();
-      // t.5 is a visible circle that follows t.1 in the matrix; focusing it would move the edges to it.
+      // T.5 is a visible circle that follows T.1 in the matrix; focusing it would move the edges to it.
       renderChart([...items, buildItem({ number: 5 })], {}, { ...scores, [`${REPO}#5`]: place(2, 2) });
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       await user.tab();
 
       expect(screen.getByRole('button', { name: GHOST_NAME })).toHaveFocus();
       await user.keyboard('{Enter}');
 
-      expect(screen.getByRole('button', { name: /^t\.2: Issue 2$/ })).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2: Issue 2$/ })).toBePressed();
     });
 
     it('draws no ghost for an edge from an item in a gutter, which draws no edge', async () => {
       const user = userEvent.setup();
       renderChart(items, {}, { [`${REPO}#2`]: place(4, 4) });
 
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(screen.queryByRole('button', { name: GHOST_NAME })).not.toBeInTheDocument();
     });
@@ -89,20 +89,20 @@ describe(Chart, () => {
     it('hides the revealed item again at the next filter-bar change', async () => {
       const user = userEvent.setup();
       renderChart(items, {}, scores);
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
       await user.click(screen.getByRole('button', { name: GHOST_NAME }));
 
       await user.click(screen.getByRole('button', { name: /^To do/ }));
 
-      expect(screen.queryByRole('button', { name: /^t\.2: Issue 2$/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^T\.2: Issue 2$/ })).not.toBeInTheDocument();
     });
 
     it('ends a running review when the ghost is activated', async () => {
       const user = userEvent.setup();
       renderChart([...items, buildItem({ number: 5 })], {}, scores);
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
       await user.click(screen.getByRole('button', { name: /^Review unscored/ }));
-      await user.click(screen.getByRole('button', { name: /^t\.1:/ }));
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
       expect(screen.getByRole('button', { name: 'End review' })).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: GHOST_NAME }));
