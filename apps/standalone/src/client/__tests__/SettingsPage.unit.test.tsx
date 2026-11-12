@@ -13,6 +13,7 @@ import '@testing-library/jest-dom/vitest';
 
 const SETTINGS: SettingsResponse = {
   repos: ['w/codeassembly', 'w/top-right'],
+  configPath: '/home/author/top-right/apps/standalone/config.local.json',
   abbreviations: { 'w/codeassembly': 'ca' },
   workTypeMapping: null,
   scoreLabelMapping: null,

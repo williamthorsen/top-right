@@ -19,6 +19,7 @@ export const ITEM: WorkItem = {
   relations: [],
 };
 export const ITEM_KEY = 'williamthorsen/top-right#11';
+export const CONFIG_PATH = '/home/author/top-right/config.local.json';
 export const NOW = new Date('2026-11-08T12:00:00.000Z');
 export const EARLIER = '2026-11-01T09:00:00.000Z';
 
@@ -40,6 +41,7 @@ export async function startServer({
   ...overrides
 }: Partial<ApiOptions> & { loadItems?: () => Promise<WorkItem[]> }): Promise<string> {
   const handle = createApiHandler({
+    configPath: CONFIG_PATH,
     items: createItemsCache({ load: loadItems, now: () => NOW }),
     repos: [ITEM.repo],
     store: createMemoryStore(),
