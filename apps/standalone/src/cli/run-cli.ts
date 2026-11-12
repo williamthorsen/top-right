@@ -13,6 +13,7 @@ import type { Store } from '@top-right/store';
 import { StartupError } from '#src/server/startup-error.ts';
 
 import { listItems, renderItemsText } from './list-items.ts';
+import { planAbbreviationSeed, renderSeedText } from './seed-abbreviations.ts';
 import {
   omitHeldScores,
   parseScoreBatch,
@@ -24,6 +25,8 @@ import {
 /** The user's store and items, opened for one run of the CLI. */
 export interface CliContext {
   loadItems: () => Promise<WorkItem[]>;
+  /** The configured repositories, as `owner/name`. */
+  repos: string[];
   store: Store;
   userId: string;
   close: () => void;
@@ -98,6 +101,27 @@ Example:
   pnpm --filter @top-right/standalone top-right list-items --json > items.json
 `;
 
+const SEED_ABBREVIATIONS_HELP = `Set the abbreviations of configured repositories that do not have a stored one yet.
+A stored abbreviation is never changed; change one on the Settings page.
+
+Usage: top-right seed-abbreviations [--dry-run] <owner/name=ABBR>...
+
+Arguments:
+  <owner/name=ABBR>  A configured repository and the abbreviation that leads its ids, such as T in T.11.
+                     An abbreviation holds no spaces or dots.
+
+Options:
+  -n, --dry-run      Report what would be set, and write nothing
+  -h, --help         Print this help
+
+The whole batch is refused when any pair is malformed, repeats a repository, names a repository that is not
+configured, holds an invalid abbreviation, or would leave a repository that it sets sharing an abbreviation with
+another configured repository, compared case-insensitively.
+
+Example:
+  pnpm --filter @top-right/standalone top-right seed-abbreviations owner/top-right=TR owner/toolbelt=TB
+`;
+
 const WRITE_SCORES_HELP = `Write an agent's scores for open issues to the user's store, marked as the agent's for review.
 
 Usage: top-right write-scores [--dry-run] <file>
@@ -126,12 +150,13 @@ const PROGRAM_HELP = `Read the backlog and write an agent's scores to the Top Ri
 Usage: top-right <command> [options]
 
 Commands:
-  list-items     Print the open issues with their current scores
-  write-scores   Write an agent's scores for review on the chart
+  list-items          Print the open issues with their current scores
+  seed-abbreviations  Set the abbreviations of repositories that do not have one
+  write-scores        Write an agent's scores for review on the chart
 
 Options:
-  -h, --help     Print help; top-right <command> --help prints the command's help
-  -V, --version  Print the version
+  -h, --help          Print help; top-right <command> --help prints the command's help
+  -V, --version       Print the version
 
 The store is TOP_RIGHT_DB when set, else $XDG_DATA_HOME/top-right/top-right.sqlite.
 
@@ -147,12 +172,19 @@ interface Command {
 
 const COMMANDS: readonly Command[] = [
   { name: 'list-items', help: LIST_ITEMS_HELP, run: runListItems },
+  { name: 'seed-abbreviations', help: SEED_ABBREVIATIONS_HELP, run: runSeedAbbreviations },
   { name: 'write-scores', help: WRITE_SCORES_HELP, run: runWriteScores },
 ];
 
 /** A mistake in the invocation or its input, which exits 2. */
 class UsageError extends Error {
   override name = 'UsageError';
+}
+
+/** Joins `names` as an English list: `a`, `a and b`, or `a, b, and c`. */
+function formatList(names: readonly string[]): string {
+  if (names.length <= 2) return names.join(' and ');
+  return `${names.slice(0, -1).join(', ')}, and ${names.at(-1) ?? ''}`;
 }
 
 /** Reads the items and keeps the open ones, since the CLI scores only items open at their source. */
@@ -214,6 +246,25 @@ async function runListItems(args: readonly string[], io: CliIo): Promise<number>
   return 0;
 }
 
+async function runSeedAbbreviations(args: readonly string[], io: CliIo): Promise<number> {
+  const { values, positionals } = parseCommandArgs(args, { 'dry-run': { type: 'boolean', short: 'n' } });
+  if (positionals.length === 0)
+    throw new UsageError('expects one or more owner/name=ABBR pairs; run with --help for usage');
+  const isDryRun = values['dry-run'] === true;
+  return withContext(io, async (context) => {
+    const { abbreviations } = await context.store.readUserState(context.userId);
+    const plan = planAbbreviationSeed(positionals, context.repos, abbreviations);
+    if (plan.kind === 'invalid') {
+      io.stderr(`top-right seed-abbreviations: the batch is refused, and nothing was written:\n`);
+      io.stderr(plan.problems.map((problem) => `  ${problem}\n`).join(''));
+      return USAGE_ERROR;
+    }
+    if (!isDryRun && plan.set.length > 0) await context.store.writeAbbreviations(context.userId, plan.next);
+    io.stdout(renderSeedText(plan, isDryRun));
+    return 0;
+  });
+}
+
 async function runWriteScores(args: readonly string[], io: CliIo): Promise<number> {
   const { values, positionals } = parseCommandArgs(args, { 'dry-run': { type: 'boolean', short: 'n' } });
   const [path, ...extra] = positionals;
@@ -253,7 +304,7 @@ function suggestCommand(input: string): string {
     distance: measureEditDistance(input, command.name),
   })).toSorted((a, b) => a.distance - b.distance);
   if (nearest && nearest.distance <= 3) return `did you mean ${nearest.name}?`;
-  return `the commands are ${COMMANDS.map((command) => command.name).join(' and ')}; run top-right --help`;
+  return `the commands are ${formatList(COMMANDS.map((command) => command.name))}; run top-right --help`;
 }
 
 async function withContext<T>(io: CliIo, work: (context: CliContext) => Promise<T>): Promise<T> {
