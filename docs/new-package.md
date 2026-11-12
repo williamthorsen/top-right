@@ -51,7 +51,7 @@ Then run `pnpm install`, which adds the workspace to `pnpm-lock.yaml`. `pnpm-wor
 
 Each workspace has a `scope:<dir>` label, which pull requests and issues take. Two files that reach GitHub are generated, so add the label to the one authored file and regenerate the others:
 
-1. **Authored:** In `.config/release-kit.config.ts`, add `'scope:<dir>': { color: '00ff96', description: '<dir> package' }` to `repoLabels.labels`.
+1. **Authored:** In `.config/release-kit.config.ts`, add `'scope:<dir>': { color: '00ff96' }` to `repoLabels.labels`. A scope label has no description, so that GitHub groups the scope labels compactly.
 2. **Generated:** `pnpm exec release-kit sync-labels generate` rewrites `.github/labels.yaml` from that config. `pnpm exec release-kit sync-labels generate --check` fails while the file is stale.
 3. **Generated:** `pnpm exec codeassembly generate label-map --force` rewrites `.meta/label-map.json`, taking a scope from each workspace that the `pnpm-workspace.yaml` globs match, named by its directory, plus `root`. Without `--force`, it refuses to replace the existing file.
 
