@@ -50,7 +50,7 @@ describe(SettingsPage, () => {
     expect(screen.getByRole('navigation', { name: 'Pages' })).toBeInTheDocument();
   });
 
-  it('marks Settings as the current page and links the header back to the chart with the item that was selected', async () => {
+  it('marks Settings as the current page and links the header to the chart with the selected item', async () => {
     globalThis.history.replaceState(null, '', '/settings?item=w%2Ftop-right%2312');
     void stubFetch(() => Promise.resolve(Response.json(SETTINGS)));
 

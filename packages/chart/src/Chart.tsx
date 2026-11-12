@@ -52,7 +52,7 @@ export interface ChartProps {
   workTypeMapping?: WorkTypeMapping;
   /** The labels that supply urgency, value, and effort where an item has no stored score for them. */
   scoreLabelMapping?: ScoreLabelMapping;
-  /** Where the host's Settings page is, to which the legend's mapping popover links; without it, the popover does not. */
+  /** Where the host's Settings page is, for the legend's mapping popover; without it, the popover does not link. */
   settingsHref?: string | undefined;
   /** The host's read of the items; without it, the chart shows neither the read time nor Refresh. */
   refresh?: ChartRefresh | undefined;
