@@ -251,11 +251,11 @@ describe(Settings, () => {
 
       const tools = getCollection('Tools');
       expect(within(tools).getByRole('textbox', { name: 'Name' })).toHaveValue('Tools');
-      expect(
-        within(tools)
-          .getAllByRole('checkbox')
-          .map((box) => box.closest('label')?.textContent),
-      ).toEqual(['w/codeassembly', 'w/configs.macos', 'w/top-right']);
+      expect(within(tools).getAllByRole('checkbox')).toEqual(
+        ['w/codeassembly', 'w/configs.macos', 'w/top-right'].map((name) =>
+          within(tools).getByRole('checkbox', { name }),
+        ),
+      );
       expect(within(tools).getByRole('checkbox', { name: 'w/codeassembly' })).toBeChecked();
       expect(within(tools).getByRole('checkbox', { name: 'w/top-right' })).not.toBeChecked();
       expect(getDefaultSelect()).toHaveDisplayValue('Tools');

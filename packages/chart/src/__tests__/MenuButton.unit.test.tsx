@@ -50,8 +50,8 @@ describe(MenuButton, () => {
     await user.click(screen.getByRole('menuitemcheckbox', { name: 'Carrot' }));
 
     expect(screen.getByRole('menu', { name: 'Pick' })).toBeVisible();
-    expect(screen.getByRole('menuitemcheckbox', { name: 'Apple' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('menuitemcheckbox', { name: 'Carrot' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Apple' })).toBeChecked();
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Carrot' })).toBeChecked();
     expect(screen.getByRole('menuitemcheckbox', { name: 'Carrot' })).toHaveFocus();
   });
 

@@ -18,7 +18,7 @@ export interface FilterBarProps {
   /** The repositories to offer, keyed by `owner/name` with their abbreviations. */
   abbreviations: Abbreviations;
   /** The collections to offer, in the order in which the user added them. */
-  collections: readonly Collection[];
+  collections?: readonly Collection[] | undefined;
   /** The count of each status within the shown repositories. */
   counts: Readonly<Record<StatusCategory, number>>;
   onChange: (filter: ItemFilter) => void;
@@ -31,7 +31,7 @@ const STATUS_CHIPS: readonly StatusCategory[] = ['to-do', 'in-progress', 'done']
  * The Filter group at the chart's top edge: the Repos menu, whose checkable collections and repositories the chart
  * shows the union of, and one filter chip per status, each with its count.
  */
-export function FilterBar({ filter, abbreviations, collections, counts, onChange }: FilterBarProps): ReactElement {
+export function FilterBar({ filter, abbreviations, collections = [], counts, onChange }: FilterBarProps): ReactElement {
   const labelId = useId();
   const repos = sortRepos(Object.keys(abbreviations));
   const { scope } = filter;

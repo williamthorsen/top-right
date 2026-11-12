@@ -15,6 +15,8 @@ import { useMemo, useState } from 'react';
 
 import { type Abbreviations, labelItem } from './item-label.ts';
 
+const NO_COLLECTIONS: readonly Collection[] = [];
+
 /** The board's filter, with the items that it keeps and the labels and counts that follow from it. */
 export interface ItemFilterState {
   filter: ItemFilter;
@@ -37,8 +39,8 @@ export function useItemFilter(
   items: readonly WorkItem[],
   overrides: Readonly<Record<string, StatusOverride>>,
   abbreviations: Abbreviations,
-  collections: readonly Collection[],
-  defaultCollectionId: string | undefined,
+  collections: readonly Collection[] = NO_COLLECTIONS,
+  defaultCollectionId?: string,
 ): ItemFilterState {
   const [filter, setFilter] = useState<ItemFilter>(() => buildDefaultFilter(defaultCollectionId, collections));
   const shownRepos = useMemo(() => resolveShownRepos(filter.scope, collections), [filter.scope, collections]);

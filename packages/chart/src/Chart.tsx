@@ -93,7 +93,6 @@ export interface ChartProps {
 
 /** The chart pane's initial share of the height that it splits with the table, as a percentage. */
 const INITIAL_SPLIT = 60;
-const NO_COLLECTIONS: readonly Collection[] = [];
 const NO_SCORES: Readonly<Record<string, ItemScores>> = {};
 const NO_OVERRIDES: Readonly<Record<string, StatusOverride>> = {};
 /** Where the matrix's origin sits in the SVG, past the axis margins. */
@@ -107,7 +106,7 @@ const MATRIX_TRANSFORM = `translate(${MATRIX_ORIGIN.x} ${MATRIX_ORIGIN.y})`;
 export function Chart({
   items,
   abbreviations,
-  collections = NO_COLLECTIONS,
+  collections,
   defaultCollectionId,
   workTypeMapping = DEFAULT_WORK_TYPE_MAPPING,
   scoreLabelMapping = DEFAULT_SCORE_LABEL_MAPPING,

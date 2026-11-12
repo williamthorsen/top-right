@@ -218,9 +218,9 @@ describe(Chart, () => {
       await user.click(screen.getByRole('menuitemcheckbox', { name: 'toolbelt (tb)' }));
 
       expect(screen.getByRole('menu', { name: 'Repos' })).toBeVisible();
-      expect(screen.getByRole('menuitemcheckbox', { name: 'All repos' })).toHaveAttribute('aria-checked', 'false');
-      expect(screen.getByRole('menuitemcheckbox', { name: 'Product' })).toHaveAttribute('aria-checked', 'true');
-      expect(screen.getByRole('menuitemcheckbox', { name: 'toolbelt (tb)' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('menuitemcheckbox', { name: 'All repos' })).not.toBeChecked();
+      expect(screen.getByRole('menuitemcheckbox', { name: 'Product' })).toBeChecked();
+      expect(screen.getByRole('menuitemcheckbox', { name: 'toolbelt (tb)' })).toBeChecked();
     });
 
     it('clears the selection on All repos', async () => {
@@ -270,7 +270,7 @@ function getGutter(): HTMLElement {
 function getGutterLabels(): string[] {
   return within(getGutter())
     .getAllByRole('button')
-    .map((button) => button.getAttribute('aria-label')?.split(':')[0] ?? '');
+    .map((button) => button.getAttribute('aria-label')?.split(':', 1)[0] ?? '');
 }
 
 /** Renders the chart with a host that applies the author's status changes to its overrides, as the page does. */

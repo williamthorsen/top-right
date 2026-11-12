@@ -47,7 +47,7 @@ export function findCollectionProblem(
     const unconfigured = collection.repos.find((repo) => !configured.has(repo));
     if (unconfigured !== undefined) return `"${name}" includes ${unconfigured}, which the config does not list.`;
   }
-  if (defaultCollectionId !== undefined && !collections.some((collection) => collection.id === defaultCollectionId)) {
+  if (defaultCollectionId !== undefined && collections.every((collection) => collection.id !== defaultCollectionId)) {
     return 'The default collection does not exist. Choose another default.';
   }
   return undefined;
