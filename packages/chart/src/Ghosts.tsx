@@ -36,6 +36,8 @@ interface GhostBoard {
   scores: Readonly<Record<string, ResolvedItemScores>>;
   /** The scope that circle areas show, which a ghost's area follows. */
   scopeMode: ScopeMode;
+  /** The repositories that the filter shows, or undefined for every repository; only their items take ghosts. */
+  shownRepos: ReadonlySet<string> | undefined;
   visibleKeys: ReadonlySet<string>;
 }
 
@@ -79,8 +81,8 @@ export function layoutGhosts(
 }
 
 /**
- * Returns a placement for each end of `edges` that is a loaded, scored done item that the filter hides and whose other
- * end is a circle in the matrix, since only such an edge is drawn.
+ * Returns a placement for each end of `edges` that is a loaded, scored done item in a shown repository that the filter
+ * hides and whose other end is a circle in the matrix, since only such an edge is drawn.
  */
 export function listGhostPlacements(
   edges: readonly Edge[],
@@ -89,7 +91,7 @@ export function listGhostPlacements(
     matrixKeys: ReadonlySet<string> | ReadonlyMap<string, unknown>;
   },
 ): Placement[] {
-  const { itemsByKey, matrixKeys, overrides, scopeMode, scores, visibleKeys } = board;
+  const { itemsByKey, matrixKeys, overrides, scopeMode, scores, shownRepos, visibleKeys } = board;
   const farEnds = edges.flatMap((edge) => [
     ...(matrixKeys.has(edge.from) ? [edge.to] : []),
     ...(matrixKeys.has(edge.to) ? [edge.from] : []),
@@ -101,6 +103,7 @@ export function listGhostPlacements(
       const itemScores = scores[key];
       const { u, v } = findItemCell(itemScores);
       if (!item || visibleKeys.has(key) || u === 0 || v === 0) return [];
+      if (shownRepos !== undefined && !shownRepos.has(item.repo)) return [];
       if (deriveStatus(item, overrides[key]) !== 'done') return [];
       return [{ id: key, u, v, ...sizeItem(itemScores, scopeMode) }];
     })

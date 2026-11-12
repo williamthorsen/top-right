@@ -212,7 +212,7 @@ export function Chart({
 
   const focusKey = previewKey ?? selectedKey;
   const focus = focusItem(graph, focusKey, showAllEdges);
-  const board = { itemsByKey, overrides, scopeMode, scores, visibleKeys };
+  const board = { itemsByKey, overrides, scopeMode, scores, shownRepos, visibleKeys };
   const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board, cellSize);
   const ghostElements = (

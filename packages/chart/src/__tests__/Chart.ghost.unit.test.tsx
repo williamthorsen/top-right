@@ -1,10 +1,12 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import type { Relation, RelationKind, WorkItem } from '@top-right/model';
 import { describe, expect, it } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
+import { getPane } from '../test-utils/chart-queries.ts';
+import { chooseRepos } from '../test-utils/repo-menu.ts';
 
 // T.1 is open and blocked by T.2, which is closed; T.3 is closed and unrelated; T.4 is closed, related, and unscored.
 const items: WorkItem[] = [
@@ -19,6 +21,7 @@ const scores = {
   [`${REPO}#3`]: place(4, 4),
 };
 const GHOST_NAME = 'T.2: Issue 2, done, hidden';
+const CA = 'williamthorsen/codeassembly';
 
 describe(Chart, () => {
   describe('with a hidden done item at the end of an edge', () => {
@@ -110,6 +113,38 @@ describe(Chart, () => {
       expect(screen.queryByRole('button', { name: 'End review' })).not.toBeInTheDocument();
     });
   });
+
+  describe('with related items in a repository that the filter hides', () => {
+    // T.1 is blocked by C.2, which is open and not loaded, and is the parent of C.3, which is closed, loaded, and scored.
+    const crossItems: WorkItem[] = [
+      buildItem({ number: 1, relations: [relate('blocked-by', 2, CA, 'open'), relate('sub-issue', 3, CA)] }),
+      buildItem({ number: 3, repo: CA, state: 'closed', relations: [relate('parent', 1)] }),
+    ];
+    const crossScores = { [`${REPO}#1`]: place(3, 3), [`${CA}#3`]: place(4, 4) };
+    const ABBREVIATIONS = { [REPO]: 'T', [CA]: 'C' };
+
+    it('draws no ghost or edge for the loaded done item, and lists both relations in the pane', async () => {
+      const user = userEvent.setup();
+      renderChart(crossItems, ABBREVIATIONS, crossScores);
+      await chooseRepos(user, 'top-right (T)');
+
+      await user.click(screen.getByRole('button', { name: /^1:/ }));
+
+      expect(screen.queryByRole('button', { name: /^(C\.)?3:/ })).not.toBeInTheDocument();
+      expect(listEdgeEnds()).toStrictEqual([]);
+      expect(within(getPane()).getByRole('link', { name: /C\.2 Issue 2/ })).toBeInTheDocument();
+      expect(within(getPane()).getByRole('link', { name: /C\.3 Issue 3/ })).toBeInTheDocument();
+    });
+
+    it('rings the item that the unloaded open item blocks', async () => {
+      const user = userEvent.setup();
+      renderChart(crossItems, ABBREVIATIONS, crossScores);
+
+      await chooseRepos(user, 'top-right (T)');
+
+      expect(screen.getByRole('button', { name: /^1:.*, blocked$/ })).toBeInTheDocument();
+    });
+  });
 });
 
 // region | Helpers
@@ -121,16 +156,15 @@ function listEdgeEnds(): string[] {
   );
 }
 
-function relate(kind: RelationKind, number: number): Relation {
+function relate(
+  kind: RelationKind,
+  number: number,
+  repo = REPO,
+  state: 'closed' | 'open' = number === 1 ? 'open' : 'closed',
+): Relation {
   return {
     kind,
-    ref: {
-      repo: REPO,
-      number,
-      title: `Issue ${number}`,
-      url: `https://example.test/${number}`,
-      state: number === 1 ? 'open' : 'closed',
-    },
+    ref: { repo, number, title: `Issue ${number}`, url: `https://example.test/${number}`, state },
   };
 }
 // endregion | Helpers
