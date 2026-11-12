@@ -32,7 +32,7 @@ The host reads the file when it starts, so a change to it takes effect at the ne
 
 `closedWindowDays` sets how many days back from each read the host reads closed issues, by the date each was closed. It defaults to 30, and 0 reads none. The chart hides closed items until the Done filter is on, and draws a ghost for one at the end of a shown edge.
 
-A circle's id is the repository's abbreviation and the issue number, such as `T.11`. The abbreviation defaults to the uppercase first letter of the repository's name and is changed on the Settings page, which also edits the labels that assign each work type and the labels that supply each urgency level, value level, and effort. While two repositories share an abbreviation, the chart shows an alert that links to Settings. The host ignores an `abbreviation` field in the config file and names the repositories that still set one when it starts.
+A circle's id is the repository's abbreviation and the issue number, such as `T.11`. The abbreviation defaults to the uppercase first letter of the repository's name. `top-right seed-abbreviations` sets the abbreviations of repositories that do not have one yet, and the Settings page changes them. The Settings page also edits the labels that assign each work type and the labels that supply each urgency level, value level, and effort. While two repositories share an abbreviation, the chart shows an alert that links to Settings. The host ignores an `abbreviation` field in the config file and names the repositories that still set one when it starts.
 
 An open issue labelled `status:in-progress` shows as In progress, and setting In progress or To do in the pane adds or removes that label; [`IN_PROGRESS_LABEL`](../../packages/adapter-github/src/status-strategy.ts) names it. The repository must have the label, which release-kit's common label preset defines: The host never creates one, and it refuses the write with a message that names the missing label.
 
@@ -62,11 +62,12 @@ An agent writes scores through the `top-right` CLI, and the chart marks each one
 pnpm --filter @top-right/standalone top-right list-items --json > items.json             # read the open issues and their scores
 pnpm --filter @top-right/standalone top-right write-scores --dry-run scores.json         # report what would change
 pnpm --filter @top-right/standalone top-right write-scores scores.json                   # write the scores as the agent's
+pnpm --filter @top-right/standalone top-right seed-abbreviations owner/name=ABBR ...    # set abbreviations not yet stored
 ```
 
 An issue whose label maps to an urgency or value level, such as `value:must-have`, is placed at that level until a score is stored for it, and one whose label maps to an effort, such as `effort:5`, is drawn at that size until an effort is stored for it; [`DEFAULT_SCORE_LABEL_MAPPING`](../../packages/model/src/score-labels.ts) defines the default labels. `list-items` reports such a score with `by: "label"` and the label in its JSON, and with `(label)` after the score in its text.
 
-`scores.json` is a JSON array of `{ "itemKey": "owner/name#number", "scores": { "urgency": "high", "value": "should-have" } }`. `top-right write-scores --help` lists the accepted values. Set `TOP_RIGHT_DB` to trial a run on a copy of the store.
+`scores.json` is a JSON array of `{ "itemKey": "owner/name#number", "scores": { "urgency": "high", "value": "should-have" } }`. `top-right write-scores --help` lists the accepted values. `top-right seed-abbreviations --help` states when a seed is refused. Set `TOP_RIGHT_DB` to trial a run on a copy of the store.
 
 ## Where the scores live
 
