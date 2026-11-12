@@ -56,6 +56,8 @@ export const VISIT_PATH = '/api/visit';
 export const WORK_TYPE_MAPPING_PATH = '/api/work-type-mapping';
 
 export interface ApiOptions {
+  /** The absolute path of the config file that lists `repos`. */
+  configPath: string;
   items: ItemsCache;
   /** Writes urgency, value, and effort to an issue's labels; without it, the host keeps every score in the store. */
   labelWriter?: LabelWriter | undefined;
@@ -71,6 +73,7 @@ export interface ApiOptions {
 
 /** Returns a handler that answers the host's `/api/` routes and passes every other request to `next`. */
 export function createApiHandler({
+  configPath,
   items: itemsCache,
   labelWriter,
   repos,
@@ -202,6 +205,7 @@ export function createApiHandler({
         const state = await store.readUserState(userId);
         const body: SettingsResponse = {
           repos: [...repos],
+          configPath,
           abbreviations: state.abbreviations,
           workTypeMapping: state.workTypeMapping ?? null,
           scoreLabelMapping: state.scoreLabelMapping ?? null,

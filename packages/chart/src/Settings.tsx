@@ -25,7 +25,7 @@ import {
   WORK_TYPE_NAMES,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { type ReactElement, type SubmitEvent, useId, useState } from 'react';
+import { type ReactElement, type ReactNode, type SubmitEvent, useId, useState } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
 import { LEVEL_NAMES } from './level-names.ts';
@@ -45,39 +45,37 @@ export interface SettingsProps {
   workTypeMapping: WorkTypeMapping | undefined;
   /** The user's saved score-label mapping; undefined when the user keeps the default. */
   scoreLabelMapping: ScoreLabelMapping | undefined;
-  /** Where the chart is. */
-  chartHref: string;
   /** Saves each configured repository's abbreviation, an empty string standing for its default. */
   onSaveAbbreviations: SaveSettings<Record<string, string>>;
   /** Saves the mapping, or restores the default when passed undefined. */
   onSaveWorkTypeMapping: SaveSettings<WorkTypeMapping | undefined>;
   /** Saves the score-label mapping, or restores the default when passed undefined. */
   onSaveScoreLabelMapping: SaveSettings<ScoreLabelMapping | undefined>;
+  /** The host's own sections, shown after the forms. */
+  children?: ReactNode;
 }
 
 /**
  * The Settings page: the labels that assign each work type, the labels that supply each urgency level, value level,
- * and effort, and each repository's abbreviation.
+ * and effort, each repository's abbreviation, and the host's own sections.
  */
 export function Settings({
   repos,
   abbreviations,
   workTypeMapping,
   scoreLabelMapping,
-  chartHref,
   onSaveAbbreviations,
   onSaveWorkTypeMapping,
   onSaveScoreLabelMapping,
+  children,
 }: SettingsProps): ReactElement {
   return (
     <div className="tr-root tr-settings">
-      <header className="tr-settings-header">
-        <h1>Settings</h1>
-        <a href={chartHref}>Chart</a>
-      </header>
+      <h1>Settings</h1>
       <WorkTypeMappingForm onSave={onSaveWorkTypeMapping} saved={workTypeMapping} />
       <ScoreLabelMappingForm onSave={onSaveScoreLabelMapping} saved={scoreLabelMapping} />
       <AbbreviationsForm abbreviations={abbreviations} onSave={onSaveAbbreviations} repos={repos} />
+      {children}
     </div>
   );
 }

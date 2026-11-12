@@ -13,7 +13,16 @@ import { createMemoryStore } from '#src/test-utils/memory-store.ts';
 
 import { createApiHandler } from '../api.ts';
 import { createItemsCache } from '../items-cache.ts';
-import { closeServers, EARLIER, ITEM, ITEM_KEY, NOW, post, startServer } from '../test-utils/api-server.ts';
+import {
+  closeServers,
+  CONFIG_PATH,
+  EARLIER,
+  ITEM,
+  ITEM_KEY,
+  NOW,
+  post,
+  startServer,
+} from '../test-utils/api-server.ts';
 
 const MAPPING: WorkTypeMapping = { bug: ['defect'], feature: ['feat'], ops: [], task: ['chore'] };
 const LABEL_MAPPING: ScoreLabelMapping = {
@@ -369,7 +378,7 @@ describe(createApiHandler, () => {
   });
 
   describe('GET /api/settings', () => {
-    it("answers with the configured repositories and the user's stored settings", async () => {
+    it("answers with the configured repositories, the config file's path, and the user's stored settings", async () => {
       const store = createMemoryStore({
         abbreviations: { [ITEM.repo]: 'tr' },
         workTypeMapping: MAPPING,
@@ -379,6 +388,7 @@ describe(createApiHandler, () => {
 
       expect(await (await fetch(`${baseUrl}/api/settings`)).json()).toStrictEqual({
         repos: [ITEM.repo],
+        configPath: CONFIG_PATH,
         abbreviations: { [ITEM.repo]: 'tr' },
         workTypeMapping: MAPPING,
         scoreLabelMapping: LABEL_MAPPING,

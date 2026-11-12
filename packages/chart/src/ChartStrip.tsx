@@ -22,8 +22,6 @@ export interface ChartStripProps {
   onShowAllEdgesChange: (showAllEdges: boolean) => void;
   scopeMode: ScopeMode;
   onScopeModeChange: (scopeMode: ScopeMode) => void;
-  /** Where the host's Settings page is; without it, the strip does not link to Settings. */
-  settingsHref: string | undefined;
   zoom: ZoomState;
 }
 
@@ -35,7 +33,7 @@ const SCOPE_OPTIONS: ReadonlyArray<SegmentOption<ScopeMode>> = [
 
 /**
  * The strip above the chart: the filter, the review controls, the view controls with the zoom control and the More
- * menu, the shown chain's status, and, at its end, the items' read time with Refresh and the link to Settings.
+ * menu, the shown chain's status, and, at its end, the items' read time with Refresh.
  */
 export function ChartStrip({
   chainView,
@@ -46,7 +44,6 @@ export function ChartStrip({
   onShowAllEdgesChange,
   scopeMode,
   onScopeModeChange,
-  settingsHref,
   zoom,
 }: ChartStripProps): ReactElement {
   return (
@@ -86,14 +83,9 @@ export function ChartStrip({
           </button>
         </div>
       ) : null}
-      {refresh === undefined && settingsHref === undefined ? null : (
+      {refresh === undefined ? null : (
         <div className="tr-strip-end">
-          {refresh === undefined ? null : <RefreshControl {...refresh} />}
-          {settingsHref === undefined ? null : (
-            <a className="tr-strip-link" href={settingsHref}>
-              Settings
-            </a>
-          )}
+          <RefreshControl {...refresh} />
         </div>
       )}
     </div>

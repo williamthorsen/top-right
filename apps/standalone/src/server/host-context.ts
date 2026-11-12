@@ -27,6 +27,8 @@ import { describeScopeWarnings, fetchTokenScopes } from './token-scopes.ts';
 
 /** What the host and the CLI read and write: the configured repositories, the user, and the user's store. */
 export interface HostContext {
+  /** The absolute path of the config file that the host read. */
+  configPath: string;
   databasePath: string;
   /** Writes an issue's labels through the GitHub adapter. */
   labelWriter: LabelWriter;
@@ -76,6 +78,7 @@ export async function openHostContext(): Promise<HostContext> {
     return projectUrl === undefined ? labelStrategy : projectStrategies.get(projectUrl);
   }
   return {
+    configPath: CONFIG_PATH,
     databasePath,
     labelWriter: (ref, change) => updateIssueLabels(request, ref.repo, ref.number, change),
     loadItems: () =>

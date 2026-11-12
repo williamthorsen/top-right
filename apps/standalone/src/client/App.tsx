@@ -15,8 +15,9 @@ import { type ReactElement, useCallback, useEffect, useRef, useState } from 'rea
 import { type ItemsResponse, itemsResponseSchema, refreshResponseSchema } from '#src/shared/items-response.ts';
 import { scoresResponseSchema, statusPatchSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
 
+import { AppHeader } from './AppHeader.tsx';
 import { describeError, getJson, HostResponseError, postJson } from './host-requests.ts';
-import { SETTINGS_PATH } from './SettingsPage.tsx';
+import { buildChartHref, buildSettingsHref } from './page-hrefs.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
 
 /**
@@ -87,12 +88,25 @@ export function App(): ReactElement {
     return () => window.removeEventListener('pagehide', recordVisitEnd);
   }, []);
 
-  if (state.kind === 'loading') return <p className="host-status">Loading issues</p>;
+  const header = (
+    <AppHeader chartHref={buildChartHref(selectedKey)} current="chart" settingsHref={buildSettingsHref(selectedKey)} />
+  );
+  if (state.kind === 'loading') {
+    return (
+      <>
+        {header}
+        <p className="host-status">Loading issues</p>
+      </>
+    );
+  }
   if (state.kind === 'error') {
     return (
-      <p className="host-status" role="alert">
-        Issues did not load: {state.message}
-      </p>
+      <>
+        {header}
+        <p className="host-status" role="alert">
+          Issues did not load: {state.message}
+        </p>
+      </>
     );
   }
 
@@ -174,6 +188,7 @@ export function App(): ReactElement {
   const { data } = state;
   return (
     <>
+      {header}
       {data.abbreviationClashes.map((clash) => (
         <div className="host-alert" key={clash.abbreviation} role="alert">
           <span>{describeAbbreviationClash(clash)}</span>
@@ -211,11 +226,6 @@ export function App(): ReactElement {
 }
 
 // region | Helpers
-/** Returns the Settings page's URL, carrying the selected item so that the page's link back restores it. */
-function buildSettingsHref(selectedKey: string | undefined): string {
-  return selectedKey === undefined ? SETTINGS_PATH : `${SETTINGS_PATH}?${new URLSearchParams({ item: selectedKey })}`;
-}
-
 /** Returns `text` ending in a period, unless it already ends a sentence, as the host's GitHub messages do. */
 function endSentence(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;

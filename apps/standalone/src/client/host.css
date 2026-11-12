@@ -8,7 +8,7 @@ body,
   height: 100%;
 }
 
-/* The failure alert and the chart share the viewport's height. */
+/* The header, the alerts, and the page share the viewport's height. */
 #root {
   display: flex;
   flex-direction: column;
@@ -60,4 +60,62 @@ body {
 .host-button:focus-visible {
   outline: 3px solid Highlight;
   outline-offset: 2px;
+}
+
+/* -- Header: the product's name and the links between the pages -- */
+.host-header {
+  display: flex;
+  flex: none;
+  align-items: stretch;
+  gap: 24px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 25%, Canvas);
+}
+
+.host-header-name,
+.host-header-link {
+  display: flex;
+  align-items: center;
+  color: CanvasText;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.host-header-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.host-header-nav {
+  display: flex;
+  gap: 16px;
+}
+
+/* The current page's link keeps a bar and weight at rest, so that the mark does not rely on colour. */
+.host-header-link {
+  padding: 0 2px;
+  border-block: 2px solid transparent;
+}
+
+.host-header-link[aria-current='page'] {
+  border-bottom-color: CanvasText;
+  font-weight: 600;
+}
+
+.host-header-name:hover,
+.host-header-link:hover {
+  text-decoration: underline;
+}
+
+.host-header-name:focus-visible,
+.host-header-link:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 2px;
+}
+
+/* -- Settings: the host's own sections -- */
+.host-repo-list {
+  margin: 0;
+  padding-left: 20px;
 }

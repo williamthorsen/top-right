@@ -10,12 +10,12 @@ import {
   workTypeMappingResponseSchema,
 } from '#src/shared/settings.ts';
 
+import { AppHeader } from './AppHeader.tsx';
 import { describeError, getJson, postJson } from './host-requests.ts';
+import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
+import { RepositoriesSection } from './RepositoriesSection.tsx';
 
-/** The path at which the host serves the Settings page. */
-export const SETTINGS_PATH = '/settings';
-
-/** The Settings page, which reads and saves the user's settings through the host and links back to the chart. */
+/** The Settings page, which reads and saves the user's settings through the host and lists the repositories. */
 export function SettingsPage(): ReactElement {
   type LoadState =
     { kind: 'error'; message: string } | { kind: 'loaded'; data: SettingsResponse } | { kind: 'loading' };
@@ -31,37 +31,49 @@ export function SettingsPage(): ReactElement {
     })();
   }, []);
 
-  if (state.kind === 'loading') return <p className="host-status">Loading settings</p>;
+  const item = readUrlItem();
+  const header = (
+    <AppHeader chartHref={buildChartHref(item)} current="settings" settingsHref={buildSettingsHref(item)} />
+  );
+  if (state.kind === 'loading') {
+    return (
+      <>
+        {header}
+        <p className="host-status">Loading settings</p>
+      </>
+    );
+  }
   if (state.kind === 'error') {
     return (
-      <p className="host-status" role="alert">
-        Settings did not load: {state.message}
-      </p>
+      <>
+        {header}
+        <p className="host-status" role="alert">
+          Settings did not load: {state.message}
+        </p>
+      </>
     );
   }
 
   const { data } = state;
   return (
-    <Settings
-      abbreviations={data.abbreviations}
-      chartHref={buildChartHref()}
-      onSaveAbbreviations={saveAbbreviations}
-      onSaveScoreLabelMapping={saveScoreLabelMapping}
-      onSaveWorkTypeMapping={saveWorkTypeMapping}
-      repos={data.repos}
-      scoreLabelMapping={data.scoreLabelMapping ?? undefined}
-      workTypeMapping={data.workTypeMapping ?? undefined}
-    />
+    <>
+      {header}
+      <Settings
+        abbreviations={data.abbreviations}
+        onSaveAbbreviations={saveAbbreviations}
+        onSaveScoreLabelMapping={saveScoreLabelMapping}
+        onSaveWorkTypeMapping={saveWorkTypeMapping}
+        repos={data.repos}
+        scoreLabelMapping={data.scoreLabelMapping ?? undefined}
+        workTypeMapping={data.workTypeMapping ?? undefined}
+      >
+        <RepositoriesSection configPath={data.configPath} repos={data.repos} />
+      </Settings>
+    </>
   );
 }
 
 // region | Helpers
-/** Returns the chart's URL, carrying the item that was selected when the chart linked here. */
-function buildChartHref(): string {
-  const item = new URLSearchParams(globalThis.location.search).get('item');
-  return item === null ? '/' : `/?${new URLSearchParams({ item })}`;
-}
-
 /** Runs a save, and returns the reason that it failed as a sentence, or undefined when it succeeded. */
 async function refuseOnFailure(save: () => Promise<unknown>): Promise<string | undefined> {
   try {

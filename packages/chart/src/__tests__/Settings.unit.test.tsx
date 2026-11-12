@@ -4,14 +4,29 @@ import { DEFAULT_SCORE_LABEL_MAPPING, DEFAULT_WORK_TYPE_MAPPING, type WorkTypeMa
 import { describe, expect, it, vi } from 'vitest';
 
 import { Settings, type SettingsProps } from '../Settings.tsx';
+import { SettingsSection } from '../SettingsSection.tsx';
 
 const REPOS = ['w/codeassembly', 'w/configs.macos', 'w/top-right'];
 
 describe(Settings, () => {
-  it('links back to the chart', () => {
-    renderSettings({ chartHref: '/?item=w%2Ftop-right%2312' });
+  it("shows the host's sections after its own, each as a region named by its heading", () => {
+    renderSettings({
+      children: (
+        <SettingsSection heading="Repositories" hint="Edit the config file.">
+          <p>w/top-right</p>
+        </SettingsSection>
+      ),
+    });
 
-    expect(screen.getByRole('link', { name: 'Chart' })).toHaveAttribute('href', '/?item=w%2Ftop-right%2312');
+    const section = screen.getByRole('region', { name: 'Repositories' });
+    expect(section).toHaveTextContent('RepositoriesEdit the config file.w/top-right');
+    expect(getSection('Repo abbreviations').compareDocumentPosition(section)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("does not link to the chart, which the host's own navigation reaches", () => {
+    renderSettings();
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   describe('work types', () => {
@@ -230,7 +245,6 @@ function renderSettings(overrides: Partial<SettingsProps> = {}): void {
   render(
     <Settings
       abbreviations={{}}
-      chartHref="/"
       onSaveAbbreviations={() => Promise.resolve(undefined)}
       onSaveScoreLabelMapping={() => Promise.resolve(undefined)}
       onSaveWorkTypeMapping={() => Promise.resolve(undefined)}

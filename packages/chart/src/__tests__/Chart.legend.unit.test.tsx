@@ -29,14 +29,13 @@ describe('Chart legend', () => {
     ]);
   });
 
-  it('links the popover and the strip to Settings only when the host passes its location', () => {
+  it('links the popover to Settings only when the host passes its location, and the strip never', () => {
     const { rerender } = render(<Chart abbreviations={{}} items={[buildItem({ number: 1 })]} />);
-    expect(screen.queryByRole('link', { name: 'Settings', hidden: true })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Edit in Settings', hidden: true })).not.toBeInTheDocument();
 
     rerender(<Chart abbreviations={{}} items={[buildItem({ number: 1 })]} settingsHref="/settings?item=x" />);
 
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings?item=x');
+    expect(screen.queryByRole('link', { name: 'Settings', hidden: true })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Edit in Settings', hidden: true })).toHaveAttribute(
       'href',
       '/settings?item=x',
