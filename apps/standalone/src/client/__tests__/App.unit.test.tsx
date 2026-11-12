@@ -380,7 +380,8 @@ describe('refreshing the issues', () => {
     render(<App />);
 
     const toolbar = await screen.findByRole('toolbar', { name: 'Issues' });
-    expect(toolbar).toHaveTextContent('Reading issues…');
+    // The chart reports the shown repositories after its first render, and the stale read starts from that report.
+    await waitFor(() => expect(toolbar).toHaveTextContent('Reading issues…'));
     expect(screen.getAllByText('Score items').length).toBeGreaterThan(0);
 
     read.resolve(Response.json(REFRESHED));
@@ -494,7 +495,8 @@ describe('reading the shown repositories', () => {
     render(<App />);
 
     const toolbar = await screen.findByRole('toolbar', { name: 'Issues' });
-    expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', AT);
+    // The chart reports the shown repositories after its first render, so the strip settles on their reads after it.
+    await waitFor(() => expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', AT));
     await user.click(within(toolbar).getByRole('button', { name: 'Refresh' }));
 
     await waitFor(() => expect(listPostedRepos('/api/items/refresh')).toStrictEqual([[REPO]]));
