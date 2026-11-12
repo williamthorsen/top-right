@@ -1,68 +1,20 @@
 // @vitest-environment jsdom
-// eslint-disable-next-line testing-library/no-manual-cleanup -- Vitest runs without globals, so Testing Library cannot register its own cleanup.
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { DEFAULT_SCORE_LABEL_MAPPING, DEFAULT_WORK_TYPE_MAPPING } from '@top-right/model';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ItemsResponse } from '#src/shared/items-response.ts';
 
 import { App } from '../App.tsx';
+import { setUpAppEnvironment } from '../test-utils/app-environment.ts';
+import { AT, ITEM_KEY, ITEMS, REPO } from '../test-utils/app-fixtures.ts';
+import { stubFetch } from '../test-utils/fetch-stub.ts';
 
-import '@testing-library/jest-dom/vitest';
+setUpAppEnvironment();
 
-// jsdom does not implement scrolling, which the chart's table calls on each selection.
-Element.prototype.scrollIntoView = () => {};
-
-// jsdom does not implement `ResizeObserver`, to which the chart's zoom subscribes; these tests do not resize the chart.
-// The stub is installed per test because `afterEach` unstubs every global.
-beforeEach(() => {
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe(): void {}
-      unobserve(): void {}
-      disconnect(): void {}
-    },
-  );
-});
-
-const ITEM_KEY = 'williamthorsen/top-right#12';
-const REPO = 'williamthorsen/top-right';
-const AT = '2026-11-08T10:00:00.000Z';
-const ITEMS: ItemsResponse = {
-  items: [
-    {
-      repo: 'williamthorsen/top-right',
-      number: 12,
-      title: 'Score items',
-      url: 'https://github.com/williamthorsen/top-right/issues/12',
-      state: 'open',
-      createdAt: '2026-11-01T09:00:00Z',
-      labels: ['feature'],
-      relations: [],
-    },
-  ],
-  abbreviations: { [REPO]: 'T' },
-  abbreviationClashes: [],
-  collections: [],
-  defaultCollectionId: null,
-  workTypeMapping: DEFAULT_WORK_TYPE_MAPPING,
-  scoreLabelMapping: DEFAULT_SCORE_LABEL_MAPPING,
-  scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'author', at: AT } } },
-  overrides: {},
-  reads: { [REPO]: { readAt: AT, isStale: false } },
-};
 const STALE_ITEMS: ItemsResponse = { ...ITEMS, reads: { [REPO]: { readAt: AT, isStale: true } } };
 
 const CRITICAL_BY_LABEL = { itemKey: ITEM_KEY, scores: {}, labels: ['feature', 'urgency:critical'] };
-
-afterEach(() => {
-  cleanup();
-  localStorage.clear();
-  vi.unstubAllGlobals();
-  globalThis.history.replaceState(null, '', '/');
-});
 
 describe(App, () => {
   it.each([
@@ -426,83 +378,6 @@ describe('refreshing the issues', () => {
   });
 });
 
-describe('reading the shown repositories', () => {
-  const OTHER = 'williamthorsen/toolbelt';
-  const OTHER_ITEM = {
-    ...ITEMS.items[0],
-    repo: OTHER,
-    title: 'Sharpen the tools',
-    url: 'https://github.com/williamthorsen/toolbelt/issues/12',
-  };
-  const WITH_DEFAULT: ItemsResponse = {
-    ...ITEMS,
-    abbreviations: { [REPO]: 'T', [OTHER]: 'B' },
-    collections: [{ id: 'c1', name: 'Product', repos: [REPO] }],
-    defaultCollectionId: 'c1',
-  };
-
-  it("asks the host for the URL's item with the first load", async () => {
-    globalThis.history.replaceState(null, '', `/?item=${encodeURIComponent(ITEM_KEY)}`);
-    stubFetch(() => Promise.resolve(Response.json(ITEMS)));
-    render(<App />);
-
-    await screen.findByRole('complementary', { name: 'Item detail' });
-
-    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(`/api/items?item=${encodeURIComponent(ITEM_KEY)}`);
-  });
-
-  it('reads a repository once when the chart first shows it', async () => {
-    const user = userEvent.setup();
-    stubFetch((path) =>
-      Promise.resolve(
-        Response.json(
-          path === '/api/items/read'
-            ? { items: [OTHER_ITEM], reads: { [OTHER]: { readAt: AT, isStale: false } } }
-            : WITH_DEFAULT,
-        ),
-      ),
-    );
-    render(<App />);
-    await screen.findByRole('button', { name: 'Repos: Product' });
-    expect(listPostedRepos('/api/items/read')).toStrictEqual([]);
-
-    await chooseRepos(user, 'toolbelt (B)');
-    expect((await screen.findAllByText('Sharpen the tools')).length).toBeGreaterThan(0);
-    await chooseRepos(user, 'toolbelt (B)');
-    await chooseRepos(user, 'toolbelt (B)');
-
-    expect(listPostedRepos('/api/items/read')).toStrictEqual([[OTHER]]);
-  });
-
-  it('refreshes only the shown repositories, and shows the oldest of their reads', async () => {
-    const user = userEvent.setup();
-    const withOlderHidden: ItemsResponse = {
-      ...WITH_DEFAULT,
-      reads: {
-        [REPO]: { readAt: AT, isStale: false },
-        [OTHER]: { readAt: '2026-11-08T09:00:00.000Z', isStale: false },
-      },
-    };
-    stubFetch((path) =>
-      Promise.resolve(
-        Response.json(
-          path === '/api/items/refresh'
-            ? { items: ITEMS.items, reads: { [REPO]: { readAt: AT, isStale: false } } }
-            : withOlderHidden,
-        ),
-      ),
-    );
-    render(<App />);
-
-    const toolbar = await screen.findByRole('toolbar', { name: 'Issues' });
-    // The chart reports the shown repositories after its first render, so the strip settles on their reads after it.
-    await waitFor(() => expect(within(toolbar).getByRole('time')).toHaveAttribute('datetime', AT));
-    await user.click(within(toolbar).getByRole('button', { name: 'Refresh' }));
-
-    await waitFor(() => expect(listPostedRepos('/api/items/refresh')).toStrictEqual([[REPO]]));
-  });
-});
-
 describe('with the selection in the URL', () => {
   const OTHER_KEY = 'williamthorsen/top-right#13';
   const TWO_ITEMS: ItemsResponse = {
@@ -582,33 +457,4 @@ function readItemParameter(): string | null {
   return new URLSearchParams(globalThis.location.search).get('item');
 }
 
-/** Opens the Repos menu, toggles each entry named in `labels` in order, and closes the menu with Escape. */
-async function chooseRepos(user: ReturnType<typeof userEvent.setup>, ...labels: string[]): Promise<void> {
-  await user.click(screen.getByRole('button', { name: /^Repos: / }));
-  for (const label of labels) await user.click(screen.getByRole('menuitemcheckbox', { name: label }));
-  await user.keyboard('{Escape}');
-}
-
-/** Returns the repositories that each POST to `path` named, in the order in which the page sent them. */
-function listPostedRepos(path: string): unknown[] {
-  return vi
-    .mocked(fetch)
-    .mock.calls.filter(([input]) => input === path)
-    .map(([, init]) => {
-      const body: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
-      return typeof body === 'object' && body !== null && 'repos' in body ? body.repos : undefined;
-    });
-}
-
-function stubFetch(respond: (path: string) => Promise<Response>): void {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((input: RequestInfo | URL) =>
-      respond(
-        new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost')
-          .pathname,
-      ),
-    ),
-  );
-}
 // endregion | Helpers

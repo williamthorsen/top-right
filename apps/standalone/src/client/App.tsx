@@ -42,18 +42,18 @@ export function App(): ReactElement {
   const writeQueues = useRef(new Map<string, Promise<void>>());
   // The repositories that a read or a refresh is fetching, which a second request for them skips.
   const reposInFlight = useRef(new Set<string>());
-  // The host's reads by repository, which decide what a change of the shown repositories asks for.
-  const reads = useRef<ItemsResponse['reads']>({});
+  // The repositories that the chart showed when it last reported, so that a report asks only for the newly shown ones.
+  const lastShown = useRef<ReadonlySet<string>>(new Set());
   // A refresh answered after a write at the source may have read the issues before it, so the client re-applies newer
   // writes.
   const itemWrites = useRef(new Map<string, { patch: ItemPatch; sequence: number }>());
   const itemWriteCount = useRef(0);
 
   // Replaces only the issues of the requested repositories, so that a read cannot overwrite a score or status write in
-  // progress.
-  const readRepos = useCallback(async (path: ReadPath, requested: readonly string[]): Promise<void> => {
+  // progress, and returns the repositories whose answered read is stale.
+  const readRepos = useCallback(async (path: ReadPath, requested: readonly string[]): Promise<string[]> => {
     const repos = requested.filter((repo) => !reposInFlight.current.has(repo));
-    if (repos.length === 0) return;
+    if (repos.length === 0) return [];
     for (const repo of repos) reposInFlight.current.add(repo);
     setIsRefreshing(true);
     const startedAfter = itemWriteCount.current;
@@ -65,7 +65,6 @@ export function App(): ReactElement {
         if (write.sequence > startedAfter) newer.set(itemKey, write.patch);
         else if (readRepoSet.has(parseItemKey(itemKey)?.repo ?? '')) itemWrites.current.delete(itemKey);
       }
-      reads.current = { ...reads.current, ...answer.reads };
       const items = applyPatches(answer.items, newer);
       setState((current) =>
         current.kind === 'loaded'
@@ -79,9 +78,11 @@ export function App(): ReactElement {
             }
           : current,
       );
+      return listStaleRepos(answer.reads);
     } catch (error) {
       const verb = path === '/api/items/read' ? 'read' : 'refreshed';
       setFailure(`Issues not ${verb}: ${endSentence(describeError(error))}`);
+      return [];
     } finally {
       for (const repo of repos) reposInFlight.current.delete(repo);
       setIsRefreshing(reposInFlight.current.size > 0);
@@ -94,15 +95,16 @@ export function App(): ReactElement {
         const item = readUrlItem();
         const path = item === undefined ? '/api/items' : `/api/items?${new URLSearchParams({ item })}`;
         const data = await getJson(path, itemsResponseSchema);
-        reads.current = data.reads;
+        lastShown.current = new Set(Object.keys(data.reads));
         setScores(data.scores);
         setOverrides(data.overrides);
         setState({ kind: 'loaded', data });
+        void readRepos('/api/items/refresh', listStaleRepos(data.reads));
       } catch (error) {
         setState({ kind: 'error', message: describeError(error) });
       }
     })();
-  }, []);
+  }, [readRepos]);
 
   useEffect(() => {
     function recordVisitEnd(): void {
@@ -213,18 +215,19 @@ export function App(): ReactElement {
   // The abbreviations name every configured repository.
   const shownRepoList = Object.keys(data.abbreviations).filter((repo) => shownRepos?.has(repo) ?? true);
 
-  /** Reads the shown repositories that the host has not read, and refreshes those whose read is stale. */
+  /**
+   * Asks the host for the newly shown repositories, which it answers from its last reads with their age judged now,
+   * then refreshes those whose read is stale.
+   */
   function followShownRepos(repos: ReadonlySet<string> | undefined): void {
     setShownRepos(repos);
     const shown = Object.keys(data.abbreviations).filter((repo) => repos?.has(repo) ?? true);
-    void readRepos(
-      '/api/items/read',
-      shown.filter((repo) => reads.current[repo] === undefined),
-    );
-    void readRepos(
-      '/api/items/refresh',
-      shown.filter((repo) => reads.current[repo]?.isStale === true),
-    );
+    const newlyShown = shown.filter((repo) => !lastShown.current.has(repo));
+    lastShown.current = new Set(shown);
+    void (async () => {
+      const stale = await readRepos('/api/items/read', newlyShown);
+      await readRepos('/api/items/refresh', stale);
+    })();
   }
 
   const readAt = findOldestRead(data.reads, shownRepoList);
@@ -288,6 +291,13 @@ function applyPatches(items: readonly WorkItem[], patches: ReadonlyMap<string, I
     const patch = patches.get(formatItemKey(item));
     return patch ? { ...item, ...patch } : item;
   });
+}
+
+/** Returns the repositories whose read the host judged stale. */
+function listStaleRepos(reads: ItemsResponse['reads']): string[] {
+  return Object.entries(reads)
+    .filter(([, read]) => read.isStale)
+    .map(([repo]) => repo);
 }
 
 /**
