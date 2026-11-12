@@ -5,10 +5,19 @@ import { type ReactElement, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
-import { HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from '../Grid.tsx';
-import { CELL_SIZE, GRID_SIZE } from '../layout.ts';
+import { MARGIN_LEFT, MARGIN_TOP, measureFrame } from '../Grid.tsx';
+import { GRID_SIZE, MIN_CELL_SIZE } from '../layout.ts';
 import { buildItem, place, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getPane } from '../test-utils/chart-queries.ts';
+import { mockScrollAreaSize } from '../test-utils/scroll-area.ts';
+
+/** The cell size in chart units and the magnification at which a test lays the chart out. */
+interface ChartLayout {
+  cellSize: number;
+  magnification: number;
+}
+
+const NATURAL_LAYOUT: ChartLayout = { cellSize: MIN_CELL_SIZE, magnification: 1 };
 
 const FIRST = `${REPO}#1`;
 
@@ -178,14 +187,28 @@ describe('Chart drag', () => {
     expect(await within(getPane()).findByText('Issue 2')).toBeInTheDocument();
     expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Unscored · 1 of 1');
   });
+
+  it('drops on the cell under the pointer with larger cells at a larger magnification', async () => {
+    const layout = { cellSize: 200, magnification: 2 };
+    const { onScoresChange } = renderDragHost([buildItem({ number: 1 })], { [FIRST]: place(2, 2) }, layout);
+    const circle = getCircle(1);
+    await userEvent.setup().click(circle);
+
+    fireEvent.pointerDown(circle, { pointerId: 1, ...centreOf(2, 2, layout) });
+    fireEvent.pointerMove(circle, { pointerId: 1, ...centreOf(3, 4, layout) });
+    fireEvent.pointerUp(circle, { pointerId: 1, ...centreOf(3, 4, layout) });
+
+    expect(onScoresChange).toHaveBeenCalledWith(FIRST, { urgency: 'high', value: 'must-have' });
+  });
 });
 
 // region | Helpers
-/** Returns the client position of a cell's centre, with the chart drawn at 1× from the viewport's origin. */
-function centreOf(u: number, i: number): { clientX: number; clientY: number } {
+/** Returns the client position of a cell's centre, with the chart drawn at `layout` from the viewport's origin. */
+function centreOf(u: number, i: number, layout: ChartLayout = NATURAL_LAYOUT): { clientX: number; clientY: number } {
+  const { cellSize, magnification } = layout;
   return {
-    clientX: MARGIN_LEFT + (u + 0.5) * CELL_SIZE,
-    clientY: MARGIN_TOP + (GRID_SIZE - 1 - i + 0.5) * CELL_SIZE,
+    clientX: (MARGIN_LEFT + (u + 0.5) * cellSize) * magnification,
+    clientY: (MARGIN_TOP + (GRID_SIZE - 1 - i + 0.5) * cellSize) * magnification,
   };
 }
 
@@ -205,9 +228,16 @@ function getCircle(number: number): HTMLElement {
 
 /**
  * Renders the chart with a host that applies the author's writes and holds the selection, as the page does, and lays
- * the chart out at 1× from the viewport's origin, which jsdom does not lay out.
+ * the chart out at `layout` from the viewport's origin, which jsdom does not lay out.
  */
-function renderDragHost(items: WorkItem[], initialScores: Record<string, ItemScores>) {
+function renderDragHost(
+  items: WorkItem[],
+  initialScores: Record<string, ItemScores>,
+  layout: ChartLayout = NATURAL_LAYOUT,
+) {
+  const frame = measureFrame(layout.cellSize);
+  const rendered = { width: frame.width * layout.magnification, height: frame.height * layout.magnification };
+  mockScrollAreaSize(rendered);
   const onScoresChange = vi.fn<(itemKey: string, changed: Scores) => void>();
   const onSelectedKeyChange = vi.fn<(key: string | undefined, options: { push: boolean }) => void>();
   function DragHost(): ReactElement {
@@ -218,6 +248,8 @@ function renderDragHost(items: WorkItem[], initialScores: Record<string, ItemSco
       <Chart
         abbreviations={{}}
         items={items}
+        magnification={layout.magnification}
+        onMagnificationChange={() => {}}
         onScoresChange={(itemKey, changed) => {
           onScoresChange(itemKey, changed);
           setScores((current) => ({ ...current, [itemKey]: applyScoreWrite(current[itemKey], changed, 'author', at) }));
@@ -233,7 +265,7 @@ function renderDragHost(items: WorkItem[], initialScores: Record<string, ItemSco
   }
   render(<DragHost />);
   const svg = screen.getByRole('group', { name: 'Items by urgency and value' });
-  svg.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
+  svg.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, ...rendered });
   return { onScoresChange, onSelectedKeyChange };
 }
 

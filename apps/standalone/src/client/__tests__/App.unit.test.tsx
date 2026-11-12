@@ -56,6 +56,7 @@ const CRITICAL_BY_LABEL = { itemKey: ITEM_KEY, scores: {}, labels: ['feature', '
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.unstubAllGlobals();
   globalThis.history.replaceState(null, '', '/');
 });

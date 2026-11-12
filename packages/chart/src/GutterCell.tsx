@@ -8,11 +8,12 @@ import {
 import type { ReactElement } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
-import { CELL_SIZE, type CellLayout } from './layout.ts';
+import type { CellLayout } from './layout.ts';
 import type { DragHandlers } from './useItemDrag.ts';
 
 export interface GutterCellProps {
   cell: CellLayout;
+  cellSize: number;
   scores: Readonly<Record<string, ResolvedItemScores>>;
   isFaded: (key: string) => boolean;
   itemsByKey: ReadonlyMap<string, WorkItem>;
@@ -39,6 +40,7 @@ export interface GutterCellProps {
  */
 export function GutterCell({
   cell,
+  cellSize,
   scores,
   isFaded,
   itemsByKey,
@@ -56,7 +58,7 @@ export function GutterCell({
   return (
     <div
       className="tr-gutter-cell"
-      style={{ left: origin.x + cell.x, top: origin.y + cell.y, width: CELL_SIZE, height: CELL_SIZE }}
+      style={{ left: origin.x + cell.x, top: origin.y + cell.y, width: cellSize, height: cellSize }}
     >
       <ul aria-label="Unscored items" className="tr-gutter-list" data-overflow={cell.overflow}>
         {cell.ids.map((key) => {

@@ -24,7 +24,7 @@ import { Divider } from './Divider.tsx';
 import { DragProxy, DropTarget } from './DragMarks.tsx';
 import { Edges, focusItem, mergeChainEdges } from './Edges.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
-import { Grid, HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
+import { Grid, MARGIN_LEFT, MARGIN_TOP, measureFrame } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
@@ -77,6 +77,13 @@ export interface ChartProps {
    * record it as a history entry, and false for one that the chart makes itself, such as a review step.
    */
   onSelectedKeyChange?: (key: string | undefined, options: { push: boolean }) => void;
+  /**
+   * The scale from chart units to pixels, which sets the size of the chart's text and circles, read only while
+   * `onMagnificationChange` is passed; 100 % when undefined. The chart area sets the cells' size.
+   */
+  magnification?: number | undefined;
+  /** Reports a magnification that the author chose, which makes the magnification the host's to hold. */
+  onMagnificationChange?: (magnification: number) => void;
 }
 
 /** The chart pane's initial share of the height that it splits with the table, as a percentage. */
@@ -105,6 +112,8 @@ export function Chart({
   onKeep,
   selectedKey: hostSelectedKey,
   onSelectedKeyChange,
+  magnification,
+  onMagnificationChange,
 }: ChartProps): ReactElement {
   const selection = useSelection({ selectedKey: hostSelectedKey, onSelectedKeyChange });
   const [previewKey, setPreviewKey] = useState<string>();
@@ -131,9 +140,22 @@ export function Chart({
     return item !== undefined;
   });
   if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const zoom = useZoom({
+    scrollRef,
+    contentRef: svgRef,
+    keyRootRef: rootRef,
+    magnification,
+    onMagnificationChange,
+  });
+  const { cellSize } = zoom;
+  const scale = zoom.magnification;
+  const frame = measureFrame(cellSize);
   const cells = useMemo(
-    () => layoutCells(placeItems(visibleItems, scores, scopeMode)),
-    [visibleItems, scores, scopeMode],
+    () => layoutCells(placeItems(visibleItems, scores, scopeMode), cellSize),
+    [visibleItems, scores, scopeMode, cellSize],
   );
 
   const pickKey = useMemo(() => findNextPick(visibleItems, scores, overrides), [visibleItems, scores, overrides]);
@@ -144,11 +166,6 @@ export function Chart({
     setHighlightedKey(undefined);
   }
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const zoom = useZoom({ scrollRef, contentRef: svgRef, keyRootRef: rootRef });
-  const scale = zoom.zoom.scale;
   const review = useReview({
     items: visibleItems,
     scores,
@@ -164,6 +181,7 @@ export function Chart({
   if (isRevealing && review.kind !== undefined) review.end();
   const { drag, dragHandlersFor, selectItem, isHoldingPress } = useItemDrag({
     svgRef,
+    cellSize,
     scores,
     scopeMode,
     selectedKey,
@@ -194,7 +212,7 @@ export function Chart({
   const focus = focusItem(graph, focusKey, showAllEdges);
   const board = { itemsByKey, overrides, scopeMode, scores, visibleKeys };
   const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
-  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board);
+  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board, cellSize);
   const ghostElements = (
     <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
   );
@@ -229,21 +247,28 @@ export function Chart({
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
               <div className="tr-chart-scroll" ref={scrollRef}>
-                <div className="tr-canvas" style={{ width: WIDTH * scale, height: HEIGHT * scale }}>
+                <div className="tr-canvas" style={{ width: frame.width * scale, height: frame.height * scale }}>
                   <svg
                     aria-label="Items by urgency and value"
                     className="tr-chart"
-                    height={HEIGHT * scale}
+                    height={frame.height * scale}
                     ref={svgRef}
                     role="group"
-                    viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                    width={WIDTH * scale}
+                    viewBox={`0 0 ${frame.width} ${frame.height}`}
+                    width={frame.width * scale}
                   >
-                    <Grid />
+                    <Grid cellSize={cellSize} />
                     <g transform={MATRIX_TRANSFORM}>
-                      <DropTarget drag={drag} />
+                      <DropTarget cellSize={cellSize} drag={drag} />
                       {trails.map((trail) => (
-                        <Trail key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
+                        <Trail
+                          cellSize={cellSize}
+                          key={trail.id}
+                          origin={trail.origin}
+                          r={trail.r}
+                          x={trail.x}
+                          y={trail.y}
+                        />
                       ))}
                       <Edges edges={shownEdges} ends={ends} />
                       <ScoredCells
@@ -270,12 +295,16 @@ export function Chart({
                     </g>
                   </svg>
                   {/* HTML rather than a foreignObject, which WebKit neither draws nor hit-tests at the SVG's scale. */}
-                  <div className="tr-gutters" style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})` }}>
+                  <div
+                    className="tr-gutters"
+                    style={{ width: frame.width, height: frame.height, transform: `scale(${scale})` }}
+                  >
                     {cells.map((cell) =>
                       cell.isGutter ? (
                         <GutterCell
                           blockedKeys={blockedKeys}
                           cell={cell}
+                          cellSize={cellSize}
                           dragHandlersFor={dragHandlersFor}
                           draggingKey={drag?.key}
                           highlightedKey={highlightedKey}
@@ -293,7 +322,7 @@ export function Chart({
                       ) : null,
                     )}
                   </div>
-                  <svg aria-hidden="true" className="tr-chart-overlay" viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
+                  <svg aria-hidden="true" className="tr-chart-overlay" viewBox={`0 0 ${frame.width} ${frame.height}`}>
                     <g transform={MATRIX_TRANSFORM}>
                       <DragProxy drag={drag} />
                     </g>

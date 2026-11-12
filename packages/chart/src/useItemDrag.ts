@@ -1,7 +1,7 @@
 import type { ResolvedItemScores } from '@top-right/model';
 import { type PointerEvent, type RefObject, useRef, useState } from 'react';
 
-import { HEIGHT, MARGIN_LEFT, MARGIN_TOP, WIDTH } from './Grid.tsx';
+import { MARGIN_LEFT, MARGIN_TOP, measureFrame } from './Grid.tsx';
 import { findItemCell, findScoredCellAt, type ScopeMode, sizeItem } from './layout.ts';
 
 /** A drag in progress: the dragged item, its circle's radius, the pointer in matrix units, and the drop target. */
@@ -25,6 +25,8 @@ export interface DragHandlers {
 
 export interface ItemDragOptions {
   svgRef: RefObject<SVGSVGElement | null>;
+  /** The size of a cell, in chart units. */
+  cellSize: number;
   /** The scores that place each item in its cell and size its circle. */
   scores: Readonly<Record<string, ResolvedItemScores>>;
   scopeMode: ScopeMode;
@@ -54,6 +56,7 @@ export const DRAG_THRESHOLD = 4;
  */
 export function useItemDrag({
   svgRef,
+  cellSize,
   scores,
   scopeMode,
   selectedKey,
@@ -84,9 +87,9 @@ export function useItemDrag({
           if (Math.hypot(event.clientX - current.x, event.clientY - current.y) <= DRAG_THRESHOLD) return;
           current.isDragging = true;
         }
-        const point = toMatrixPoint(svgRef.current, event.clientX, event.clientY);
+        const point = toMatrixPoint(svgRef.current, event.clientX, event.clientY, cellSize);
         if (!point) return;
-        setDrag({ key, r: current.r, ...point, target: findTarget(point, cellOf(key)) });
+        setDrag({ key, r: current.r, ...point, target: findTarget(point, cellOf(key), cellSize) });
       },
       onPointerUp(event) {
         const current = press.current;
@@ -99,8 +102,8 @@ export function useItemDrag({
           justDragged.current = false;
         }, 0);
         setDrag(undefined);
-        const point = toMatrixPoint(svgRef.current, event.clientX, event.clientY);
-        const target = point && findTarget(point, cellOf(key));
+        const point = toMatrixPoint(svgRef.current, event.clientX, event.clientY, cellSize);
+        const target = point && findTarget(point, cellOf(key), cellSize);
         if (target) onDrop(key, target);
       },
       onPointerCancel(event) {
@@ -140,8 +143,9 @@ function holdTouch(element: Element | null): (() => void) | undefined {
 function findTarget(
   point: { x: number; y: number },
   own: { u: number; v: number },
+  cellSize: number,
 ): { u: number; v: number } | undefined {
-  const cell = findScoredCellAt(point.x, point.y);
+  const cell = findScoredCellAt(point.x, point.y, cellSize);
   return cell && (cell.u !== own.u || cell.v !== own.v) ? cell : undefined;
 }
 
@@ -154,12 +158,14 @@ function toMatrixPoint(
   svg: SVGSVGElement | null,
   clientX: number,
   clientY: number,
+  cellSize: number,
 ): { x: number; y: number } | undefined {
   const rect = svg?.getBoundingClientRect();
   if (!rect || rect.width === 0 || rect.height === 0) return undefined;
+  const frame = measureFrame(cellSize);
   return {
-    x: ((clientX - rect.left) * WIDTH) / rect.width - MARGIN_LEFT,
-    y: ((clientY - rect.top) * HEIGHT) / rect.height - MARGIN_TOP,
+    x: ((clientX - rect.left) * frame.width) / rect.width - MARGIN_LEFT,
+    y: ((clientY - rect.top) * frame.height) / rect.height - MARGIN_TOP,
   };
 }
 // endregion | Helpers

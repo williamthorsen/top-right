@@ -18,6 +18,7 @@ import { scoresResponseSchema, statusPatchSchema, statusResponseSchema } from '#
 import { AppHeader } from './AppHeader.tsx';
 import { describeError, getJson, HostResponseError, postJson } from './host-requests.ts';
 import { buildChartHref, buildSettingsHref } from './page-hrefs.ts';
+import { useStoredMagnification } from './useStoredMagnification.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
 
 /**
@@ -32,6 +33,7 @@ export function App(): ReactElement {
   const [failure, setFailure] = useState<string>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedKey, changeSelectedKey] = useUrlSelection();
+  const [magnification, changeMagnification] = useStoredMagnification();
   // Writes for one item run in order, so that a late response cannot overwrite a newer change.
   const writeQueues = useRef(new Map<string, Promise<void>>());
   const refreshRunning = useRef(false);
@@ -206,7 +208,9 @@ export function App(): ReactElement {
       <Chart
         abbreviations={data.abbreviations}
         items={data.items}
+        magnification={magnification}
         onKeep={keepScores}
+        onMagnificationChange={changeMagnification}
         onScoresChange={changeScores}
         onSelectedKeyChange={changeSelectedKey}
         onStatusChange={(itemKey, status) => {

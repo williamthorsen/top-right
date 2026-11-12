@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { HEIGHT, WIDTH } from '../Grid.tsx';
-import { fitScale, formatScale, isAtEnd, stepZoom } from '../zoom.ts';
+import { measureFrame } from '../Grid.tsx';
+import { MIN_CELL_SIZE } from '../layout.ts';
+import { fitCellSize, formatScale, isAtEnd, stepZoom } from '../zoom.ts';
+
+/** The chart's size in chart units at the smallest cell. */
+const FRAME = measureFrame(MIN_CELL_SIZE);
 
 describe(stepZoom, () => {
   it('moves to the adjacent step in either direction', () => {
@@ -30,22 +34,23 @@ describe(isAtEnd, () => {
   });
 });
 
-describe(fitScale, () => {
-  it('scales the matrix to the smaller of the two ratios, rounded down to a whole percent', () => {
-    expect(fitScale(WIDTH * 1.509, HEIGHT * 2)).toBe(1.5);
-    expect(fitScale(WIDTH * 3, HEIGHT * 1.256)).toBe(1.25);
+describe(fitCellSize, () => {
+  it('sizes the cells so that the matrix fills the smaller of the two dimensions, rounded down to a whole unit', () => {
+    expect(fitCellSize(FRAME.width + 5 * 50.5, FRAME.height + 5 * 100, 1)).toBe(MIN_CELL_SIZE + 50);
+    expect(fitCellSize(FRAME.width * 3, FRAME.height + 5 * 30, 1)).toBe(MIN_CELL_SIZE + 30);
   });
 
-  it('never scales below the natural size', () => {
-    expect(fitScale(WIDTH / 2, HEIGHT / 2)).toBe(1);
+  it('measures the area in chart units at the magnification', () => {
+    expect(fitCellSize((FRAME.width + 5 * 40) * 2, (FRAME.height + 5 * 40) * 2, 2)).toBe(MIN_CELL_SIZE + 40);
   });
 
-  it('never scales above the largest step', () => {
-    expect(fitScale(WIDTH * 10, HEIGHT * 10)).toBe(4);
+  it('never sizes a cell below the minimum', () => {
+    expect(fitCellSize(FRAME.width / 2, FRAME.height / 2, 1)).toBe(MIN_CELL_SIZE);
+    expect(fitCellSize(FRAME.width * 1.5, FRAME.height * 1.5, 2)).toBe(MIN_CELL_SIZE);
   });
 
-  it('returns the natural size for an area without size', () => {
-    expect(fitScale(0, 0)).toBe(1);
+  it('returns the minimum for an area without size', () => {
+    expect(fitCellSize(0, 0, 1)).toBe(MIN_CELL_SIZE);
   });
 });
 
