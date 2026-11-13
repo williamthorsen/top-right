@@ -44,6 +44,10 @@ export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactEle
           {STATUS_NAMES['in-progress']}
         </li>
         <li>
+          <StatusSwatch status="done" />
+          {STATUS_NAMES.done}
+        </li>
+        <li>
           <StatusSwatch isFloored status="to-do" />
           Unsized, at the floor
         </li>

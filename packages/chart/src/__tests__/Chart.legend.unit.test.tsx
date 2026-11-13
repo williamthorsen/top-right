@@ -42,6 +42,17 @@ describe('Chart legend', () => {
     );
   });
 
+  it('names each status fill, Done included', () => {
+    render(<Chart abbreviations={{}} items={[buildItem({ number: 1 })]} />);
+
+    const statuses = screen.getByRole('list', { name: 'Status' });
+    expect(
+      within(statuses)
+        .getAllByRole('listitem')
+        .map((entry) => entry.textContent),
+    ).toStrictEqual(['To do', 'In progress', 'Done', 'Unsized, at the floor']);
+  });
+
   it('classifies items by the mapping that it is passed', () => {
     render(
       <Chart abbreviations={{}} items={[buildItem({ number: 1, labels: ['feature'] })]} workTypeMapping={MAPPING} />,

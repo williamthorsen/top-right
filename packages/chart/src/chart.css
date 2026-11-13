@@ -12,6 +12,7 @@
   --tr-accent: #1f63b8;
   --tr-focus: #0b57d0;
   --tr-todo: #bcd4f3;
+  --tr-done: #cfcec8;
   --tr-cat-feature: #12855c;
   --tr-cat-bug: #b8468a;
   --tr-cat-task: #a87600;
@@ -21,6 +22,7 @@
   --tr-on-todo: #161616;
   --tr-on-inprog: #ffffff;
   --tr-block: #c22a2a;
+  --tr-on-block: #ffffff;
   --tr-relation: #6b6a63;
   --tr-ghost-line: #6b6a63;
   --tr-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -49,6 +51,7 @@
     --tr-accent: #7fb1f0;
     --tr-focus: #8ab8f5;
     --tr-todo: #274a73;
+    --tr-done: #55585e;
     --tr-cat-feature: #22b07e;
     --tr-cat-bug: #e0679a;
     --tr-cat-task: #d99a1a;
@@ -59,6 +62,7 @@
     --tr-on-todo: #ffffff;
     --tr-on-inprog: #161616;
     --tr-block: #f07070;
+    --tr-on-block: #161616;
     --tr-relation: #a8a79f;
 
     color-scheme: dark;
@@ -78,6 +82,7 @@
   --tr-accent: #7fb1f0;
   --tr-focus: #8ab8f5;
   --tr-todo: #274a73;
+  --tr-done: #55585e;
   --tr-cat-feature: #22b07e;
   --tr-cat-bug: #e0679a;
   --tr-cat-task: #d99a1a;
@@ -88,6 +93,7 @@
   --tr-on-todo: #ffffff;
   --tr-on-inprog: #161616;
   --tr-block: #f07070;
+  --tr-on-block: #161616;
   --tr-relation: #a8a79f;
 
   color-scheme: dark;
@@ -347,6 +353,10 @@
   stroke-width: 2.5;
 }
 
+.tr-circle-done {
+  fill: var(--tr-done);
+}
+
 [data-work-type='feature'] .tr-circle,
 .tr-circle[data-work-type='feature'] {
   stroke: var(--tr-cat-feature);
@@ -385,6 +395,10 @@
 
 .tr-node-main {
   fill: var(--tr-todo);
+}
+
+.tr-node[data-status='done'] .tr-node-main {
+  fill: var(--tr-done);
 }
 
 .tr-node-pie {
@@ -1513,6 +1527,18 @@ button.tr-relation {
   border-radius: 4px;
   color: var(--tr-ink-2);
   font-size: 12px;
+}
+
+.tr-tag-closed {
+  border-color: var(--tr-done);
+  background: var(--tr-done);
+  color: var(--tr-ink);
+}
+
+.tr-tag-blocked {
+  border-color: var(--tr-block);
+  background: var(--tr-block);
+  color: var(--tr-on-block);
 }
 
 /* -- Phone width: the pane becomes a bottom sheet -- */
