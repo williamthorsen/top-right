@@ -36,7 +36,7 @@ describe(Chart, () => {
   describe('when a relation row whose item the chart was given is activated', () => {
     it('selects the item as a history entry', async () => {
       const user = userEvent.setup();
-      const onChange = renderHosted();
+      const { onChange } = renderHosted();
       await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       await user.click(getRow(/^T\.3 Issue 3/));
@@ -74,13 +74,12 @@ describe(Chart, () => {
       const user = userEvent.setup();
       renderChart(items, ABBREVIATIONS, scores);
       await chooseRepos(user, 'top-right (T)');
-      const reposName = getReposButton().textContent;
       await user.click(screen.getByRole('button', { name: /^1:/ }));
 
       await user.click(getRow(/^C\.4 Issue 4/));
 
       expect(screen.getByRole('button', { name: /^(C\.)?4:/ })).toBePressed();
-      expect(getReposButton().textContent).toBe(reposName);
+      expect(getReposButton()).toHaveAccessibleName('Repos: top-right');
     });
 
     it('keeps a running review when the item is shown, and ends it when the row reveals the item', async () => {
@@ -125,7 +124,7 @@ function relate(kind: RelationKind, number: number, repo = REPO): Relation {
 }
 
 /** Renders the chart under a host that holds the selection, and returns the spy that sees each reported change. */
-function renderHosted(): ReturnType<typeof vi.fn> {
+function renderHosted(): { onChange: ReturnType<typeof vi.fn> } {
   const onChange = vi.fn<(key: string | undefined, options: { push: boolean }) => void>();
 
   function Host(): ReactElement {
@@ -146,6 +145,6 @@ function renderHosted(): ReturnType<typeof vi.fn> {
   }
 
   render(<Host />);
-  return onChange;
+  return { onChange };
 }
 // endregion | Helpers
