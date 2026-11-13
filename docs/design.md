@@ -182,7 +182,7 @@ Two behaviours are kept distinct. A filter removes items from the board: the Rep
 
 Decided at the prototype round (rows 22, 27): The developer asked for the distinction, and found that 4.1 disabled faded circles.
 
-A fade dims at one of two levels. Focus on an item dims the unrelated items lightly, to 80 % opacity, because at 25 % they looked disabled although they stay selectable; focus on an item without relations dims nothing, because nothing on the board needs emphasis. The longest chain and a review queue dim the items outside them to 25 %, because those items are out of scope while the view or the review runs. Revised at #92.
+A fade dims at one of two levels. Focus on an item dims the unrelated items lightly, to 80 % opacity, because at 25 % they looked disabled although they stay selectable; focus on an item none of whose related items the board shows, as a circle, a gutter row, or a ghost, dims nothing, because nothing on the board needs emphasis. The longest chain and a review queue dim the items outside them to 25 %, because those items are out of scope while the view or the review runs. Revised at #92.
 
 Each kind of control in the strip takes the standard form for its behaviour, so that its appearance says what a press does. A filter is a filter chip: a pill with its count, which shows a check on a tinted fill while it is on. A drawing behaviour that turns on or off at once, such as "All edges", is a switch. A choice between modes, such as Scope, is a segmented control. More is a menu button with a caret, and while its menu is open it does not look like a control that is on. Decided at #41: The strip drew filters, view settings, and the menu button in one style, and an open menu looked like a pressed toggle.
 

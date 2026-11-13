@@ -15,7 +15,7 @@ export interface WeightedEdge extends Edge {
 /** What focusing an item shows: the edges to draw and the items that stay unfaded. */
 export interface Focus {
   edges: WeightedEdge[];
-  /** The focused item, its direct neighbours, and its blocker chain; undefined without a focused item that has an edge. */
+  /** The focused item, its direct neighbours, and its blocker chain; undefined without a focused item. */
   related: ReadonlySet<string> | undefined;
 }
 
@@ -94,7 +94,7 @@ export function focusItem(graph: RelationGraph, key: string | undefined, showAll
       edges.push({ ...edge, weight: 'faint' });
     }
   }
-  return { edges, related: related.size > 1 ? related : undefined };
+  return { edges, related };
 }
 
 /** Returns the centre and radius of every circle in the matrix, by key, in matrix units. */

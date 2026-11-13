@@ -232,11 +232,18 @@ export function Chart({
   const ghostElements = (
     <Ghosts fadeOf={fadeOf} ghosts={ghosts} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={selectShown} />
   );
+  // Focus fades only while the board shows a related item to emphasise, as a circle, a gutter row, or a ghost.
+  const ghostKeys = new Set(ghosts.map((ghost) => ghost.id));
+  const focusRelated = focus.related
+    ?.values()
+    .some((key) => key !== focusKey && (visibleKeys.has(key) || ghostKeys.has(key)))
+    ? focus.related
+    : undefined;
   // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
   function fadeOf(key: string): Fade | undefined {
     if (review.kind !== undefined) return review.isFaded(key) ? 'strong' : undefined;
     if (chainView.isShown) return chainView.isFaded(key) ? 'strong' : undefined;
-    return focus.related === undefined || focus.related.has(key) ? undefined : 'soft';
+    return focusRelated === undefined || focusRelated.has(key) ? undefined : 'soft';
   }
 
   const trails = listTrails(
