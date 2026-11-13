@@ -25,7 +25,7 @@ import { focusItem, mergeChainEdges } from './Edges.tsx';
 import { Ghosts, layoutGhosts } from './Ghosts.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
+import { findCellLevels, type GhostPlacement, layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
@@ -232,13 +232,7 @@ export function Chart({
   const ghostElements = (
     <Ghosts fadeOf={fadeOf} ghosts={ghosts} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={selectShown} />
   );
-  // Focus fades only while the board shows a related item to emphasise, as a circle, a gutter row, or a ghost.
-  const ghostKeys = new Set(ghosts.map((ghost) => ghost.id));
-  const focusRelated = focus.related
-    ?.values()
-    .some((key) => key !== focusKey && (visibleKeys.has(key) || ghostKeys.has(key)))
-    ? focus.related
-    : undefined;
+  const focusRelated = findShownRelated(focus.related, focusKey, visibleKeys, ghosts);
   // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
   function fadeOf(key: string): Fade | undefined {
     if (review.kind !== undefined) return review.isFaded(key) ? 'strong' : undefined;
@@ -343,3 +337,20 @@ export function Chart({
     </div>
   );
 }
+
+// region | Helpers
+/**
+ * Returns the focus's related items while the board shows one of them other than the focused item, as a circle, a
+ * gutter row, or a ghost, since only then does the focus fade emphasise anything.
+ */
+function findShownRelated(
+  related: ReadonlySet<string> | undefined,
+  focusKey: string | undefined,
+  visibleKeys: ReadonlySet<string>,
+  ghosts: readonly GhostPlacement[],
+): ReadonlySet<string> | undefined {
+  const ghostKeys = new Set(ghosts.map((ghost) => ghost.id));
+  const isShown = related?.values().some((key) => key !== focusKey && (visibleKeys.has(key) || ghostKeys.has(key)));
+  return isShown ? related : undefined;
+}
+// endregion | Helpers
