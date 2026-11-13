@@ -49,6 +49,19 @@ describe(Chart, () => {
     expect(screen.getByRole('list', { name: 'Unscored items' }).parentElement).toHaveStyle(CORNER_STYLE);
   });
 
+  it('draws a gutter item without effort with a dotted icon and a sized one solid', () => {
+    const at = '2026-11-08T00:00:00.000Z';
+    renderChart(
+      [buildItem({ number: 1 }), buildItem({ number: 2 })],
+      {},
+      { [`${REPO}#2`]: { effort: { score: 3, by: 'author', at } } },
+    );
+    const gutter = screen.getByRole('list', { name: 'Unscored items' });
+
+    expect(getIcon(within(gutter).getByRole('button', { name: /^T\.1:/ }))).toHaveAttribute('data-sized', 'false');
+    expect(getIcon(within(gutter).getByRole('button', { name: /^T\.2:/ }))).toHaveAttribute('data-sized', 'true');
+  });
+
   it('scales the layer of gutter cells with the chart', async () => {
     renderChart([buildItem({ number: 1 })]);
 
@@ -69,5 +82,10 @@ function ClearingHost(): ReactElement {
     setScores((current) => ({ ...current, [itemKey]: clearScoreFields(current[itemKey], fields) }));
   }
   return <Chart abbreviations={{}} items={[buildItem({ number: 1 })]} onScoresClear={clearScores} scores={scores} />;
+}
+
+/** Returns a gutter item's circle icon, which is decorative SVG without a role to query. */
+function getIcon(element: HTMLElement): Element | null {
+  return element.querySelector('.tr-circle');
 }
 // endregion | Helpers

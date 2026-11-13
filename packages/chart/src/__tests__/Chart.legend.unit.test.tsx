@@ -53,6 +53,13 @@ describe('Chart legend', () => {
     ).toStrictEqual(['To do', 'In progress', 'Done', 'Not sized, drawn as 1 point']);
   });
 
+  it('draws the unsized entry’s swatch dotted and the status swatches solid', () => {
+    render(<Chart abbreviations={{}} items={[buildItem({ number: 1 })]} />);
+
+    const entries = within(screen.getByRole('list', { name: 'Status' })).getAllByRole('listitem');
+    expect(entries.map((entry) => getSwatch(entry)?.dataset['sized'])).toStrictEqual(['true', 'true', 'true', 'false']);
+  });
+
   it('classifies items by the mapping that it is passed', () => {
     render(
       <Chart abbreviations={{}} items={[buildItem({ number: 1, labels: ['feature'] })]} workTypeMapping={MAPPING} />,
@@ -61,3 +68,10 @@ describe('Chart legend', () => {
     expect(within(screen.getByRole('table')).getByText('Task')).toBeInTheDocument();
   });
 });
+
+// region | Helpers
+/** Returns a legend entry's swatch, which is decorative SVG without a role to query. */
+function getSwatch(element: HTMLElement): SVGGElement | null {
+  return element.querySelector<SVGGElement>('.tr-node');
+}
+// endregion | Helpers

@@ -260,18 +260,6 @@ describe(Chart, () => {
         expect(screen.getByRole('button', { name: /^T\.2:/ })).toHaveAttribute('data-sized', 'true');
       },
     );
-
-    it('draws a gutter item without effort with a dotted icon and a sized one solid', () => {
-      renderChart(
-        [buildItem({ number: 1 }), buildItem({ number: 2 })],
-        {},
-        { [`${REPO}#2`]: { effort: { score: 3, by: author, at } } },
-      );
-      const gutter = screen.getByRole('list', { name: 'Unscored items' });
-
-      expect(getIcon(within(gutter).getByRole('button', { name: /^T\.1:/ }))).toHaveAttribute('data-sized', 'false');
-      expect(getIcon(within(gutter).getByRole('button', { name: /^T\.2:/ }))).toHaveAttribute('data-sized', 'true');
-    });
   });
 
   describe('with agent scores', () => {
@@ -597,11 +585,6 @@ function countTrails(): number {
 /** Returns a circle's border, which is decorative SVG without a role to query. */
 function getBorder(element: HTMLElement): Element | null {
   return element.querySelector('.tr-node-border');
-}
-
-/** Returns a gutter item's circle icon, which is decorative SVG without a role to query. */
-function getIcon(element: HTMLElement): Element | null {
-  return element.querySelector('.tr-circle');
 }
 
 /** Returns whether the item wears the mark of `className`, which is decorative SVG without a role to query. */
