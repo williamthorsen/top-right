@@ -228,12 +228,13 @@ export function App(): ReactElement {
     enqueueWrite(itemKey, async () => {
       try {
         const body = await postJson('/api/status', { itemKey, status, sourceState }, statusResponseSchema);
-        applyPatch(itemKey, pickStatusPatch(body));
+        // The patch schema strips the answer's other fields.
+        applyPatch(itemKey, statusPatchSchema.parse(body));
         setOverrides((current) => replaceEntry(current, itemKey, body.override ?? undefined));
       } catch (error) {
         // Apply the item's new fields when the host wrote the source before its store failed.
         const written = error instanceof HostResponseError ? statusPatchSchema.safeParse(error.body) : undefined;
-        if (written?.success) applyPatch(itemKey, pickStatusPatch(written.data));
+        if (written?.success) applyPatch(itemKey, written.data);
         setOverrides((current) => replaceEntry(current, itemKey, previous));
         setFailure(`Status not saved: ${describeError(error)}. Try again.`);
       }
@@ -338,15 +339,6 @@ function findOldestRead(reads: ItemsResponse['reads'], repos: readonly string[])
   const shown = repos.flatMap((repo) => reads[repo]?.readAt ?? []);
   const candidates = shown.length > 0 ? shown : Object.values(reads).map((read) => read.readAt);
   return candidates.toSorted()[0];
-}
-
-/** Returns the labels, source status, and status label that a status answer contains, without its other fields. */
-function pickStatusPatch({ labels, sourceStatus, sourceStatusLabel }: ItemPatch): ItemPatch {
-  return {
-    ...(labels !== undefined && { labels }),
-    ...(sourceStatus !== undefined && { sourceStatus }),
-    ...(sourceStatusLabel !== undefined && { sourceStatusLabel }),
-  };
 }
 
 /** Returns `record` with `key` set to `value`, or without `key` when `value` is undefined. */
