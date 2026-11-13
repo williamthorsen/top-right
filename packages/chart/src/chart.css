@@ -1298,8 +1298,9 @@
   font-size: 12px;
 }
 
-/* Stack each label above its control when the widest control, Value's, does not fit beside the labels. */
-@container (max-width: 480px) {
+/* Stack each label above its control when the widest control, Value's with its clear button, does not fit beside the
+   labels. */
+@container (max-width: 490px) {
   .tr-score {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1383,6 +1384,65 @@
 .tr-progress output {
   min-width: 3.5em;
   font-variant-numeric: tabular-nums;
+}
+
+/* A segmented control with its clear button joined at its end, which takes the control's right corners. */
+.tr-score-control {
+  display: inline-flex;
+  align-items: stretch;
+  justify-self: start;
+  max-width: 100%;
+}
+
+.tr-score-control:has(> .tr-score-clear:not([data-hidden])) .tr-seg {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.tr-root .tr-score-clear {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 1px solid var(--tr-control-line);
+  border-radius: 7px;
+  background: var(--tr-surface);
+  color: var(--tr-ink-2);
+  font: 16px/1 var(--tr-font);
+  cursor: pointer;
+}
+
+.tr-score-control > .tr-score-clear {
+  border-left: 0;
+  border-radius: 0 7px 7px 0;
+}
+
+.tr-score-clear:hover {
+  background: var(--tr-surface-2);
+  color: var(--tr-ink);
+}
+
+.tr-score-control > .tr-score-clear:focus-visible {
+  outline-offset: -3px;
+}
+
+/* A hidden clear button keeps its space, so that the row does not shift when its score is set or cleared. */
+.tr-score-clear[data-hidden] {
+  visibility: hidden;
+}
+
+.tr-seg-short {
+  display: none;
+}
+
+/* Show the short value names where the full ones, about 404px with the clear button, would wrap. */
+@container (max-width: 410px) {
+  .tr-seg-full {
+    display: none;
+  }
+
+  .tr-seg-short {
+    display: inline;
+  }
 }
 
 .tr-chips {

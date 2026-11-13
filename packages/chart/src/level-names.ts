@@ -11,3 +11,11 @@ export const LEVEL_NAMES: Readonly<Record<UrgencyLevel | ValueLevel, string>> = 
   questionable: 'Questionable',
   'should-have': 'Should have',
 };
+
+/** Each value level's short name, which the pane's Value control shows where the full names do not fit. */
+export const SHORT_VALUE_NAMES: Readonly<Record<ValueLevel, string>> = {
+  'must-have': 'Must',
+  'nice-to-have': 'Nice',
+  questionable: 'Questionable',
+  'should-have': 'Should',
+};

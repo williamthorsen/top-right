@@ -79,22 +79,88 @@ describe(DetailPane, () => {
     expect(within(urgency).getByRole('radio', { name: 'Critical' })).toHaveFocus();
   });
 
-  it('shows the provenance of each score, and Unscored for an absent one', () => {
+  it("captions an agent's score, and no score that the author or a label holds", () => {
     renderPane({
-      scores: { urgency: { score: 'medium', by: 'agent', at: AT }, effort: { score: 3, by: 'author', at: AT } },
+      scores: {
+        urgency: { score: 'medium', by: 'agent', at: AT },
+        value: { score: 'must-have', by: 'author', at: AT },
+        effort: { score: 3, by: 'author', at: AT },
+        progress: { score: 0.5, by: 'author', at: AT },
+      },
     });
 
     const pane = screen.getByRole('region', { name: 'Scores' });
     expect(pane).toHaveTextContent(/Agent · /);
-    expect(pane).toHaveTextContent(/3 points · Author · /);
-    expect(pane).toHaveTextContent('Unscored');
+    expect(pane).not.toHaveTextContent(/Author|points|Unscored/);
   });
 
-  it('reads an unsized effort as drawn at the floor, without a provenance line', () => {
+  it('reads an unsized effort as drawn at the floor', () => {
     renderPane();
 
-    // An exact match fails if the line goes on to a provenance.
+    // An exact match fails if the line goes on to say more.
     expect(screen.getByText('Unsized, drawn at the floor')).toBeInTheDocument();
+  });
+
+  it("names each value level by its full name, which contains the segment's short name", () => {
+    renderPane();
+
+    for (const name of ['Questionable', 'Nice to have', 'Should have', 'Must have']) {
+      expect(within(getGroup('Value')).getByRole('radio', { name })).toBeInTheDocument();
+    }
+  });
+
+  describe('clearing a score', () => {
+    const scored: ItemScores = {
+      urgency: { score: 'high', by: 'author', at: AT },
+      progress: { score: 0.4, by: 'author', at: AT },
+    };
+
+    it('offers a clear button only for a row that has a score', () => {
+      renderPane({ scores: scored });
+
+      expect(screen.getByRole('button', { name: 'Clear urgency' })).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Clear progress' })).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Clear value', hidden: true })).toHaveAttribute('data-hidden', 'true');
+    });
+
+    it('clears the one field by pointer, and moves the focus to the row control', async () => {
+      const user = userEvent.setup();
+      const { onScoresClear } = renderPane({ scores: scored });
+
+      await user.click(screen.getByRole('button', { name: 'Clear urgency' }));
+
+      expect(onScoresClear).toHaveBeenCalledWith(ITEM_KEY, ['urgency']);
+      expect(within(getGroup('Urgency')).getByRole('radio', { name: 'High' })).toHaveFocus();
+    });
+
+    it('clears progress by keyboard and moves the focus to the range', async () => {
+      const user = userEvent.setup();
+      const { onScoresClear } = renderPane({ scores: scored });
+      screen.getByRole('button', { name: 'Clear progress' }).focus();
+
+      await user.keyboard('{Enter}');
+
+      expect(onScoresClear).toHaveBeenCalledWith(ITEM_KEY, ['progress']);
+      expect(screen.getByRole('slider', { name: 'Progress' })).toHaveFocus();
+    });
+
+    it('reads an unset progress once it is cleared after a drag', () => {
+      const { rerenderPane } = renderPane();
+      const range = screen.getByRole('slider', { name: 'Progress' });
+
+      fireEvent.input(range, { target: { value: '5' } });
+      fireEvent.change(range, { target: { value: '5' } });
+      rerenderPane({ scores: { progress: { score: 0.05, by: 'author', at: AT } } });
+      rerenderPane({ scores: {} });
+
+      expect(within(screen.getByRole('region', { name: 'Scores' })).getByRole('status')).toHaveTextContent('–');
+    });
+
+    it('offers no clear button when the host passes no clear handler', () => {
+      renderPane({ scores: scored, onScoresClear: undefined });
+
+      expect(screen.queryByRole('button', { name: /^Clear / })).not.toBeInTheDocument();
+    });
   });
 
   it('sets In progress and To do, and never Done', async () => {
@@ -148,9 +214,10 @@ function getGroup(name: string): HTMLElement {
 
 function renderPane(overrides: Partial<DetailPaneProps> & { scores?: ItemScores } = {}) {
   const onScoresChange = vi.fn<DetailPaneProps['onScoresChange']>();
+  const onScoresClear = vi.fn<NonNullable<DetailPaneProps['onScoresClear']>>();
   const onStatusChange = vi.fn<DetailPaneProps['onStatusChange']>();
   const onKeep = vi.fn<(itemKey: string) => void>();
-  render(
+  const buildPane = (props: Partial<DetailPaneProps>) => (
     <DetailPane
       abbreviations={{}}
       blockedKeys={new Set()}
@@ -160,13 +227,18 @@ function renderPane(overrides: Partial<DetailPaneProps> & { scores?: ItemScores 
       onClose={() => {}}
       onKeep={onKeep}
       onScoresChange={onScoresChange}
+      onScoresClear={onScoresClear}
       onStatusChange={onStatusChange}
       override={undefined}
       scores={undefined}
       workTypeMapping={DEFAULT_WORK_TYPE_MAPPING}
-      {...overrides}
-    />,
+      {...props}
+    />
   );
-  return { onKeep, onScoresChange, onStatusChange };
+  const { rerender } = render(buildPane(overrides));
+  function rerenderPane(props: Partial<DetailPaneProps>): void {
+    rerender(buildPane({ ...overrides, ...props }));
+  }
+  return { onKeep, onScoresChange, onScoresClear, onStatusChange, rerenderPane };
 }
 // endregion | Helpers

@@ -161,7 +161,7 @@ describe(App, () => {
     await selectItem(user);
     await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
 
-    expect(await screen.findByText('Label · urgency:critical')).toBeInTheDocument();
+    expect(await screen.findByText('urgency:critical')).toBeInTheDocument();
     expect(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' })).toBeChecked();
   });
 
@@ -176,7 +176,7 @@ describe(App, () => {
 
     await selectItem(user);
     await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
-    expect(await screen.findByText('Label · urgency:critical')).toBeInTheDocument();
+    expect(await screen.findByText('urgency:critical')).toBeInTheDocument();
     read.resolve(
       Response.json({ items: ITEMS.items, reads: { [REPO]: { readAt: '2026-11-08T10:05:00.000Z', isStale: false } } }),
     );

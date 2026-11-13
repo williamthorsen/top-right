@@ -15,7 +15,7 @@ const AT = '2026-11-08T00:00:00.000Z';
 
 describe(Chart, () => {
   describe('with scores from labels', () => {
-    it('places an item by its labels and names each label in the pane', () => {
+    it('places an item by its labels and checks their levels in the pane', () => {
       renderChart([
         buildItem({ number: 1, labels: ['feature', 'urgency:high', 'value:must-have'] }),
         buildItem({ number: 2 }),
@@ -26,8 +26,6 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^T\.1:/ })).toBeInTheDocument();
       expect(within(getGroup('Urgency')).getByRole('radio', { name: 'High' })).toBeChecked();
       expect(within(getGroup('Value')).getByRole('radio', { name: 'Must have' })).toBeChecked();
-      expect(within(getPane()).getByText('Label · urgency:high')).toBeInTheDocument();
-      expect(within(getPane()).getByText('Label · value:must-have')).toBeInTheDocument();
     });
 
     it('keeps an item that a label places on one axis only in the gutter', () => {
@@ -47,8 +45,7 @@ describe(Chart, () => {
       );
 
       expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice to have' })).toBeChecked();
-      expect(within(getPane()).queryByText('Label · value:must-have')).not.toBeInTheDocument();
-      expect(within(getPane()).getByText('Label · urgency:high')).toBeInTheDocument();
+      expect(within(getGroup('Urgency')).getByRole('radio', { name: 'High' })).toBeChecked();
     });
 
     it('moves an Unscored review on once the author scores the axis that a label leaves open', async () => {
@@ -88,19 +85,17 @@ describe(Chart, () => {
       );
 
       expect(within(getGroup('Urgency')).getByRole('radio', { name: 'High' })).toBeChecked();
-      expect(within(getPane()).getByText('Label · priority:high')).toBeInTheDocument();
     });
   });
 
   describe('with an effort from a label', () => {
     const LABELS = ['urgency:high', 'value:must-have', 'effort:5'];
 
-    it('sizes the circle by the label and names the label in the pane', () => {
+    it('sizes the circle by the label and checks its effort in the pane', () => {
       renderChart([buildItem({ number: 1, labels: LABELS })]);
 
       expect(readRadius(screen.getByRole('button', { name: /^T\.1:/ }))).toBeCloseTo(sizeCircle(5).r);
       expect(within(getGroup('Effort')).getByRole('radio', { name: '5' })).toBeChecked();
-      expect(within(getPane()).getByText('5 points · Label · effort:5')).toBeInTheDocument();
     });
 
     it('ranks a stored effort above the label', () => {
@@ -113,7 +108,7 @@ describe(Chart, () => {
       );
 
       expect(readRadius(screen.getByRole('button', { name: /^T\.1:/ }))).toBeCloseTo(sizeCircle(2).r);
-      expect(within(getPane()).queryByText(/Label · effort:5/)).not.toBeInTheDocument();
+      expect(within(getGroup('Effort')).getByRole('radio', { name: '2' })).toBeChecked();
     });
 
     it('keeps the effort a label effort when the author keeps an agent score', async () => {
@@ -126,7 +121,7 @@ describe(Chart, () => {
       await user.click(within(getPane()).getByRole('button', { name: 'Keep' }));
 
       expect(within(getPane()).queryByRole('button', { name: 'Keep' })).not.toBeInTheDocument();
-      expect(within(getPane()).getByText('3 points · Label · effort:3')).toBeInTheDocument();
+      expect(within(getGroup('Effort')).getByRole('radio', { name: '3' })).toBeChecked();
     });
   });
 });
