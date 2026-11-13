@@ -132,12 +132,13 @@ export function layoutCells(placements: readonly Placement[], cellSize: number):
     .toSorted((a, b) => b.v - a.v || a.u - b.u);
 }
 
-/** A ghost's circle in the matrix: its centre, in matrix units, and its radius. */
+/** A ghost's circle in the matrix: its centre, in matrix units, its radius, and whether it sits at the floor. */
 export interface GhostPlacement {
   id: string;
   x: number;
   y: number;
   r: number;
+  floored: boolean;
 }
 
 /**
@@ -175,7 +176,7 @@ export function placeGhosts(
       floored: placement.floored ?? placement.r === undefined,
     };
     placed.push(circle);
-    return { id: circle.id, x: cell.x + circle.cx, y: cell.y + circle.cy, r };
+    return { id: circle.id, x: cell.x + circle.cx, y: cell.y + circle.cy, r, floored: circle.floored };
   });
 }
 

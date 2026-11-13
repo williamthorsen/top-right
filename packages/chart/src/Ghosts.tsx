@@ -1,10 +1,12 @@
 import {
+  classifyWorkType,
   deriveStatus,
   type Edge,
   type ItemRef,
   type ResolvedItemScores,
   type StatusOverride,
   type WorkItem,
+  type WorkTypeMapping,
 } from '@top-right/model';
 import type { ReactElement } from 'react';
 
@@ -28,6 +30,7 @@ export interface GhostsProps {
   itemsByKey: ReadonlyMap<string, WorkItem>;
   labelOf: (ref: Pick<ItemRef, 'number' | 'repo'>) => string;
   onReveal: (key: string) => void;
+  workTypeMapping: WorkTypeMapping;
 }
 
 /** What the board needs to know to draw edges and ghosts. */
@@ -43,7 +46,7 @@ interface GhostBoard {
 }
 
 /** The ghosts of the hidden done items at the ends of the shown edges. */
-export function Ghosts({ fadeOf, ghosts, itemsByKey, labelOf, onReveal }: GhostsProps): ReactElement {
+export function Ghosts({ fadeOf, ghosts, itemsByKey, labelOf, onReveal, workTypeMapping }: GhostsProps): ReactElement {
   return (
     <>
       {ghosts.map((ghost) => {
@@ -56,6 +59,7 @@ export function Ghosts({ fadeOf, ghosts, itemsByKey, labelOf, onReveal }: Ghosts
             key={ghost.id}
             name={`${labelOf(item)}: ${item.title}, done, hidden`}
             onReveal={onReveal}
+            workType={classifyWorkType(item.labels, workTypeMapping)}
           />
         );
       })}

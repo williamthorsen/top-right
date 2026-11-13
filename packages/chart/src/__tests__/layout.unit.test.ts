@@ -187,7 +187,7 @@ describe(placeGhosts, () => {
 
   it('centres a ghost in a cell that holds no circle, at the floor when it has no radius', () => {
     expect(placeGhosts([], [{ id: 'g', u: 4, v: 4 }], MIN_CELL_SIZE)).toStrictEqual([
-      { id: 'g', x: 4 * MIN_CELL_SIZE + MIN_CELL_SIZE / 2, y: MIN_CELL_SIZE / 2, r: FLOOR_RADIUS },
+      { id: 'g', x: 4 * MIN_CELL_SIZE + MIN_CELL_SIZE / 2, y: MIN_CELL_SIZE / 2, r: FLOOR_RADIUS, floored: true },
     ]);
   });
 });

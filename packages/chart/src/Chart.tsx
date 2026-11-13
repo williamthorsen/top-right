@@ -230,7 +230,14 @@ export function Chart({
   const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board, cellSize);
   const ghostElements = (
-    <Ghosts fadeOf={fadeOf} ghosts={ghosts} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={selectShown} />
+    <Ghosts
+      fadeOf={fadeOf}
+      ghosts={ghosts}
+      itemsByKey={itemsByKey}
+      labelOf={labelOf}
+      onReveal={selectShown}
+      workTypeMapping={workTypeMapping}
+    />
   );
   const focusRelated = findShownRelated(focus.related, focusKey, visibleKeys, ghosts);
   // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.

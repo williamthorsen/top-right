@@ -1,3 +1,4 @@
+import type { WorkType } from '@top-right/model';
 import type { KeyboardEvent, ReactElement } from 'react';
 
 import type { GhostPlacement } from './layout.ts';
@@ -10,11 +11,12 @@ export interface GhostCircleProps {
   /** How strongly a review, the chain view, or a focus fades the ghost; it stays activatable. */
   fade: Fade | undefined;
   onReveal: (id: string) => void;
+  workType: WorkType;
 }
 
-/** The outline of a hidden done item at the end of a shown edge, which reveals that item when activated. */
-export function GhostCircle({ fade, ghost, name, onReveal }: GhostCircleProps): ReactElement {
-  const { id, x, y, r } = ghost;
+/** A hidden done item at the end of a shown edge, drawn as a done circle, which reveals that item when activated. */
+export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCircleProps): ReactElement {
+  const { id, x, y, r, floored } = ghost;
 
   function revealOnKey(event: KeyboardEvent<SVGGElement>): void {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -25,9 +27,11 @@ export function GhostCircle({ fade, ghost, name, onReveal }: GhostCircleProps): 
   return (
     <g
       aria-label={name}
-      className="tr-ghost"
+      className="tr-node"
       data-fade={fade}
       data-item-key={id}
+      data-status="done"
+      data-work-type={workType}
       onClick={() => onReveal(id)}
       onKeyDown={revealOnKey}
       role="button"
@@ -36,8 +40,11 @@ export function GhostCircle({ fade, ghost, name, onReveal }: GhostCircleProps): 
     >
       <title>{name}</title>
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
-      <circle className="tr-ghost-border" r={r} />
-      <circle className="tr-ghost-focus" r={r + 5.5} />
+      <circle className="tr-node-main" r={r} />
+      <circle className="tr-node-border" r={r} />
+      {floored ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
+      <circle className="tr-node-selected" r={r + 3} />
+      <circle className="tr-node-focus" r={r + 5.5} />
     </g>
   );
 }

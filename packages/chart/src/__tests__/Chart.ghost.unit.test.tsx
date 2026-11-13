@@ -44,6 +44,36 @@ describe(Chart, () => {
       expect(circle).toHaveAttribute('transform', position);
     });
 
+    it('draws the ghost as a done circle with its work-type border and the floor mark, without a dashed outline', async () => {
+      const user = userEvent.setup();
+      const bugItems = items.map((item) => (item.number === 2 ? { ...item, labels: ['bug'] } : item));
+      renderChart(bugItems, {}, scores);
+
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+
+      const ghost = screen.getByRole('button', { name: GHOST_NAME });
+      expect(ghost).toHaveAttribute('data-status', 'done');
+      expect(ghost).toHaveAttribute('data-work-type', 'bug');
+      expect(listMarks(ghost)).toStrictEqual([
+        'tr-node-hit',
+        'tr-node-main',
+        'tr-node-border',
+        'tr-node-floor',
+        'tr-node-selected',
+        'tr-node-focus',
+      ]);
+    });
+
+    it('draws no floor mark on the ghost of a sized item', async () => {
+      const user = userEvent.setup();
+      const at = '2026-11-08T00:00:00.000Z';
+      renderChart(items, {}, { ...scores, [`${REPO}#2`]: { ...place(4, 4), effort: { score: 8, by: 'author', at } } });
+
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+
+      expect(listMarks(screen.getByRole('button', { name: GHOST_NAME }))).not.toContain('tr-node-floor');
+    });
+
     it('draws no ghost for an unscored done item or an unrelated one', async () => {
       const user = userEvent.setup();
       renderChart(items, {}, scores);
@@ -167,6 +197,12 @@ function listEdgeEnds(): string[] {
   return Array.from(group.querySelectorAll<SVGGElement>('.tr-edge'), ({ dataset }) =>
     (dataset['ends'] ?? '').replaceAll(`${REPO}#`, ''),
   );
+}
+
+/** Returns the classes of the circles that draw an item; the circles are decorative SVG. */
+function listMarks(element: HTMLElement): string[] {
+  // eslint-disable-next-line testing-library/no-node-access -- the circles are decorative SVG, which has no role to query.
+  return Array.from(element.querySelectorAll('circle'), (circle) => circle.getAttribute('class') ?? '');
 }
 
 function relate(
