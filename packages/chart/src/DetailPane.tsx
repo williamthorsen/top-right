@@ -19,6 +19,7 @@ import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
 import { LEVEL_NAMES } from './level-names.ts';
 import { PaneScores, type SettableStatus } from './PaneScores.tsx';
+import { listShownLabels } from './shown-labels.ts';
 
 /** Why the pane shows its item: a hover or focus, a selection, or the next pick while nothing is selected. */
 export type PaneMode = 'pick' | 'preview' | 'selected';
@@ -105,6 +106,7 @@ export function DetailPane({
     );
   }
 
+  const shownLabels = listShownLabels(item, scores, override, workTypeMapping);
   return (
     <aside aria-label="Item detail" className="tr-pane" data-empty="false">
       <div className="tr-pane-head">
@@ -139,9 +141,9 @@ export function DetailPane({
         <dd>{WORK_TYPE_NAMES[classifyWorkType(item.labels, workTypeMapping)]}</dd>
         <dt>Labels</dt>
         <dd>
-          {item.labels.length > 0 ? (
-            <ul className="tr-chips">
-              {item.labels.map((label) => (
+          {shownLabels.length > 0 ? (
+            <ul aria-label="Labels" className="tr-chips">
+              {shownLabels.map((label) => (
                 <li className="tr-chip" key={label}>
                   {label}
                 </li>

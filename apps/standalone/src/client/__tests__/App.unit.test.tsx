@@ -15,6 +15,11 @@ setUpAppEnvironment();
 const STALE_ITEMS: ItemsResponse = { ...ITEMS, reads: { [REPO]: { readAt: AT, isStale: true } } };
 
 const CRITICAL_BY_LABEL = { itemKey: ITEM_KEY, scores: {}, labels: ['feature', 'urgency:critical'] };
+/** The items with the item labelled Low urgency, a label that the Labels list leaves out until a write replaces it. */
+const LOW_BY_LABEL: ItemsResponse = {
+  ...ITEMS,
+  items: ITEMS.items.map((item) => ({ ...item, labels: ['feature', 'urgency:low'] })),
+};
 
 describe(App, () => {
   it.each([
@@ -155,13 +160,17 @@ describe(App, () => {
 
   it('when the host writes the level to a label, shows the level that the returned label supplies', async () => {
     const user = userEvent.setup();
-    stubFetch((path) => Promise.resolve(Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : ITEMS)));
+    const write = Promise.withResolvers<Response>();
+    stubFetch((path) => (path === '/api/scores' ? write.promise : Promise.resolve(Response.json(LOW_BY_LABEL))));
     render(<App />);
 
     await selectItem(user);
     await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
+    // Until the host answers, the stored Critical outranks `urgency:low`, which the list therefore shows.
+    expect(await screen.findByText('urgency:low')).toBeInTheDocument();
+    write.resolve(Response.json(CRITICAL_BY_LABEL));
 
-    expect(await screen.findByText('urgency:critical')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('urgency:low')).not.toBeInTheDocument());
     expect(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' })).toBeChecked();
   });
 
@@ -170,15 +179,20 @@ describe(App, () => {
     const read = Promise.withResolvers<Response>();
     stubFetch((path) => {
       if (path === '/api/items/refresh') return read.promise;
-      return Promise.resolve(Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : STALE_ITEMS));
+      return Promise.resolve(
+        Response.json(path === '/api/scores' ? CRITICAL_BY_LABEL : { ...LOW_BY_LABEL, reads: STALE_ITEMS.reads }),
+      );
     });
     render(<App />);
 
     await selectItem(user);
     await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
-    expect(await screen.findByText('urgency:critical')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('urgency:low')).not.toBeInTheDocument());
     read.resolve(
-      Response.json({ items: ITEMS.items, reads: { [REPO]: { readAt: '2026-11-08T10:05:00.000Z', isStale: false } } }),
+      Response.json({
+        items: LOW_BY_LABEL.items,
+        reads: { [REPO]: { readAt: '2026-11-08T10:05:00.000Z', isStale: false } },
+      }),
     );
 
     expect(await within(screen.getByRole('toolbar', { name: 'Issues' })).findByRole('time')).toHaveAttribute(
@@ -291,6 +305,25 @@ describe('setting the status', () => {
     await user.click(within(getGroup('Status')).getByRole('radio', { name: 'To do' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/^Status not saved: .*create it at GitHub/);
+    expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
+  });
+
+  it('leaves the label that the host reports as the In progress label out of the Labels list', async () => {
+    const user = userEvent.setup();
+    const written = {
+      itemKey: ITEM_KEY,
+      override: null,
+      labels: ['feature', 'status:in-progress'],
+      sourceStatus: 'in-progress',
+      sourceStatusLabel: 'status:in-progress',
+    };
+    stubFetch((path) => Promise.resolve(Response.json(path === '/api/status' ? written : ITEMS)));
+    render(<App />);
+
+    await selectItem(user);
+    await user.click(within(getGroup('Status')).getByRole('radio', { name: 'In progress' }));
+
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Labels' })).not.toBeInTheDocument());
     expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
   });
 
