@@ -95,29 +95,29 @@ export function PaneScores({
       </div>
       <ScoreRow
         caption={formatScoreCaption('urgency', scores?.urgency)}
+        field="urgency"
         label="Urgency"
         onChange={(urgency) => onScoresChange({ urgency })}
         onClear={clearScore('urgency')}
         options={URGENCY_OPTIONS}
-        field="urgency"
         value={scores?.urgency?.score}
       />
       <ScoreRow
         caption={formatScoreCaption('value', scores?.value)}
+        field="value"
         label="Value"
         onChange={(value) => onScoresChange({ value })}
         onClear={clearScore('value')}
         options={VALUE_OPTIONS}
-        field="value"
         value={scores?.value?.score}
       />
       <ScoreRow
         caption={formatScoreCaption('effort', scores?.effort)}
+        field="effort"
         label="Effort"
         onChange={(value) => onScoresChange({ effort: value })}
         onClear={clearScore('effort')}
         options={EFFORT_OPTIONS}
-        field="effort"
         value={scores?.effort?.score}
       />
       <ProgressRow
