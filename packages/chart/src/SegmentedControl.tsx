@@ -3,6 +3,8 @@ import { type KeyboardEvent, type ReactElement, useRef } from 'react';
 export interface SegmentOption<T extends number | string> {
   value: T;
   label: string;
+  /** A shorter label that the segment shows where the control's container is too narrow for `label`. */
+  shortLabel?: string;
   /** Whether the segment shows a state that the user cannot choose. */
   isDisabled?: boolean;
 }
@@ -57,6 +59,7 @@ export function SegmentedControl<T extends number | string>({
         <button
           aria-checked={option.value === value}
           aria-disabled={option.isDisabled || isReadOnly || undefined}
+          aria-label={option.shortLabel === undefined ? undefined : option.label}
           className="tr-seg-option"
           key={option.value}
           onClick={() => {
@@ -70,7 +73,14 @@ export function SegmentedControl<T extends number | string>({
           tabIndex={index === tabIndex ? 0 : -1}
           type="button"
         >
-          {option.label}
+          {option.shortLabel === undefined ? (
+            option.label
+          ) : (
+            <>
+              <span className="tr-seg-full">{option.label}</span>
+              <span className="tr-seg-short">{option.shortLabel}</span>
+            </>
+          )}
         </button>
       ))}
     </span>

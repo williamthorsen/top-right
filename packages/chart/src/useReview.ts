@@ -3,6 +3,7 @@ import {
   listReviewQueue,
   type ResolvedItemScores,
   type ReviewQueueKind,
+  type ScoreField,
   type Scores,
   type WorkItem,
 } from '@top-right/model';
@@ -28,6 +29,7 @@ export interface ReviewOptions {
   setPreviewKey: (key: string | undefined) => void;
   onKeep: ((itemKey: string) => void) | undefined;
   onScoresChange: ((itemKey: string, scores: Scores) => void) | undefined;
+  onScoresClear: ((itemKey: string, fields: readonly ScoreField[]) => void) | undefined;
   /** The chart's scroll container, within which the review brings each item that it moves to into view. */
   scrollRef: RefObject<HTMLElement | null>;
 }
@@ -46,6 +48,8 @@ export interface Review {
   end: () => void;
   keep: (itemKey: string) => void;
   changeScores: (itemKey: string, scores: Scores) => void;
+  /** Clears scores of an item and selects it, without advancing a running review. */
+  clearScores: (itemKey: string, fields: readonly ScoreField[]) => void;
 }
 
 /** How long a placed item stays selected before the Unscored review moves on, so that the author sees it move. */
@@ -66,6 +70,7 @@ export function useReview({
   setPreviewKey,
   onKeep,
   onScoresChange,
+  onScoresClear,
   scrollRef,
 }: ReviewOptions): Review {
   const [kind, setKind] = useState<ReviewQueueKind>();
@@ -178,6 +183,10 @@ export function useReview({
     end: endReview,
     keep,
     changeScores,
+    clearScores: (itemKey, fields) => {
+      setSelectedKey(itemKey);
+      onScoresClear?.(itemKey, fields);
+    },
   };
 }
 

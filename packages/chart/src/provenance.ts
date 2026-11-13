@@ -1,21 +1,23 @@
-import type { LabelScoreEntry, ScoreEntry } from '@top-right/model';
+import type { LabelScoreEntry, ScoreEntry, ScoreField } from '@top-right/model';
+
+/** Returns an effort's points, such as `3 points`. */
+export function formatPoints(effort: number): string {
+  return `${effort} ${effort === 1 ? 'point' : 'points'}`;
+}
 
 /**
- * Returns a score's provenance line: who set it and when, such as `Author · 8 Nov`, adding the year when it is not
- * `now`'s, or the label that supplies it, such as `Label · value:must-have`.
+ * Returns the caption under a score row, which states only what the control cannot show: who set an agent's score and
+ * when, such as `Agent · 8 Nov`, adding the year when it is not `now`'s, or that an unsized item is drawn at the floor.
  */
-export function formatProvenance(entry: LabelScoreEntry | ScoreEntry | undefined, now: Date = new Date()): string {
-  if (!entry) return 'Unscored';
-  if (entry.by === 'label') return `Label · ${entry.label}`;
+export function formatScoreCaption(
+  field: ScoreField,
+  entry: LabelScoreEntry | ScoreEntry | undefined,
+  now: Date = new Date(),
+): string | undefined {
+  if (!entry) return field === 'effort' ? 'Unsized, drawn at the floor' : undefined;
+  if (entry.by !== 'agent') return undefined;
   const at = new Date(entry.at);
   const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
   if (at.getFullYear() !== now.getFullYear()) options.year = 'numeric';
-  const scorer = entry.by === 'agent' ? 'Agent' : 'Author';
-  return `${scorer} · ${new Intl.DateTimeFormat(undefined, options).format(at)}`;
-}
-
-/** Returns the line under Effort: the points, or that the item is drawn at the floor. */
-export function formatPoints(effort: number | undefined): string {
-  if (effort === undefined) return 'Unsized, drawn at the floor';
-  return `${effort} ${effort === 1 ? 'point' : 'points'}`;
+  return `Agent · ${new Intl.DateTimeFormat(undefined, options).format(at)}`;
 }

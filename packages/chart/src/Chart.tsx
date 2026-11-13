@@ -11,6 +11,7 @@ import {
   type ResolvedItemScores,
   resolveItemScores,
   revealItem,
+  type ScoreField,
   type ScoreLabelMapping,
   type Scores,
   type StatusOverride,
@@ -65,6 +66,8 @@ export interface ChartProps {
   overrides?: Readonly<Record<string, StatusOverride>>;
   /** Reports a change of one or more of an item's scores; the host writes them and passes the result back. */
   onScoresChange?: (itemKey: string, scores: Scores) => void;
+  /** Reports scores that the author clears from an item; without it, the pane offers no clear buttons. */
+  onScoresClear?: (itemKey: string, fields: readonly ScoreField[]) => void;
   /** Reports a status that the user chose for an item. */
   onStatusChange?: (itemKey: string, status: SettableStatus) => void;
   /** Reports that the author keeps an item's agent scores; without it, the chart offers neither Keep nor Enter-to-keep. */
@@ -115,6 +118,7 @@ export function Chart({
   scores: storedScores = NO_SCORES,
   overrides = NO_OVERRIDES,
   onScoresChange,
+  onScoresClear,
   onStatusChange,
   onKeep,
   selectedKey: hostSelectedKey,
@@ -185,6 +189,7 @@ export function Chart({
     setPreviewKey,
     onKeep,
     onScoresChange,
+    onScoresClear,
     scrollRef,
   });
   const chainView = useChainView(visibleItems, review);
@@ -316,6 +321,7 @@ export function Chart({
           onKeep={onKeep ? review.keep : undefined}
           onRelationHighlight={setHighlightedKey}
           onScoresChange={review.changeScores}
+          onScoresClear={onScoresClear ? review.clearScores : undefined}
           onStatusChange={(itemKey, status) => {
             selection.replace(itemKey);
             onStatusChange?.(itemKey, status);

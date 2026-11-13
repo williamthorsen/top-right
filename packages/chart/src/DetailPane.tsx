@@ -6,6 +6,7 @@ import {
   type Relation,
   type RelationKind,
   type ResolvedItemScores,
+  type ScoreField,
   type Scores,
   type StatusOverride,
   WORK_TYPE_NAMES,
@@ -37,6 +38,8 @@ export interface DetailPaneProps {
   /** Keeps the item's agent scores as the author's; Keep is shown only when the host passes it. */
   onKeep: ((itemKey: string) => void) | undefined;
   onScoresChange: (itemKey: string, scores: Scores) => void;
+  /** Clears scores of the item; the rows offer a clear button only when the host passes it. */
+  onScoresClear: ((itemKey: string, fields: readonly ScoreField[]) => void) | undefined;
   onStatusChange: (itemKey: string, status: SettableStatus) => void;
   /** Reports the relation row under the pointer or focus, by item key, so that the chart can ring its circle. */
   onRelationHighlight?: (itemKey: string | undefined) => void;
@@ -74,6 +77,7 @@ export function DetailPane({
   onClose,
   onKeep,
   onScoresChange,
+  onScoresClear,
   onStatusChange,
   onRelationHighlight,
 }: DetailPaneProps): ReactElement {
@@ -107,6 +111,7 @@ export function DetailPane({
       <PaneScores
         item={item}
         onScoresChange={(changed) => onScoresChange(formatItemKey(item), changed)}
+        onScoresClear={onScoresClear ? (field) => onScoresClear(formatItemKey(item), [field]) : undefined}
         onStatusChange={(status) => onStatusChange(formatItemKey(item), status)}
         override={override}
         scores={scores}
