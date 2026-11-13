@@ -13,7 +13,7 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import { type ReactElement, useEffect, useRef } from 'react';
+import { type ReactElement, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
@@ -98,6 +98,17 @@ export function DetailPane({
     titleRef.current?.focus();
   }, [itemKey]);
 
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const shownKey = useRef(itemKey);
+  const fade = useRef<Animation | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (itemKey === shownKey.current) return;
+    shownKey.current = itemKey;
+    fade.current?.cancel();
+    fade.current = bodyRef.current ? playItemChange(bodyRef.current) : undefined;
+  }, [itemKey]);
+  useEffect(() => () => fade.current?.cancel(), []);
+
   if (!item) {
     return (
       <aside aria-label="Item detail" className="tr-pane" data-empty="true">
@@ -109,66 +120,68 @@ export function DetailPane({
   const shownLabels = listShownLabels(item, scores, override, workTypeMapping);
   return (
     <aside aria-label="Item detail" className="tr-pane" data-empty="false">
-      <div className="tr-pane-head">
-        <p className="tr-pane-mode">{MODE_HEADINGS[mode]}</p>
-        {mode === 'selected' ? (
-          <button className="tr-pane-close" onClick={onClose} type="button">
-            Close
-          </button>
+      <div className="tr-pane-body" ref={bodyRef}>
+        <div className="tr-pane-head">
+          <p className="tr-pane-mode">{MODE_HEADINGS[mode]}</p>
+          {mode === 'selected' ? (
+            <button className="tr-pane-close" onClick={onClose} type="button">
+              Close
+            </button>
+          ) : null}
+        </div>
+        <a className="tr-pane-id" href={item.url} rel="noreferrer" target="_blank">
+          {labelItem(item, abbreviations)}
+          <ExternalLinkIcon />
+          <span className="tr-visually-hidden">(opens in a new tab)</span>
+        </a>
+        <h2 className="tr-pane-title" ref={titleRef} tabIndex={-1}>
+          {item.title}
+        </h2>
+        {onKeep && isAgentScored(scores) ? (
+          <AgentReview isReviewing={isReviewing} onKeep={() => onKeep(formatItemKey(item))} scores={scores} />
         ) : null}
+        <PaneScores
+          item={item}
+          onScoresChange={(changed) => onScoresChange(formatItemKey(item), changed)}
+          onScoresClear={onScoresClear ? (field) => onScoresClear(formatItemKey(item), [field]) : undefined}
+          onStatusChange={(status) => onStatusChange(formatItemKey(item), status)}
+          override={override}
+          scores={scores}
+        />
+        <dl className="tr-pane-facts">
+          <dt>Type</dt>
+          <dd>{WORK_TYPE_NAMES[classifyWorkType(item.labels, workTypeMapping)]}</dd>
+          <dt>Labels</dt>
+          <dd>
+            {shownLabels.length > 0 ? (
+              <ul aria-label="Labels" className="tr-chips">
+                {shownLabels.map((label) => (
+                  <li className="tr-chip" key={label}>
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              'None'
+            )}
+          </dd>
+        </dl>
+        <RelationLists
+          abbreviations={abbreviations}
+          blockedKeys={blockedKeys}
+          isGiven={isGiven}
+          onHighlight={onRelationHighlight}
+          onSelect={
+            onRelationSelect
+              ? (key) => {
+                  isFocusPending.current = true;
+                  onRelationSelect(key);
+                }
+              : undefined
+          }
+          relations={item.relations}
+        />
       </div>
-      <a className="tr-pane-id" href={item.url} rel="noreferrer" target="_blank">
-        {labelItem(item, abbreviations)}
-        <ExternalLinkIcon />
-        <span className="tr-visually-hidden">(opens in a new tab)</span>
-      </a>
-      <h2 className="tr-pane-title" ref={titleRef} tabIndex={-1}>
-        {item.title}
-      </h2>
-      {onKeep && isAgentScored(scores) ? (
-        <AgentReview isReviewing={isReviewing} onKeep={() => onKeep(formatItemKey(item))} scores={scores} />
-      ) : null}
-      <PaneScores
-        item={item}
-        onScoresChange={(changed) => onScoresChange(formatItemKey(item), changed)}
-        onScoresClear={onScoresClear ? (field) => onScoresClear(formatItemKey(item), [field]) : undefined}
-        onStatusChange={(status) => onStatusChange(formatItemKey(item), status)}
-        override={override}
-        scores={scores}
-      />
-      <dl className="tr-pane-facts">
-        <dt>Type</dt>
-        <dd>{WORK_TYPE_NAMES[classifyWorkType(item.labels, workTypeMapping)]}</dd>
-        <dt>Labels</dt>
-        <dd>
-          {shownLabels.length > 0 ? (
-            <ul aria-label="Labels" className="tr-chips">
-              {shownLabels.map((label) => (
-                <li className="tr-chip" key={label}>
-                  {label}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            'None'
-          )}
-        </dd>
-      </dl>
-      <RelationLists
-        abbreviations={abbreviations}
-        blockedKeys={blockedKeys}
-        isGiven={isGiven}
-        onHighlight={onRelationHighlight}
-        onSelect={
-          onRelationSelect
-            ? (key) => {
-                isFocusPending.current = true;
-                onRelationSelect(key);
-              }
-            : undefined
-        }
-        relations={item.relations}
-      />
     </aside>
   );
 }
@@ -202,6 +215,13 @@ function AgentReview({
       ) : null}
     </div>
   );
+}
+
+/** Fades the pane body in, unless the browser lacks the Web Animations API or the reader prefers reduced motion. */
+function playItemChange(body: HTMLElement): Animation | undefined {
+  if (typeof body.animate !== 'function') return undefined;
+  if ('matchMedia' in globalThis && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+  return body.animate([{ opacity: 0.5 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
 }
 
 function RelationLists({

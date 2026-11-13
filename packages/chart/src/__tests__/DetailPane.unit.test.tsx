@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { DEFAULT_WORK_TYPE_MAPPING, type ItemScores, type StatusOverride, type WorkItem } from '@top-right/model';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DetailPane, type DetailPaneProps } from '../DetailPane.tsx';
 
@@ -268,6 +268,77 @@ describe(DetailPane, () => {
     fireEvent.change(range, { target: { value: '40' } });
 
     expect(onScoresChange).toHaveBeenCalledWith(ITEM_KEY, { progress: 0.4 });
+  });
+  describe('the item-change fade', () => {
+    const OTHER: WorkItem = { ...ITEM, number: 13, title: 'Rank items' };
+    const cancel = vi.fn<() => void>();
+    const animate = vi.fn(() => ({ cancel }));
+    let prefersReducedMotion = false;
+
+    // jsdom implements neither the Web Animations API nor `matchMedia`.
+    beforeEach(() => {
+      prefersReducedMotion = false;
+      animate.mockClear();
+      cancel.mockClear();
+      Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: animate });
+      Object.defineProperty(globalThis, 'matchMedia', {
+        configurable: true,
+        value: (query: string) => ({ matches: query === '(prefers-reduced-motion: reduce)' && prefersReducedMotion }),
+      });
+    });
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLElement.prototype, 'animate');
+      Reflect.deleteProperty(globalThis, 'matchMedia');
+    });
+
+    it('does not fade on first mount', () => {
+      renderPane();
+
+      expect(animate).not.toHaveBeenCalled();
+    });
+
+    it('fades in 150 ms or less when the item changes', () => {
+      const { rerenderPane } = renderPane();
+      rerenderPane({ item: OTHER, mode: 'preview' });
+
+      expect(animate).toHaveBeenCalledOnce();
+      expect(animate).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({ duration: 150 }));
+    });
+
+    it('does not fade when only the mode changes', () => {
+      const { rerenderPane } = renderPane({ mode: 'preview' });
+      rerenderPane({ mode: 'selected' });
+
+      expect(animate).not.toHaveBeenCalled();
+    });
+
+    it('restarts the fade on a change that arrives during one', () => {
+      const { rerenderPane } = renderPane();
+      rerenderPane({ item: OTHER });
+      rerenderPane({ item: ITEM });
+
+      expect(animate).toHaveBeenCalledTimes(2);
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(cancel.mock.invocationCallOrder[0]).toBeLessThan(animate.mock.invocationCallOrder[1] ?? 0);
+    });
+
+    it('does not fade under reduced motion', () => {
+      prefersReducedMotion = true;
+      const { rerenderPane } = renderPane();
+      rerenderPane({ item: OTHER });
+
+      expect(animate).not.toHaveBeenCalled();
+    });
+
+    it('keeps focus on a control inside the pane when the item changes', () => {
+      const { rerenderPane } = renderPane();
+      const radio = within(getGroup('Urgency')).getAllByRole('radio')[0];
+      radio?.focus();
+      rerenderPane({ item: OTHER, mode: 'preview' });
+
+      expect(radio).toHaveFocus();
+      expect(screen.getByRole('heading', { name: 'Rank items' })).toBeInTheDocument();
+    });
   });
 });
 
