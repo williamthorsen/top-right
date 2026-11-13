@@ -302,7 +302,10 @@ describe(DetailPane, () => {
       rerenderPane({ item: OTHER, mode: 'preview' });
 
       expect(animate).toHaveBeenCalledOnce();
-      expect(animate).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({ duration: 150 }));
+      expect(animate).toHaveBeenCalledWith(
+        [{ opacity: 0.5 }, { opacity: 1 }],
+        expect.objectContaining({ duration: 150 }),
+      );
     });
 
     it('does not fade when only the mode changes', () => {
