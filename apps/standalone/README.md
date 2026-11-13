@@ -30,7 +30,7 @@ Open <http://localhost:4310/>. Set `PORT` to serve on another port. The host rea
 
 The host reads the file when it starts, so a change to it takes effect at the next start. The Settings page lists the repositories and the path of the file that the host read.
 
-`closedWindowDays` sets how many days back from each read the host reads closed issues, by the date each was closed. It defaults to 30, and 0 reads none. The chart hides closed items until the Done filter is on, and draws a ghost for one at the end of a shown edge.
+`closedWindowDays` sets how many days back from each read the host reads closed issues, by the date each was closed. It defaults to 30, and 0 reads none. The chart hides closed items until the Done filter is on, and draws one at the end of a shown edge as a done circle, which reveals the item when activated.
 
 A circle's id is the repository's abbreviation and the issue number, such as `T.11`. The abbreviation defaults to the uppercase first letter of the repository's name. `top-right seed-abbreviations` sets the abbreviations of repositories that do not have one yet, and the Settings page changes them. The Settings page also edits the labels that assign each work type and the labels that supply each urgency level, value level, and effort. While two repositories share an abbreviation, the chart shows an alert that links to Settings. The host ignores an `abbreviation` field in the config file and names the repositories that still set one when it starts.
 
