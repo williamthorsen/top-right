@@ -7,6 +7,7 @@ import {
   findDuplicateScoreLabels,
   normalizeScoreLabelMapping,
   planLabelChange,
+  removeDimensionLabels,
   resolveItemScores,
   type ScoreLabelMapping,
 } from '../score-labels.ts';
@@ -51,6 +52,28 @@ describe(planLabelChange, () => {
     expect(planLabelChange({ urgency: 'high' }, mapping)).toEqual({ kind: 'change', add: ['p1'], remove: ['p3'] });
   });
 
+  it('for a null dimension, removes every label listed under it and adds none', () => {
+    expect(planLabelChange({ urgency: null }, DEFAULT_SCORE_LABEL_MAPPING)).toEqual({
+      kind: 'change',
+      add: [],
+      remove: ['urgency:low', 'urgency:medium', 'urgency:high', 'urgency:critical'],
+    });
+  });
+
+  it('plans a cleared dimension beside a set one', () => {
+    const mapping: ScoreLabelMapping = { ...emptyMapping(), effort: { ...emptyMapping().effort, 3: ['effort:3'] } };
+
+    expect(planLabelChange({ value: null, effort: 3 }, mapping)).toEqual({
+      kind: 'change',
+      add: ['effort:3'],
+      remove: [],
+    });
+  });
+
+  it('clears a dimension even when the mapping lists no label for its levels', () => {
+    expect(planLabelChange({ urgency: null }, emptyMapping())).toEqual({ kind: 'change', add: [], remove: [] });
+  });
+
   it('if the mapping lists no label for a level, refuses the write and points to Settings', () => {
     const plan = planLabelChange({ urgency: 'high', value: 'must-have' }, emptyMapping());
 
@@ -60,6 +83,17 @@ describe(planLabelChange, () => {
 
   it('if the effort is not on the scale, refuses the write', () => {
     expect(planLabelChange({ effort: 4 }, DEFAULT_SCORE_LABEL_MAPPING)).toMatchObject({ kind: 'refused' });
+  });
+});
+
+describe(removeDimensionLabels, () => {
+  it("drops the dimensions' mapped labels, compared case-insensitively, and keeps every other label", () => {
+    const labels = ['Urgency:High', 'value:must-have', 'effort:3', 'bug'];
+
+    expect(removeDimensionLabels(labels, ['urgency', 'effort'], DEFAULT_SCORE_LABEL_MAPPING)).toEqual([
+      'value:must-have',
+      'bug',
+    ]);
   });
 });
 

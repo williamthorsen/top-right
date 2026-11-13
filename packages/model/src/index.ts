@@ -39,6 +39,7 @@ export {
   type LabelLevels,
   normalizeScoreLabelMapping,
   planLabelChange,
+  removeDimensionLabels,
   resolveItemScores,
   type ScoreLabelMapping,
 } from './score-labels.ts';

@@ -101,11 +101,11 @@ export function normalizeScoreLabelMapping(mapping: ScoreLabelMapping): ScoreLab
   };
 }
 
-/** The levels that a label write sets, by dimension; an absent dimension keeps its labels. */
+/** The levels that a label write sets, by dimension; an absent dimension keeps its labels, and `null` clears them. */
 export interface LabelLevels {
-  urgency?: UrgencyLevel | undefined;
-  value?: ValueLevel | undefined;
-  effort?: number | undefined;
+  urgency?: UrgencyLevel | null | undefined;
+  value?: ValueLevel | null | undefined;
+  effort?: number | null | undefined;
 }
 
 /** The labels that a write adds and removes, or the reason that the mapping refuses it. */
@@ -114,13 +114,16 @@ export type LabelChangePlan =
 
 /**
  * Returns the label change that sets `levels`: For each dimension, the first label that the mapping lists for the level
- * is added, and every label listed under the dimension's other levels is removed. A level for which the mapping lists
- * no label refuses the write.
+ * is added, and every label listed under the dimension's other levels is removed. A `null` dimension removes every label
+ * listed under it and adds none. A level for which the mapping lists no label refuses the write.
  */
 export function planLabelChange(levels: LabelLevels, mapping: ScoreLabelMapping): LabelChangePlan {
   const add: string[] = [];
   const remove: string[] = [];
-  const effort = levels.effort === undefined ? undefined : EFFORT_SCALE.find((points) => points === levels.effort);
+  const effort =
+    levels.effort === undefined || levels.effort === null
+      ? levels.effort
+      : EFFORT_SCALE.find((points) => points === levels.effort);
   if (levels.effort !== undefined && effort === undefined) {
     return { kind: 'refused', message: `effort ${levels.effort} is not on the scale` };
   }
@@ -136,6 +139,20 @@ export function planLabelChange(levels: LabelLevels, mapping: ScoreLabelMapping)
     remove.push(...family.remove);
   }
   return { kind: 'change', add, remove };
+}
+
+/** Returns `labels` without each label that `mapping` lists under `dimensions`, compared case-insensitively. */
+export function removeDimensionLabels(
+  labels: readonly string[],
+  dimensions: readonly LabelDimension[],
+  mapping: ScoreLabelMapping,
+): string[] {
+  const mapped = new Set(
+    listLevelLabels(mapping)
+      .filter(({ dimension }) => dimensions.includes(dimension))
+      .flatMap((entry) => entry.labels.map((label) => label.toLowerCase())),
+  );
+  return labels.filter((label) => !mapped.has(label.toLowerCase()));
 }
 
 /**
@@ -202,14 +219,18 @@ function normalizeLabels(labels: readonly string[]): string[] {
   return labels.map((label) => label.trim()).filter((label) => label !== '');
 }
 
-/** Returns the change that sets one dimension to `level`, or `undefined` when `level` is absent. */
+/**
+ * Returns the change that sets one dimension to `level`, or that clears it when `level` is `null`, or `undefined` when
+ * `level` is absent.
+ */
 function planFamily<T extends EffortPoints | UrgencyLevel | ValueLevel>(
   dimension: LabelDimension,
   levels: readonly T[],
   levelLabels: Readonly<Record<T, readonly string[]>>,
-  level: T | undefined,
+  level: T | null | undefined,
 ): LabelChangePlan | undefined {
   if (level === undefined) return undefined;
+  if (level === null) return { kind: 'change', add: [], remove: levels.flatMap((other) => levelLabels[other]) };
   const [label] = levelLabels[level];
   if (label === undefined) {
     return { kind: 'refused', message: `no label is mapped to ${dimension} ${level}; add one in Settings` };
