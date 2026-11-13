@@ -50,7 +50,7 @@ describe('Chart legend', () => {
       within(statuses)
         .getAllByRole('listitem')
         .map((entry) => entry.textContent),
-    ).toStrictEqual(['To do', 'In progress', 'Done', 'Unsized, at the floor']);
+    ).toStrictEqual(['To do', 'In progress', 'Done', 'Not sized, drawn as 1 point']);
   });
 
   it('classifies items by the mapping that it is passed', () => {

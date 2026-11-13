@@ -27,8 +27,8 @@ export interface LegendProps {
 }
 
 /**
- * The strip under the chart that names each status fill, the floor mark, each work type's border, and each relation
- * mark, with a popover that lists the labels of each work type.
+ * The strip under the chart that names each status fill, the unsized item's dotted border, each work type's border, and
+ * each relation mark, with a popover that lists the labels of each work type.
  */
 export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactElement {
   return (
@@ -48,7 +48,7 @@ export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactEle
         </li>
         <li>
           <StatusSwatch isUnsized status="to-do" />
-          Unsized, at the floor
+          Not sized, drawn as 1 point
         </li>
       </ul>
       <ul aria-label="Work type" className="tr-legend">
