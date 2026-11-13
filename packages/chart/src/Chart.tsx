@@ -216,10 +216,16 @@ export function Chart({
     if (review.kind !== undefined) review.end();
   }
 
-  /** Reveals one hidden item and selects it, ending a running review, whose queue the reveal would change. */
-  function revealGhost(key: string): void {
-    setFilter({ ...filter, revealedKeys: new Set([...filter.revealedKeys, key]) });
-    if (review.kind !== undefined) review.end();
+  /**
+   * Selects one of the items, first revealing it alone when the filter hides it; a reveal ends a running review, whose
+   * queue it would change.
+   */
+  function selectShown(key: string): void {
+    if (!itemsByKey.has(key)) return;
+    if (!visibleKeys.has(key)) {
+      setFilter({ ...filter, revealedKeys: new Set([...filter.revealedKeys, key]) });
+      if (review.kind !== undefined) review.end();
+    }
     selection.push(key);
   }
 
@@ -229,7 +235,7 @@ export function Chart({
   const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board, cellSize);
   const ghostElements = (
-    <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
+    <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={selectShown} />
   );
   // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
   function isFaded(key: string): boolean {
@@ -318,8 +324,10 @@ export function Chart({
             selection.push(undefined);
             setPreviewKey(undefined);
           }}
+          isGiven={(itemKey) => itemsByKey.has(itemKey)}
           onKeep={onKeep ? review.keep : undefined}
           onRelationHighlight={setHighlightedKey}
+          onRelationSelect={selectShown}
           onScoresChange={review.changeScores}
           onScoresClear={onScoresClear ? review.clearScores : undefined}
           onStatusChange={(itemKey, status) => {

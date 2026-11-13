@@ -1476,6 +1476,16 @@
   border-radius: 4px;
   color: var(--tr-ink);
   text-decoration: none;
+  cursor: pointer;
+}
+
+button.tr-relation {
+  box-sizing: border-box;
+  width: calc(100% + 12px);
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
 }
 
 .tr-relation:hover {
@@ -1483,6 +1493,9 @@
 }
 
 .tr-relation-id {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
   flex: none;
   font-family: var(--tr-mono);
   font-size: 13px;

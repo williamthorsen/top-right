@@ -133,7 +133,7 @@ describe(Chart, () => {
       expect(screen.queryByRole('button', { name: /^(C\.)?3:/ })).not.toBeInTheDocument();
       expect(listEdgeEnds()).toStrictEqual([]);
       expect(within(getPane()).getByRole('link', { name: /C\.2 Issue 2/ })).toBeInTheDocument();
-      expect(within(getPane()).getByRole('link', { name: /C\.3 Issue 3/ })).toBeInTheDocument();
+      expect(within(getPane()).getByRole('button', { name: /C\.3 Issue 3/ })).toBeInTheDocument();
     });
 
     it('rings the item that the unloaded open item blocks', async () => {

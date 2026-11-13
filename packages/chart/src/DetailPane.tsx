@@ -13,7 +13,7 @@ import {
   type WorkItem,
   type WorkTypeMapping,
 } from '@top-right/model';
-import type { ReactElement } from 'react';
+import { type ReactElement, useEffect, useRef } from 'react';
 
 import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
@@ -43,6 +43,10 @@ export interface DetailPaneProps {
   onStatusChange: (itemKey: string, status: SettableStatus) => void;
   /** Reports the relation row under the pointer or focus, by item key, so that the chart can ring its circle. */
   onRelationHighlight?: (itemKey: string | undefined) => void;
+  /** Selects a related item; a row offers it only for an item that `isGiven` accepts. */
+  onRelationSelect?: (itemKey: string) => void;
+  /** Whether the chart was given the item, so that its relation row selects it rather than linking to its source. */
+  isGiven?: (itemKey: string) => boolean;
 }
 
 const MODE_HEADINGS: Readonly<Record<PaneMode, string>> = {
@@ -80,7 +84,19 @@ export function DetailPane({
   onScoresClear,
   onStatusChange,
   onRelationHighlight,
+  onRelationSelect,
+  isGiven,
 }: DetailPaneProps): ReactElement {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  // The activated row unmounts once the pane shows its item, so focus moves to that item's title.
+  const isFocusPending = useRef(false);
+  const itemKey = item === undefined ? undefined : formatItemKey(item);
+  useEffect(() => {
+    if (!isFocusPending.current) return;
+    isFocusPending.current = false;
+    titleRef.current?.focus();
+  }, [itemKey]);
+
   if (!item) {
     return (
       <aside aria-label="Item detail" className="tr-pane" data-empty="true">
@@ -104,7 +120,9 @@ export function DetailPane({
         <ExternalLinkIcon />
         <span className="tr-visually-hidden">(opens in a new tab)</span>
       </a>
-      <h2 className="tr-pane-title">{item.title}</h2>
+      <h2 className="tr-pane-title" ref={titleRef} tabIndex={-1}>
+        {item.title}
+      </h2>
       {onKeep && isAgentScored(scores) ? (
         <AgentReview isReviewing={isReviewing} onKeep={() => onKeep(formatItemKey(item))} scores={scores} />
       ) : null}
@@ -137,7 +155,16 @@ export function DetailPane({
       <RelationLists
         abbreviations={abbreviations}
         blockedKeys={blockedKeys}
+        isGiven={isGiven}
         onHighlight={onRelationHighlight}
+        onSelect={
+          onRelationSelect
+            ? (key) => {
+                isFocusPending.current = true;
+                onRelationSelect(key);
+              }
+            : undefined
+        }
         relations={item.relations}
       />
     </aside>
@@ -179,12 +206,16 @@ function RelationLists({
   relations,
   abbreviations,
   blockedKeys,
+  isGiven,
   onHighlight,
+  onSelect,
 }: {
   relations: readonly Relation[];
   abbreviations: Abbreviations;
   blockedKeys: ReadonlySet<string>;
+  isGiven: ((itemKey: string) => boolean) | undefined;
   onHighlight: ((itemKey: string | undefined) => void) | undefined;
+  onSelect: ((itemKey: string) => void) | undefined;
 }) {
   if (relations.length === 0) return <p className="tr-pane-empty">No relations</p>;
 
@@ -199,33 +230,51 @@ function RelationLists({
             <ul>
               {refs.map((ref) => {
                 const key = formatItemKey(ref);
+                const highlightHandlers = {
+                  onBlur: () => onHighlight?.(undefined),
+                  onFocus: () => onHighlight?.(key),
+                  onPointerEnter: () => onHighlight?.(key),
+                  onPointerLeave: () => onHighlight?.(undefined),
+                };
+                const isSelectable = onSelect !== undefined && isGiven?.(key) === true;
+                const content = (
+                  <>
+                    <span className="tr-relation-id">
+                      {labelItem(ref, abbreviations)}
+                      {isSelectable ? null : <ExternalLinkIcon />}
+                    </span>{' '}
+                    <span className="tr-relation-title">{ref.title}</span>
+                    {ref.state === 'closed' ? (
+                      <>
+                        {' '}
+                        <span className="tr-tag">closed</span>
+                      </>
+                    ) : null}
+                    {blockedKeys.has(key) ? (
+                      <>
+                        {' '}
+                        <span className="tr-tag">blocked</span>
+                      </>
+                    ) : null}
+                  </>
+                );
                 return (
                   <li key={key}>
-                    <a
-                      className="tr-relation"
-                      href={ref.url}
-                      onBlur={() => onHighlight?.(undefined)}
-                      onFocus={() => onHighlight?.(key)}
-                      onPointerEnter={() => onHighlight?.(key)}
-                      onPointerLeave={() => onHighlight?.(undefined)}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      <span className="tr-relation-id">{labelItem(ref, abbreviations)}</span>{' '}
-                      <span className="tr-relation-title">{ref.title}</span>
-                      {ref.state === 'closed' ? (
-                        <>
-                          {' '}
-                          <span className="tr-tag">closed</span>
-                        </>
-                      ) : null}
-                      {blockedKeys.has(key) ? (
-                        <>
-                          {' '}
-                          <span className="tr-tag">blocked</span>
-                        </>
-                      ) : null}
-                    </a>
+                    {isSelectable ? (
+                      <button
+                        className="tr-relation"
+                        onClick={() => onSelect(key)}
+                        type="button"
+                        {...highlightHandlers}
+                      >
+                        {content}
+                      </button>
+                    ) : (
+                      <a className="tr-relation" href={ref.url} rel="noreferrer" target="_blank" {...highlightHandlers}>
+                        {content}
+                        <span className="tr-visually-hidden">(opens in a new tab)</span>
+                      </a>
+                    )}
                   </li>
                 );
               })}
