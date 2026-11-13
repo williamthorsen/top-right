@@ -1525,6 +1525,18 @@ button.tr-relation {
   font-size: 12px;
 }
 
+.tr-tag-closed {
+  border-color: var(--tr-done);
+  background: var(--tr-done);
+  color: var(--tr-ink);
+}
+
+.tr-tag-blocked {
+  border-color: var(--tr-block);
+  background: var(--tr-block);
+  color: var(--tr-on-block);
+}
+
 /* -- Phone width: the pane becomes a bottom sheet -- */
 
 @media (max-width: 760px) {

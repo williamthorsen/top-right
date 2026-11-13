@@ -247,13 +247,13 @@ function RelationLists({
                     {ref.state === 'closed' ? (
                       <>
                         {' '}
-                        <span className="tr-tag">closed</span>
+                        <span className="tr-tag tr-tag-closed">closed</span>
                       </>
                     ) : null}
                     {blockedKeys.has(key) ? (
                       <>
                         {' '}
-                        <span className="tr-tag">blocked</span>
+                        <span className="tr-tag tr-tag-blocked">blocked</span>
                       </>
                     ) : null}
                   </>
