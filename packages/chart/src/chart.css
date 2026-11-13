@@ -1394,13 +1394,9 @@
   max-width: 100%;
 }
 
-.tr-score-control .tr-seg {
+.tr-score-control:has(> .tr-score-clear:not([data-hidden])) .tr-seg {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
-}
-
-.tr-score-control:has(> .tr-score-clear[data-hidden]) .tr-seg {
-  border-radius: 7px;
 }
 
 .tr-root .tr-score-clear {
