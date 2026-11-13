@@ -113,19 +113,6 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^In progress/ })).toHaveAccessibleName('In progress 0');
     });
 
-    it('picks among the filtered items only', async () => {
-      const user = userEvent.setup();
-      renderChart([buildItem({ number: 1 }), buildItem({ number: 2, repo: CA })], ABBREVIATIONS, {
-        [`${REPO}#1`]: place(4, 4),
-        [`${CA}#2`]: place(1, 1),
-      });
-      expect(screen.getByRole('button', { name: /^tr\.1:.*, next pick$/ })).toBeInTheDocument();
-
-      await chooseRepos(user, 'codeassembly (ca)');
-
-      expect(screen.getByRole('button', { name: /^2:.*, next pick$/ })).toBeInTheDocument();
-    });
-
     it('counts the review queues over the filtered items only', async () => {
       const user = userEvent.setup();
       renderChart([buildItem({ number: 1 }), buildItem({ number: 2, repo: CA })], ABBREVIATIONS);

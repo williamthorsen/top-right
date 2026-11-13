@@ -461,22 +461,13 @@
   stroke-width: 1.5;
 }
 
-/*
- * The blocked ring is dashed, so that it reads apart from the solid selection ring without colour; the pick ring is
- * the outermost.
- */
+/* The blocked ring is dashed, so that it reads apart from the solid selection ring without colour. */
 .tr-node-blocked,
 .tr-circle-blocked {
   fill: none;
   stroke: var(--tr-block);
   stroke-width: 2.5;
   stroke-dasharray: 3 2;
-}
-
-.tr-node-pick {
-  fill: none;
-  stroke: var(--tr-accent);
-  stroke-width: 3;
 }
 
 .tr-node:focus-visible .tr-node-focus {

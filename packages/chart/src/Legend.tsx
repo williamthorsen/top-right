@@ -16,8 +16,6 @@ const LEGEND_TYPES: readonly WorkType[] = [...MAPPED_WORK_TYPES, 'none'];
 /** The radius of a status swatch, a little larger than the floor so that its pie and floor mark read. */
 const SWATCH_RADIUS = FLOOR_RADIUS + 1.5;
 const SWATCH_SIZE = 2 * SWATCH_RADIUS + 3;
-/** The pick ring's gap in the legend, tighter than on the chart so that the swatch keeps the strip's height. */
-const PICK_SWATCH_GAP = 4.5;
 /** The space between the Mapping button and the popover above it, in pixels. */
 const POPOVER_GAP = 6;
 
@@ -73,12 +71,8 @@ export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactEle
           Sub-issue
         </li>
         <li>
-          <RingSwatch ring="blocked" />
+          <BlockedSwatch />
           Blocked
-        </li>
-        <li>
-          <RingSwatch ring="pick" />
-          Next pick
         </li>
       </ul>
     </div>
@@ -186,20 +180,15 @@ function EdgeSwatch({ kind }: { kind: 'blocker' | 'sub-issue' }) {
   );
 }
 
-/** A to-do circle wearing the blocked ring or the pick ring. */
-function RingSwatch({ ring }: { ring: 'blocked' | 'pick' }) {
+/** A to-do circle wearing the blocked ring. */
+function BlockedSwatch() {
   const r = FLOOR_RADIUS;
-  const size = 2 * (r + PICK_SWATCH_GAP) + 4;
   return (
-    <svg aria-hidden="true" height={size} viewBox={`0 0 ${size} ${size}`} width={size}>
-      <g className="tr-node" data-status="to-do" transform={`translate(${size / 2} ${size / 2})`}>
+    <svg aria-hidden="true" height={SWATCH_SIZE} viewBox={`0 0 ${SWATCH_SIZE} ${SWATCH_SIZE}`} width={SWATCH_SIZE}>
+      <g className="tr-node" data-status="to-do" transform={`translate(${SWATCH_SIZE / 2} ${SWATCH_SIZE / 2})`}>
         <circle className="tr-node-main" r={r} />
         <circle className="tr-node-border" r={r} />
-        {ring === 'blocked' ? (
-          <circle className="tr-node-blocked" r={r + 1.5} />
-        ) : (
-          <circle className="tr-node-pick" r={r + PICK_SWATCH_GAP} />
-        )}
+        <circle className="tr-node-blocked" r={r + 1.5} />
       </g>
     </svg>
   );

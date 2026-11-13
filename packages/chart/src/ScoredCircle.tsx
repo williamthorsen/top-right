@@ -28,8 +28,6 @@ export interface ScoredCircleProps {
   isFaded: boolean;
   /** Whether an open item blocks the item, which its red ring marks. */
   isBlocked: boolean;
-  /** Whether the item is the next pick, which its outer ring marks. */
-  isPick: boolean;
   /** Whether a relation row in the pane points at the item, which shows its hover ring. */
   isHighlighted: boolean;
   onPreview: (id: string | undefined) => void;
@@ -42,8 +40,6 @@ export const HIT_RADIUS = 12;
 const HALO_GAP = 9;
 /** How far outside the circle the blocked ring sits: inside the selection ring, hugging the border. */
 const BLOCKED_GAP = 1.5;
-/** How far outside the circle the pick ring sits: outermost, clear of the agent's halo. */
-const PICK_GAP = 12.5;
 /** The thinnest wedge that an in-progress pie draws, so that a nearly finished item still reads as in progress. */
 const MIN_WEDGE = Math.PI / 6;
 
@@ -63,7 +59,6 @@ export function ScoredCircle({
   isAgentScored,
   isFaded,
   isBlocked,
-  isPick,
   isHighlighted,
   onPreview,
   onSelect,
@@ -100,7 +95,6 @@ export function ScoredCircle({
     >
       <title>{name}</title>
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
-      {isPick ? <circle className="tr-node-pick" r={r + PICK_GAP} /> : null}
       {isAgentScored ? <circle className="tr-node-halo" r={r + HALO_GAP} /> : null}
       <circle className="tr-node-main" r={r} />
       {status === 'in-progress' ? <Pie r={r} remaining={scopeMode === 'remaining' ? 1 : 1 - progress} /> : null}
