@@ -239,6 +239,39 @@ describe(Chart, () => {
       expect(second).toBePressed();
       expect(first).not.toBePressed();
     });
+
+    it.each(['original', 'remaining'] as const)(
+      'at %s scope, draws an item without effort dotted at one point and a sized item solid',
+      async (scope) => {
+        const user = userEvent.setup();
+        renderChart(
+          [buildItem({ number: 1 }), buildItem({ number: 2 })],
+          {},
+          {
+            [`${REPO}#1`]: place(3, 3),
+            [`${REPO}#2`]: { ...place(3, 3), effort: { score: 3, by: author, at } },
+          },
+        );
+        await user.click(screen.getByRole('radio', { name: scope === 'original' ? 'Original' : 'Remaining' }));
+
+        const unsized = screen.getByRole('button', { name: /^T\.1:/ });
+        expect(unsized).toHaveAttribute('data-sized', 'false');
+        expect(getBorder(unsized)).toHaveAttribute('r', String(sizeCircle(1).r));
+        expect(screen.getByRole('button', { name: /^T\.2:/ })).toHaveAttribute('data-sized', 'true');
+      },
+    );
+
+    it('draws a gutter item without effort with a dotted icon and a sized one solid', () => {
+      renderChart(
+        [buildItem({ number: 1 }), buildItem({ number: 2 })],
+        {},
+        { [`${REPO}#2`]: { effort: { score: 3, by: author, at } } },
+      );
+      const gutter = screen.getByRole('list', { name: 'Unscored items' });
+
+      expect(getIcon(within(gutter).getByRole('button', { name: /^T\.1:/ }))).toHaveAttribute('data-sized', 'false');
+      expect(getIcon(within(gutter).getByRole('button', { name: /^T\.2:/ }))).toHaveAttribute('data-sized', 'true');
+    });
   });
 
   describe('with agent scores', () => {
@@ -255,24 +288,6 @@ describe(Chart, () => {
       urgency: { score: 'critical', by: 'author', at },
       value: { score: 'must-have', by: 'author', at },
     };
-
-    it('wears a halo on an agent-scored circle and gutter item until the author keeps it', async () => {
-      const user = userEvent.setup();
-      renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {
-        [`${REPO}#1`]: MOVED,
-        [`${REPO}#2`]: { urgency: { score: 'high', by: 'agent', at } },
-      });
-      const circle = screen.getByRole('button', { name: /^T\.1:/ });
-      const gutter = screen.getByRole('list', { name: 'Unscored items' });
-
-      expect(hasHalo(circle)).toBe(true);
-      expect(hasHalo(within(gutter).getByRole('button', { name: /^T\.2:/ }))).toBe(true);
-
-      await user.click(circle);
-      await user.click(screen.getByRole('button', { name: 'Keep' }));
-
-      expect(hasHalo(screen.getByRole('button', { name: /^T\.1:/ }))).toBe(false);
-    });
 
     it('shows a trail only while the circle is hovered or selected, or during the Agent-scored review', async () => {
       const user = userEvent.setup();
@@ -348,7 +363,6 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^T\.1:/ })).toBePressed();
       await user.click(screen.getByRole('button', { name: 'Skip' }));
       expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
-      expect(hasHalo(screen.getByRole('button', { name: /^T\.2:/ }))).toBe(true);
 
       await user.click(screen.getByRole('button', { name: 'End review' }));
       expect(screen.getByRole('button', { name: 'Review agent scores (2)' })).toBeInTheDocument();
@@ -379,7 +393,6 @@ describe(Chart, () => {
 
       expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
       expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice to have' })).toBeChecked();
-      expect(hasHalo(screen.getByRole('button', { name: /^T\.2:/ }))).toBe(false);
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · – of 2');
 
       await user.keyboard('{Enter}');
@@ -581,9 +594,14 @@ function countTrails(): number {
   return screen.getByRole('group', { name: 'Items by urgency and value' }).querySelectorAll('.tr-trail').length;
 }
 
-/** Returns whether the item wears the agent's halo, which is decorative SVG without a role to query. */
-function hasHalo(element: HTMLElement): boolean {
-  return element.querySelector('.tr-node-halo, .tr-circle-halo') !== null;
+/** Returns a circle's border, which is decorative SVG without a role to query. */
+function getBorder(element: HTMLElement): Element | null {
+  return element.querySelector('.tr-node-border');
+}
+
+/** Returns a gutter item's circle icon, which is decorative SVG without a role to query. */
+function getIcon(element: HTMLElement): Element | null {
+  return element.querySelector('.tr-circle');
 }
 
 /** Returns whether the item wears the mark of `className`, which is decorative SVG without a role to query. */

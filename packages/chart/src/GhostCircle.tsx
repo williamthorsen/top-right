@@ -2,7 +2,7 @@ import type { WorkType } from '@top-right/model';
 import type { KeyboardEvent, ReactElement } from 'react';
 
 import type { GhostPlacement } from './layout.ts';
-import { type Fade, HIT_RADIUS } from './ScoredCircle.tsx';
+import { type Fade, HIT_RADIUS, UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
 
 export interface GhostCircleProps {
   ghost: GhostPlacement;
@@ -30,6 +30,7 @@ export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCirc
       className="tr-node"
       data-fade={fade}
       data-item-key={id}
+      data-sized={!isUnsized}
       data-status="done"
       data-work-type={workType}
       onClick={() => onReveal(id)}
@@ -41,8 +42,7 @@ export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCirc
       <title>{name}</title>
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
       <circle className="tr-node-main" r={r} />
-      <circle className="tr-node-border" r={r} />
-      {isUnsized ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
+      <circle className="tr-node-border" pathLength={isUnsized ? UNSIZED_DOT_COUNT : undefined} r={r} />
       <circle className="tr-node-selected" r={r + 3} />
       <circle className="tr-node-focus" r={r + 5.5} />
     </g>

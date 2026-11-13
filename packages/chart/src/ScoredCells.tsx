@@ -1,7 +1,6 @@
 import {
   classifyWorkType,
   deriveStatus,
-  isAgentScored,
   type ResolvedItemScores,
   type StatusOverride,
   type WorkItem,
@@ -73,7 +72,6 @@ export function ScoredCells({
                     cellX={cell.x}
                     cellY={cell.y}
                     circle={circle}
-                    isAgentScored={isAgentScored(scores[circle.id])}
                     isBlocked={blockedKeys.has(circle.id)}
                     isHighlighted={circle.id === highlightedKey}
                     fade={fadeOf(circle.id)}
