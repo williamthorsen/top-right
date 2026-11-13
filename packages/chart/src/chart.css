@@ -353,6 +353,10 @@
   stroke-width: 2.5;
 }
 
+.tr-circle-done {
+  fill: var(--tr-done);
+}
+
 [data-work-type='feature'] .tr-circle,
 .tr-circle[data-work-type='feature'] {
   stroke: var(--tr-cat-feature);

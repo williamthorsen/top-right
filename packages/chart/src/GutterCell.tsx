@@ -87,7 +87,11 @@ export function GutterCell({
                 type="button"
                 {...dragHandlersFor(key)}
               >
-                <CircleIcon hasHalo={isAgentScored(scores[key])} isBlocked={isBlocked} />
+                <CircleIcon
+                  hasHalo={isAgentScored(scores[key])}
+                  isBlocked={isBlocked}
+                  isDone={item.state === 'closed'}
+                />
                 {label}
               </button>
             </li>
