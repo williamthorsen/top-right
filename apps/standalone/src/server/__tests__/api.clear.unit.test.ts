@@ -1,4 +1,4 @@
-import type { ItemScores } from '@top-right/model';
+import type { ItemScores, ScoreEntry, UrgencyLevel, ValueLevel } from '@top-right/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createMemoryStore } from '#src/test-utils/memory-store.ts';
@@ -7,11 +7,10 @@ import type { LabelWriter } from '../label-write.ts';
 import { closeServers, EARLIER, ITEM, ITEM_KEY, post, startServer } from '../test-utils/api-server.ts';
 
 const REF = { repo: ITEM.repo, number: ITEM.number };
-const STORED: ItemScores = {
-  urgency: { score: 'critical', by: 'agent', at: EARLIER, previous: 'low' },
-  value: { score: 'must-have', by: 'agent', at: EARLIER },
-  progress: { score: 0.5, by: 'author', at: EARLIER },
-};
+const URGENCY: ScoreEntry<UrgencyLevel> = { score: 'critical', by: 'agent', at: EARLIER, previous: 'low' };
+const VALUE: ScoreEntry<ValueLevel> = { score: 'must-have', by: 'agent', at: EARLIER };
+const PROGRESS: ScoreEntry<number> = { score: 0.5, by: 'author', at: EARLIER };
+const STORED: ItemScores = { urgency: URGENCY, value: VALUE, progress: PROGRESS };
 
 afterEach(closeServers);
 
@@ -22,7 +21,7 @@ describe('POST /api/scores/clear', () => {
 
     const response = await post(`${baseUrl}/api/scores/clear`, { itemKey: ITEM_KEY, fields: ['urgency', 'progress'] });
 
-    const expected: ItemScores = { value: STORED.value };
+    const expected: ItemScores = { value: VALUE };
     expect(response.status).toBe(200);
     expect(await response.json()).toStrictEqual({ itemKey: ITEM_KEY, scores: expected });
     expect(store.state.scores[ITEM_KEY]).toStrictEqual(expected);
@@ -41,7 +40,7 @@ describe('POST /api/scores/clear', () => {
       add: [],
       remove: ['urgency:low', 'urgency:medium', 'urgency:high', 'urgency:critical'],
     });
-    const expected: ItemScores = { value: STORED.value, progress: STORED.progress };
+    const expected: ItemScores = { value: VALUE, progress: PROGRESS };
     expect(await response.json()).toStrictEqual({
       itemKey: ITEM_KEY,
       scores: expected,
@@ -62,7 +61,7 @@ describe('POST /api/scores/clear', () => {
     expect(labelWriter).not.toHaveBeenCalled();
     expect(await response.json()).toStrictEqual({
       itemKey: ITEM_KEY,
-      scores: { urgency: STORED.urgency, value: STORED.value },
+      scores: { urgency: URGENCY, value: VALUE },
     });
   });
 
