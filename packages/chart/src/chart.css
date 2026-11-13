@@ -1298,8 +1298,9 @@
   font-size: 12px;
 }
 
-/* Stack each label above its control when the widest control, Value's, does not fit beside the labels. */
-@container (max-width: 480px) {
+/* Stack each label above its control when the widest control, Value's with its clear button, does not fit beside the
+   labels. */
+@container (max-width: 490px) {
   .tr-score {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1437,8 +1438,8 @@
   display: none;
 }
 
-/* Show the short value names where the full ones would wrap beside the clear button. */
-@container (max-width: 400px) {
+/* Show the short value names where the full ones, about 404px with the clear button, would wrap. */
+@container (max-width: 410px) {
   .tr-seg-full {
     display: none;
   }
