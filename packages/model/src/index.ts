@@ -17,7 +17,6 @@ export {
 } from './collections.ts';
 export { buildDefaultFilter, countByStatus, filterItems, type ItemFilter, revealItem } from './filter.ts';
 export { abbreviate, formatIdLabel } from './id-label.ts';
-export { findNextPick } from './pick.ts';
 export {
   type BlockerChain,
   buildRelationGraph,
