@@ -34,8 +34,8 @@ describe(formatScoreCaption, () => {
     );
   });
 
-  it('reads that an unsized item is drawn at the floor', () => {
-    expect(formatScoreCaption('effort', undefined, NOW)).toBe('Unsized, drawn at the floor');
+  it('reads that an unsized item is drawn as 1 point', () => {
+    expect(formatScoreCaption('effort', undefined, NOW)).toBe('Not sized, drawn as 1 point');
   });
 
   it.each(UNCAPTIONED)('gives no caption for $case', ({ field, entry }) => {

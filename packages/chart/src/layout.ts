@@ -30,13 +30,13 @@ const TANGENT_STEP_DEGREES = 10;
 /** The angle, in radians, between successive places on an overfull cell's inner ring. */
 const RING_STEP = 2.4;
 
-/** A circle's radius, and whether the floor raised it. */
+/** A circle's radius, and whether the item lacks an effort, which draws it at one point with a dotted border. */
 export interface CircleSize {
   r: number;
-  floored: boolean;
+  isUnsized: boolean;
 }
 
-const FLOOR_SIZE: CircleSize = { r: FLOOR_RADIUS, floored: true };
+const UNSIZED_SIZE: CircleSize = { r: RADIUS_PER_POINT, isUnsized: true };
 
 /** Which scope a circle's area shows. */
 export type ScopeMode = 'original' | 'remaining';
@@ -46,10 +46,10 @@ export interface Placement {
   id: string;
   u: number;
   v: number;
-  /** The circle's radius; the floor when absent. */
+  /** The circle's radius; one point's when absent. */
   r?: number;
-  /** Whether the radius is the floor rather than the item's scope; true when `r` is absent. */
-  floored?: boolean;
+  /** Whether the item lacks an effort; true when `r` is absent. */
+  isUnsized?: boolean;
 }
 
 export interface PlacedCircle {
@@ -58,7 +58,7 @@ export interface PlacedCircle {
   cx: number;
   cy: number;
   r: number;
-  floored: boolean;
+  isUnsized: boolean;
 }
 
 export interface CellLayout {
@@ -106,10 +106,7 @@ export function layoutCells(placements: readonly Placement[], cellSize: number):
   const cells = new Map<string, CellLayout>();
   const sizes = new Map<string, CircleSize>();
   for (const placement of placements) {
-    sizes.set(placement.id, {
-      r: placement.r ?? FLOOR_RADIUS,
-      floored: placement.floored ?? placement.r === undefined,
-    });
+    sizes.set(placement.id, resolveSize(placement));
     const key = `${placement.u},${placement.v}`;
     let cell = cells.get(key);
     if (!cell) {
@@ -122,7 +119,7 @@ export function layoutCells(placements: readonly Placement[], cellSize: number):
     if (cell.isGutter) cell.overflow = cell.ids.length * GUTTER_ROW_PITCH + 2 * CELL_PADDING > cellSize;
     else
       cell.circles = packCircles(
-        cell.ids.map((id) => ({ id, ...(sizes.get(id) ?? FLOOR_SIZE) })),
+        cell.ids.map((id) => ({ id, ...(sizes.get(id) ?? UNSIZED_SIZE) })),
         cellSize,
       );
   }
@@ -132,13 +129,13 @@ export function layoutCells(placements: readonly Placement[], cellSize: number):
     .toSorted((a, b) => b.v - a.v || a.u - b.u);
 }
 
-/** A ghost's circle in the matrix: its centre, in matrix units, its radius, and whether it sits at the floor. */
+/** A ghost's circle in the matrix: its centre, in matrix units, its radius, and whether its item lacks an effort. */
 export interface GhostPlacement {
   id: string;
   x: number;
   y: number;
   r: number;
-  floored: boolean;
+  isUnsized: boolean;
 }
 
 /**
@@ -161,7 +158,7 @@ export function placeGhosts(
       occupants.set(key, occupant);
     }
     const { cell, placed } = occupant;
-    const r = placement.r ?? FLOOR_RADIUS;
+    const { r, isUnsized } = resolveSize(placement);
     const centre = cellSize / 2;
     const limit = Math.max(0, centre - r - CELL_INSET);
     const offset =
@@ -173,10 +170,10 @@ export function placeGhosts(
       cx: centre + offset.x,
       cy: centre + offset.y,
       r,
-      floored: placement.floored ?? placement.r === undefined,
+      isUnsized,
     };
     placed.push(circle);
-    return { id: circle.id, x: cell.x + circle.cx, y: cell.y + circle.cy, r, floored: circle.floored };
+    return { id: circle.id, x: cell.x + circle.cx, y: cell.y + circle.cy, r, isUnsized };
   });
 }
 
@@ -193,11 +190,13 @@ export function placeItems(
   });
 }
 
-/** Returns the radius of a circle whose scope is `points`, raised to the floor when it is smaller or absent. */
+/**
+ * Returns the radius of a circle whose scope is `points`, raised to `FLOOR_RADIUS` when it is smaller, or one point's
+ * when it is absent.
+ */
 export function sizeCircle(points: number | undefined): CircleSize {
-  if (points === undefined) return FLOOR_SIZE;
-  const r = RADIUS_PER_POINT * Math.sqrt(points);
-  return r < FLOOR_RADIUS ? FLOOR_SIZE : { r, floored: false };
+  if (points === undefined) return UNSIZED_SIZE;
+  return { r: Math.max(FLOOR_RADIUS, RADIUS_PER_POINT * Math.sqrt(points)), isUnsized: false };
 }
 
 /** Returns the radius of an item's circle for the scope that `mode` shows, on the one area scale of `sizeCircle`. */
@@ -272,6 +271,12 @@ function findTangentOffset(
     }
   }
   return best && { x: best.x, y: best.y };
+}
+
+/** Returns a placement's size, at one point's radius and unsized when it has no radius. */
+function resolveSize(placement: Placement): CircleSize {
+  if (placement.r === undefined) return UNSIZED_SIZE;
+  return { r: placement.r, isUnsized: placement.isUnsized ?? false };
 }
 
 function ringOffset(index: number, limit: number): { x: number; y: number } {

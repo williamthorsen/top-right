@@ -1,10 +1,4 @@
-import {
-  classifyWorkType,
-  isAgentScored,
-  type ResolvedItemScores,
-  type WorkItem,
-  type WorkTypeMapping,
-} from '@top-right/model';
+import { classifyWorkType, type ResolvedItemScores, type WorkItem, type WorkTypeMapping } from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
@@ -89,9 +83,9 @@ export function GutterCell({
                 {...dragHandlersFor(key)}
               >
                 <CircleIcon
-                  hasHalo={isAgentScored(scores[key])}
                   isBlocked={isBlocked}
                   isDone={item.state === 'closed'}
+                  isUnsized={scores[key]?.effort === undefined}
                 />
                 {label}
               </button>

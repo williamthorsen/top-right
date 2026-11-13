@@ -424,14 +424,11 @@
   stroke: var(--tr-cat-ops);
 }
 
-.tr-node-floor {
-  fill: none;
-  stroke: var(--tr-on-todo);
-  stroke-width: 1.2;
-}
-
-.tr-node[data-status='in-progress'] .tr-node-floor {
-  stroke: var(--tr-on-inprog);
+/* An unsized item's border is round dots, which read apart from the butt-capped dashes of the blocked ring and trail. */
+.tr-node[data-sized='false'] .tr-node-border,
+.tr-circle[data-sized='false'] {
+  stroke-dasharray: 0 1;
+  stroke-linecap: round;
 }
 
 .tr-node-selected,
@@ -473,14 +470,7 @@
   stroke-width: 3;
 }
 
-/* -- Review: the agent's halo, the trail, and the fade -- */
-
-.tr-node-halo,
-.tr-circle-halo {
-  fill: none;
-  stroke: var(--tr-ink-2);
-  stroke-width: 1.5;
-}
+/* -- Review: the trail and the fade -- */
 
 .tr-trail circle,
 .tr-trail line {

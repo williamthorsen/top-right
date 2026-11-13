@@ -8,13 +8,14 @@ import {
 import { type CSSProperties, type ReactElement, type ToggleEvent, useId, useRef, useState } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
-import { FLOOR_RADIUS } from './layout.ts';
+import { FLOOR_RADIUS, RADIUS_PER_POINT } from './layout.ts';
+import { UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
 import { STATUS_NAMES } from './status-names.ts';
 
 const LEGEND_TYPES: readonly WorkType[] = [...MAPPED_WORK_TYPES, 'none'];
 
-/** The radius of a status swatch, a little larger than the floor so that its pie and floor mark read. */
-const SWATCH_RADIUS = FLOOR_RADIUS + 1.5;
+/** The radius of a status swatch, a little larger than one point so that its pie and dotted border read. */
+const SWATCH_RADIUS = RADIUS_PER_POINT + 1;
 const SWATCH_SIZE = 2 * SWATCH_RADIUS + 3;
 /** The space between the Mapping button and the popover above it, in pixels. */
 const POPOVER_GAP = 6;
@@ -26,8 +27,8 @@ export interface LegendProps {
 }
 
 /**
- * The strip under the chart that names each status fill, the floor mark, each work type's border, and each relation
- * mark, with a popover that lists the labels of each work type.
+ * The strip under the chart that names each status fill, the unsized item's dotted border, each work type's border, and
+ * each relation mark, with a popover that lists the labels of each work type.
  */
 export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactElement {
   return (
@@ -46,8 +47,8 @@ export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactEle
           {STATUS_NAMES.done}
         </li>
         <li>
-          <StatusSwatch isFloored status="to-do" />
-          Unsized, at the floor
+          <StatusSwatch isUnsized status="to-do" />
+          Not sized, drawn as 1 point
         </li>
       </ul>
       <ul aria-label="Work type" className="tr-legend">
@@ -82,15 +83,20 @@ export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactEle
 /** A circle drawn as the chart draws a scored item of `status`; an in-progress swatch shows a pie of two-thirds. */
 export function StatusSwatch({
   status,
-  isFloored = false,
+  isUnsized = false,
 }: {
   status: StatusCategory;
-  isFloored?: boolean;
+  isUnsized?: boolean;
 }): ReactElement {
   const r = SWATCH_RADIUS;
   return (
     <svg aria-hidden="true" height={SWATCH_SIZE} viewBox={`0 0 ${SWATCH_SIZE} ${SWATCH_SIZE}`} width={SWATCH_SIZE}>
-      <g className="tr-node" data-status={status} transform={`translate(${SWATCH_SIZE / 2} ${SWATCH_SIZE / 2})`}>
+      <g
+        className="tr-node"
+        data-sized={!isUnsized}
+        data-status={status}
+        transform={`translate(${SWATCH_SIZE / 2} ${SWATCH_SIZE / 2})`}
+      >
         <circle className="tr-node-main" r={r} />
         {status === 'in-progress' ? (
           <path
@@ -98,8 +104,7 @@ export function StatusSwatch({
             d={`M0 0 L0 ${-r} A${r} ${r} 0 1 1 ${(-r * Math.sin(Math.PI / 3)).toFixed(2)} ${(r / 2).toFixed(2)} Z`}
           />
         ) : null}
-        <circle className="tr-node-border" r={r} />
-        {isFloored ? <circle className="tr-node-floor" r={r - 3.5} /> : null}
+        <circle className="tr-node-border" pathLength={isUnsized ? UNSIZED_DOT_COUNT : undefined} r={r} />
       </g>
     </svg>
   );

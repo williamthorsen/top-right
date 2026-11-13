@@ -94,11 +94,11 @@ describe(DetailPane, () => {
     expect(pane).not.toHaveTextContent(/Author|points|Unscored/);
   });
 
-  it('reads an unsized effort as drawn at the floor', () => {
+  it('reads an unsized effort as drawn as 1 point', () => {
     renderPane();
 
     // An exact match fails if the line goes on to say more.
-    expect(screen.getByText('Unsized, drawn at the floor')).toBeInTheDocument();
+    expect(screen.getByText('Not sized, drawn as 1 point')).toBeInTheDocument();
   });
 
   it("names each value level by its full name, which contains the segment's short name", () => {

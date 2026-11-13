@@ -7,14 +7,14 @@ export function formatPoints(effort: number): string {
 
 /**
  * Returns the caption under a score row, which states only what the control cannot show: who set an agent's score and
- * when, such as `Agent · 8 Nov`, adding the year when it is not `now`'s, or that an unsized item is drawn at the floor.
+ * when, such as `Agent · 8 Nov`, adding the year when it is not `now`'s, or that an unsized item is drawn as 1 point.
  */
 export function formatScoreCaption(
   field: ScoreField,
   entry: LabelScoreEntry | ScoreEntry | undefined,
   now: Date = new Date(),
 ): string | undefined {
-  if (!entry) return field === 'effort' ? 'Unsized, drawn at the floor' : undefined;
+  if (!entry) return field === 'effort' ? 'Not sized, drawn as 1 point' : undefined;
   if (entry.by !== 'agent') return undefined;
   const at = new Date(entry.at);
   const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
