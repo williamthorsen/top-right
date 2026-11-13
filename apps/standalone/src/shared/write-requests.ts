@@ -11,6 +11,15 @@ import { z } from 'zod';
 
 import { itemScoresSchema, statusOverrideSchema } from './items-response.ts';
 
+/** The body of `POST /api/scores/clear`: the item and the scores to clear, each named once. */
+export const clearRequestSchema = z.object({
+  itemKey: z.string().min(1),
+  fields: z
+    .array(z.enum(['effort', 'progress', 'urgency', 'value']))
+    .min(1, 'expected at least one score')
+    .transform((fields) => [...new Set(fields)]),
+});
+
 /** The body of `POST /api/keep`: the item whose agent scores the author keeps. */
 export const keepRequestSchema = z.object({ itemKey: z.string().min(1) });
 
@@ -39,8 +48,8 @@ export const statusRequestSchema = z.object({
 });
 
 /**
- * The body of a successful `POST /api/scores` or `POST /api/keep`: the item's resulting scores, and its labels when the
- * host wrote them.
+ * The body of a successful `POST /api/scores`, `POST /api/scores/clear`, or `POST /api/keep`: the item's resulting
+ * scores, and its labels when the host wrote them.
  */
 export const scoresResponseSchema = z.object({
   itemKey: z.string(),
@@ -63,6 +72,7 @@ export const statusResponseSchema = statusPatchSchema.extend({
   override: statusOverrideSchema.nullable(),
 });
 
+export type ClearRequest = z.infer<typeof clearRequestSchema>;
 export type KeepRequest = z.infer<typeof keepRequestSchema>;
 export type ScoresRequest = z.infer<typeof scoresRequestSchema>;
 export type StatusRequest = z.infer<typeof statusRequestSchema>;

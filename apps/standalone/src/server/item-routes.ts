@@ -17,6 +17,7 @@ import type { Store } from '@top-right/store';
 
 import type { ItemsResponse, RepoReadsResponse } from '#src/shared/items-response.ts';
 import {
+  clearRequestSchema,
   compactScores,
   keepRequestSchema,
   repoReadsRequestSchema,
@@ -27,11 +28,12 @@ import {
 import { resolveFirstLoadRepos } from './first-load-repos.ts';
 import { describeError, readRequest, sendJson } from './http-json.ts';
 import type { ItemsCache, ItemsRead, RepoRead } from './items-cache.ts';
-import { type LabelWriter, writeAuthorChange } from './label-write.ts';
+import { clearAuthorScores, type LabelWriter, writeAuthorChange } from './label-write.ts';
 import type { RouteTable } from './route-table.ts';
 import { describeCollections } from './settings-routes.ts';
 import { writeStatusAtSource } from './status-write.ts';
 
+export const CLEAR_SCORES_PATH = '/api/scores/clear';
 export const ITEMS_PATH = '/api/items';
 export const ITEMS_READ_PATH = '/api/items/read';
 export const ITEMS_REFRESH_PATH = '/api/items/refresh';
@@ -69,6 +71,15 @@ export function createItemRoutes({
   const statusWrites = { items: itemsCache, store, userId };
 
   const routes: RouteTable = {
+    [CLEAR_SCORES_PATH]: {
+      method: 'POST',
+      handle: async (request, response) => {
+        const body = await readRequest(request, response, clearRequestSchema);
+        if (!body) return;
+        const answer = await clearAuthorScores(authorWrites, body.itemKey, body.fields);
+        sendJson(response, answer.status, answer.body);
+      },
+    },
     [ITEMS_PATH]: {
       method: 'GET',
       handle: async (request, response) => {
