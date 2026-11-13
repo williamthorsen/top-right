@@ -4,6 +4,9 @@ import type { KeyboardEvent, ReactElement } from 'react';
 import type { PlacedCircle, ScopeMode } from './layout.ts';
 import type { DragHandlers } from './useItemDrag.ts';
 
+/** How strongly a fade dims an item: lightly beside a focused item, strongly outside a review's queue or the chain. */
+export type Fade = 'soft' | 'strong';
+
 export interface ScoredCircleProps {
   circle: PlacedCircle;
   /** The top-left corner of the circle's cell in the matrix. */
@@ -24,8 +27,8 @@ export interface ScoredCircleProps {
   isDragging: boolean;
   /** Whether the item carries an agent's score that the author has not kept, which its halo marks. */
   isAgentScored: boolean;
-  /** Whether a review or a focus fades the circle; it stays selectable. */
-  isFaded: boolean;
+  /** How strongly a review, the chain view, or a focus fades the circle; it stays selectable. */
+  fade: Fade | undefined;
   /** Whether an open item blocks the item, which its red ring marks. */
   isBlocked: boolean;
   /** Whether a relation row in the pane points at the item, which shows its hover ring. */
@@ -57,7 +60,7 @@ export function ScoredCircle({
   dragHandlers,
   isDragging,
   isAgentScored,
-  isFaded,
+  fade,
   isBlocked,
   isHighlighted,
   onPreview,
@@ -78,7 +81,7 @@ export function ScoredCircle({
       className="tr-node"
       data-item-key={id}
       data-dragging={isDragging}
-      data-faded={isFaded && !isSelected}
+      data-fade={isSelected ? undefined : fade}
       data-highlighted={isHighlighted}
       data-status={status}
       data-work-type={workType}

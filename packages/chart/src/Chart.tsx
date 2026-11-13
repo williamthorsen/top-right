@@ -30,6 +30,7 @@ import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
 import { resolveScores } from './resolve-scores.ts';
+import type { Fade } from './ScoredCircle.tsx';
 import { listTrails } from './Trail.tsx';
 import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
@@ -229,13 +230,13 @@ export function Chart({
   const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board, cellSize);
   const ghostElements = (
-    <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={selectShown} />
+    <Ghosts fadeOf={fadeOf} ghosts={ghosts} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={selectShown} />
   );
   // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
-  function isFaded(key: string): boolean {
-    if (review.kind !== undefined) return review.isFaded(key);
-    if (chainView.isShown) return chainView.isFaded(key);
-    return focus.related !== undefined && !focus.related.has(key);
+  function fadeOf(key: string): Fade | undefined {
+    if (review.kind !== undefined) return review.isFaded(key) ? 'strong' : undefined;
+    if (chainView.isShown) return chainView.isFaded(key) ? 'strong' : undefined;
+    return focus.related === undefined || focus.related.has(key) ? undefined : 'soft';
   }
 
   const trails = listTrails(
@@ -272,10 +273,10 @@ export function Chart({
                   cells,
                   dragHandlersFor,
                   draggingKey: drag?.key,
+                  fadeOf,
                   ghostOwner,
                   ghosts: ghostElements,
                   highlightedKey,
-                  isFaded,
                   itemsByKey,
                   labelOf,
                   onPreview: setPreviewKey,

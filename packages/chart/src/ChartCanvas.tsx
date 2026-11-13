@@ -79,7 +79,7 @@ export function ChartCanvas({
                 dragHandlersFor={scoredCells.dragHandlersFor}
                 draggingKey={scoredCells.draggingKey}
                 highlightedKey={scoredCells.highlightedKey}
-                isFaded={scoredCells.isFaded}
+                fadeOf={scoredCells.fadeOf}
                 itemsByKey={scoredCells.itemsByKey}
                 key={`${cell.u},${cell.v}`}
                 labelOf={scoredCells.labelOf}

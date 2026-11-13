@@ -522,9 +522,15 @@
   stroke-dasharray: 2 4;
 }
 
-.tr-node[data-faded='true'],
-.tr-ghost[data-faded='true'],
-.tr-gutter-list li[data-faded='true'] {
+.tr-node[data-fade='soft'],
+.tr-ghost[data-fade='soft'],
+.tr-gutter-list li[data-fade='soft'] {
+  opacity: 0.8;
+}
+
+.tr-node[data-fade='strong'],
+.tr-ghost[data-fade='strong'],
+.tr-gutter-list li[data-fade='strong'] {
   opacity: 0.25;
 }
 
