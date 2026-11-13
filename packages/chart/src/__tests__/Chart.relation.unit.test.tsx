@@ -116,6 +116,7 @@ function getRow(name: RegExp): HTMLElement {
   return within(getPane()).getByRole('button', { name });
 }
 
+/** Returns a relation of `kind` to an open issue titled after its number. */
 function relate(kind: RelationKind, number: number, repo = REPO): Relation {
   return {
     kind,
