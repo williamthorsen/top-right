@@ -8,8 +8,6 @@ import {
   type ItemFilter,
   type ItemScores,
   listBlockedKeys,
-  type ResolvedItemScores,
-  resolveItemScores,
   revealItem,
   type ScoreField,
   type ScoreLabelMapping,
@@ -32,6 +30,7 @@ import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layou
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
+import { resolveScores } from './resolve-scores.ts';
 import { listTrails } from './Trail.tsx';
 import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
@@ -216,10 +215,13 @@ export function Chart({
     if (review.kind !== undefined) review.end();
   }
 
-  /** Reveals one hidden item and selects it, ending a running review, whose queue the reveal would change. */
-  function revealGhost(key: string): void {
-    setFilter({ ...filter, revealedKeys: new Set([...filter.revealedKeys, key]) });
-    if (review.kind !== undefined) review.end();
+  /** Selects one of the items, revealing it alone when the filter hides it, which ends a running review. */
+  function selectShown(key: string): void {
+    if (!itemsByKey.has(key)) return;
+    if (!visibleKeys.has(key)) {
+      setFilter({ ...filter, revealedKeys: new Set([...filter.revealedKeys, key]) });
+      if (review.kind !== undefined) review.end();
+    }
     selection.push(key);
   }
 
@@ -229,7 +231,7 @@ export function Chart({
   const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board, cellSize);
   const ghostElements = (
-    <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={revealGhost} />
+    <Ghosts ghosts={ghosts} isFaded={isFaded} itemsByKey={itemsByKey} labelOf={labelOf} onReveal={selectShown} />
   );
   // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
   function isFaded(key: string): boolean {
@@ -318,8 +320,10 @@ export function Chart({
             selection.push(undefined);
             setPreviewKey(undefined);
           }}
+          isGiven={(itemKey) => itemsByKey.has(itemKey)}
           onKeep={onKeep ? review.keep : undefined}
           onRelationHighlight={setHighlightedKey}
+          onRelationSelect={selectShown}
           onScoresChange={review.changeScores}
           onScoresClear={onScoresClear ? review.clearScores : undefined}
           onStatusChange={(itemKey, status) => {
@@ -334,19 +338,3 @@ export function Chart({
     </div>
   );
 }
-
-// region | Helpers
-/** Returns each item's stored scores with the scores that its labels supply, by item key. */
-function resolveScores(
-  items: readonly WorkItem[],
-  scores: Readonly<Record<string, ItemScores>>,
-  mapping: ScoreLabelMapping,
-): Record<string, ResolvedItemScores> {
-  const resolved: Record<string, ResolvedItemScores> = {};
-  for (const item of items) {
-    const key = formatItemKey(item);
-    resolved[key] = resolveItemScores(scores[key], item.labels, mapping);
-  }
-  return resolved;
-}
-// endregion | Helpers

@@ -90,7 +90,7 @@ describe(Chart, () => {
     await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
 
     const subIssues = within(getPane()).getByRole('region', { name: 'Sub-issues' });
-    expect(within(subIssues).getByRole('link', { name: /T\.3 Blocked blocked/ })).toBeInTheDocument();
+    expect(within(subIssues).getByRole('button', { name: /T\.3 Blocked blocked/ })).toBeInTheDocument();
     expect(within(subIssues).getByRole('link', { name: /T\.9 Done closed/ })).toBeInTheDocument();
   });
 
@@ -533,7 +533,7 @@ describe(Chart, () => {
       renderChart(chainItems, {}, chainScores);
       await user.click(screen.getByRole('button', { name: /^T\.2:/ }));
 
-      const row = within(getPane()).getByRole('link', { name: /T\.3 Issue 3/ });
+      const row = within(getPane()).getByRole('button', { name: /T\.3 Issue 3/ });
       await user.hover(row);
       expect(screen.getByRole('button', { name: /^T\.3:/ })).toHaveAttribute('data-highlighted', 'true');
 
@@ -545,7 +545,7 @@ describe(Chart, () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
       await user.click(screen.getByRole('button', { name: /^T\.2:/ }));
-      await user.hover(within(getPane()).getByRole('link', { name: /T\.3 Issue 3/ }));
+      await user.hover(within(getPane()).getByRole('button', { name: /T\.3 Issue 3/ }));
 
       await user.keyboard('{Escape}');
 

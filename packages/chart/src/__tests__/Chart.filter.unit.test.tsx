@@ -175,7 +175,7 @@ describe(Chart, () => {
       await chooseRepos(user, 'top-right (tr)');
       await user.click(screen.getByRole('button', { name: /^1:/ }));
 
-      expect(within(getPane()).getByRole('link', { name: /ca\.2 Issue 2/ })).toBeInTheDocument();
+      expect(within(getPane()).getByRole('button', { name: /ca\.2 Issue 2/ })).toBeInTheDocument();
       expect(within(getPane()).getByText('tr.1')).toBeInTheDocument();
     });
   });
