@@ -144,6 +144,18 @@ describe(DetailPane, () => {
       expect(screen.getByRole('slider', { name: 'Progress' })).toHaveFocus();
     });
 
+    it('reads an unset progress once it is cleared after a drag', () => {
+      const { rerenderPane } = renderPane();
+      const range = screen.getByRole('slider', { name: 'Progress' });
+
+      fireEvent.input(range, { target: { value: '5' } });
+      fireEvent.change(range, { target: { value: '5' } });
+      rerenderPane({ scores: { progress: { score: 0.05, by: 'author', at: AT } } });
+      rerenderPane({ scores: {} });
+
+      expect(within(screen.getByRole('region', { name: 'Scores' })).getByRole('status')).toHaveTextContent('–');
+    });
+
     it('offers no clear button when the host passes no clear handler', () => {
       renderPane({ scores: scored, onScoresClear: undefined });
 
@@ -205,7 +217,7 @@ function renderPane(overrides: Partial<DetailPaneProps> & { scores?: ItemScores 
   const onScoresClear = vi.fn<NonNullable<DetailPaneProps['onScoresClear']>>();
   const onStatusChange = vi.fn<DetailPaneProps['onStatusChange']>();
   const onKeep = vi.fn<(itemKey: string) => void>();
-  render(
+  const buildPane = (props: Partial<DetailPaneProps>) => (
     <DetailPane
       abbreviations={{}}
       blockedKeys={new Set()}
@@ -220,9 +232,13 @@ function renderPane(overrides: Partial<DetailPaneProps> & { scores?: ItemScores 
       override={undefined}
       scores={undefined}
       workTypeMapping={DEFAULT_WORK_TYPE_MAPPING}
-      {...overrides}
-    />,
+      {...props}
+    />
   );
-  return { onKeep, onScoresChange, onScoresClear, onStatusChange };
+  const { rerender } = render(buildPane(overrides));
+  function rerenderPane(props: Partial<DetailPaneProps>): void {
+    rerender(buildPane({ ...overrides, ...props }));
+  }
+  return { onKeep, onScoresChange, onScoresClear, onStatusChange, rerenderPane };
 }
 // endregion | Helpers

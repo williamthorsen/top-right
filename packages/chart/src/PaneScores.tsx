@@ -169,7 +169,10 @@ function ProgressRow({
   useEffect(() => {
     const element = input.current;
     function commitOnChange(event: Event): void {
-      if (event.currentTarget instanceof HTMLInputElement) commitChange(Number(event.currentTarget.value) / PERCENT);
+      if (!(event.currentTarget instanceof HTMLInputElement)) return;
+      commitChange(Number(event.currentTarget.value) / PERCENT);
+      // Drop the draft, which would otherwise show again once a clear returns the value to the one it started from.
+      setDraft(undefined);
     }
     element?.addEventListener('change', commitOnChange);
     return () => element?.removeEventListener('change', commitOnChange);
