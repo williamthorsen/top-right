@@ -5,6 +5,7 @@ import {
   DEFAULT_WORK_TYPE_MAPPING,
   describeDuplicateLabel,
   findDuplicateLabels,
+  findWorkTypeLabel,
   MAPPED_WORK_TYPES,
   normalizeWorkTypeMapping,
   type WorkTypeMapping,
@@ -60,6 +61,25 @@ describe(describeDuplicateLabel, () => {
     expect(describeDuplicateLabel({ label: 'fix', workTypes: ['bug', 'task'] })).toBe(
       '"fix" is in Bug and Task. Keep it in one type.',
     );
+  });
+});
+
+describe(findWorkTypeLabel, () => {
+  it('returns the label that decides the work type, as the item writes it', () => {
+    expect(findWorkTypeLabel(['help wanted', 'Bug'])).toBe('Bug');
+  });
+
+  it('when labels map to several types, returns the label of the earliest type in classifier order', () => {
+    expect(findWorkTypeLabel(['bug', 'feature'])).toBe('feature');
+  });
+
+  it('when the winning type lists several of the labels, returns the first in label order', () => {
+    const mapping: WorkTypeMapping = { bug: [], feature: ['feature', 'enhancement'], ops: [], task: [] };
+    expect(findWorkTypeLabel(['enhancement', 'feature'], mapping)).toBe('enhancement');
+  });
+
+  it('if no label is mapped, returns undefined', () => {
+    expect(findWorkTypeLabel(['question'])).toBeUndefined();
   });
 });
 

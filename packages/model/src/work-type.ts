@@ -96,6 +96,22 @@ export function classifyWorkType(
   return 'none';
 }
 
+/**
+ * Returns the item label that decides `classifyWorkType`'s result, as the item writes it: the first of `labels` that
+ * the winning work type lists. Returns `undefined` when none of the labels is mapped.
+ */
+export function findWorkTypeLabel(
+  labels: readonly string[],
+  mapping: WorkTypeMapping = DEFAULT_WORK_TYPE_MAPPING,
+): string | undefined {
+  for (const workType of MAPPED_WORK_TYPES) {
+    const mapped = new Set(mapping[workType].map((label) => label.toLowerCase()));
+    const label = labels.find((candidate) => mapped.has(candidate.toLowerCase()));
+    if (label !== undefined) return label;
+  }
+  return undefined;
+}
+
 // region | Helpers
 function normalizeLabels(labels: readonly string[]): string[] {
   return labels.map((label) => label.trim()).filter((label) => label !== '');

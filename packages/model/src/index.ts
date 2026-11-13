@@ -93,6 +93,7 @@ export {
   describeDuplicateLabel,
   type DuplicateLabel,
   findDuplicateLabels,
+  findWorkTypeLabel,
   MAPPED_WORK_TYPES,
   type MappedWorkType,
   normalizeWorkTypeMapping,
