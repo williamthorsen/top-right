@@ -1,12 +1,16 @@
 import { Chart, type SettableStatus } from '@top-right/chart';
 import {
   applyScoreWrite,
+  clearScoreFields,
   describeAbbreviationClash,
   formatItemKey,
   type ItemPatch,
   type ItemScores,
   keepItemScores,
+  type LabelDimension,
   parseItemKey,
+  removeDimensionLabels,
+  type ScoreField,
   type Scores,
   type StatusOverride,
   type WorkItem,
@@ -21,6 +25,9 @@ import { describeError, getJson, HostResponseError, postJson } from './host-requ
 import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
 import { useStoredMagnification } from './useStoredMagnification.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
+
+/** The dimensions whose scores the host keeps in an issue's labels. */
+const LABEL_DIMENSIONS: readonly LabelDimension[] = ['urgency', 'value', 'effort'];
 
 /**
  * The page: the chart of the configured repositories' open issues, whose scores and status it writes to the host, with
@@ -175,6 +182,28 @@ export function App(): ReactElement {
     });
   }
 
+  function clearScores(itemKey: string, fields: readonly ScoreField[]): void {
+    const previous = scores[itemKey];
+    const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
+    const dimensions = LABEL_DIMENSIONS.filter((dimension) => fields.includes(dimension));
+    setScores((current) => ({ ...current, [itemKey]: clearScoreFields(current[itemKey], fields) }));
+    // Drop the labels too, so that a label score does not show in the cleared row until the host answers.
+    if (item && dimensions.length > 0) {
+      applyPatch(itemKey, { labels: removeDimensionLabels(item.labels, dimensions, data.scoreLabelMapping) });
+    }
+    enqueueWrite(itemKey, async () => {
+      try {
+        const body = await postJson('/api/scores/clear', { itemKey, fields }, scoresResponseSchema);
+        if (body.labels) applyPatch(itemKey, { labels: body.labels });
+        setScores((current) => ({ ...current, [itemKey]: body.scores }));
+      } catch (error) {
+        setScores((current) => replaceEntry(current, itemKey, previous));
+        if (item && dimensions.length > 0) applyPatch(itemKey, { labels: item.labels });
+        setFailure(`Score not cleared: ${describeError(error)}. Try again.`);
+      }
+    });
+  }
+
   function keepScores(itemKey: string): void {
     const previous = scores[itemKey];
     const at = new Date().toISOString();
@@ -257,6 +286,7 @@ export function App(): ReactElement {
         onKeep={keepScores}
         onMagnificationChange={changeMagnification}
         onScoresChange={changeScores}
+        onScoresClear={clearScores}
         onSelectedKeyChange={changeSelectedKey}
         onShownReposChange={followShownRepos}
         onStatusChange={(itemKey, status) => {
