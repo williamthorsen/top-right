@@ -136,6 +136,19 @@ describe(Chart, () => {
       expect(within(getPane()).getByRole('button', { name: /C\.3 Issue 3/ })).toBeInTheDocument();
     });
 
+    it('fades nothing while the focused item relates only to items off the board', async () => {
+      const user = userEvent.setup();
+      renderChart([...crossItems, buildItem({ number: 5 })], ABBREVIATIONS, {
+        ...crossScores,
+        [`${REPO}#5`]: place(2, 2),
+      });
+      await chooseRepos(user, 'top-right (T)');
+
+      await user.click(screen.getByRole('button', { name: /^1:/ }));
+
+      expect(screen.getByRole('button', { name: /^5:/ })).not.toHaveAttribute('data-fade');
+    });
+
     it('rings the item that the unloaded open item blocks', async () => {
       const user = userEvent.setup();
       renderChart(crossItems, ABBREVIATIONS, crossScores);

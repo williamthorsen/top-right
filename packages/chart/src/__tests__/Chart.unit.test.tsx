@@ -304,8 +304,8 @@ describe(Chart, () => {
 
       expect(screen.getByRole('toolbar', { name: 'Review' })).toHaveTextContent('Agent-scored · 1 of 2');
       expect(screen.getByRole('button', { name: /^T\.2:/ })).toBePressed();
-      expect(screen.getByRole('button', { name: /^T\.3:/ })).toHaveAttribute('data-faded', 'true');
-      expect(screen.getByRole('button', { name: /^T\.1:/ })).toHaveAttribute('data-faded', 'false');
+      expect(screen.getByRole('button', { name: /^T\.3:/ })).toHaveAttribute('data-fade', 'strong');
+      expect(screen.getByRole('button', { name: /^T\.1:/ })).not.toHaveAttribute('data-fade');
 
       await user.keyboard('{Enter}');
       expect(screen.getByRole('button', { name: /^T\.1:/ })).toBePressed();
@@ -432,16 +432,16 @@ describe(Chart, () => {
       expect(listEdges()).toStrictEqual([]);
     });
 
-    it('when a circle is hovered, draws its own edges, and fades every unrelated circle', async () => {
+    it('when a circle is hovered, draws its own edges, and lightly fades every unrelated circle', async () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
 
       await user.hover(screen.getByRole('button', { name: /^T\.2:/ }));
 
       expect(listEdges()).toStrictEqual(['blocker:1>2:direct', 'blocker:2>3:direct', 'sub-issue:4>2:direct']);
-      expect(screen.getByRole('button', { name: /^T\.5:/ })).toHaveAttribute('data-faded', 'true');
-      expect(screen.getByRole('button', { name: /^T\.4:/ })).toHaveAttribute('data-faded', 'false');
-      expect(screen.getByRole('button', { name: /^T\.2:/ })).toHaveAttribute('data-faded', 'false');
+      expect(screen.getByRole('button', { name: /^T\.5:/ })).toHaveAttribute('data-fade', 'soft');
+      expect(screen.getByRole('button', { name: /^T\.4:/ })).not.toHaveAttribute('data-fade');
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).not.toHaveAttribute('data-fade');
     });
 
     it('when a circle is selected, draws its blocker chain at reduced weight and keeps a faded circle selectable', async () => {
@@ -452,10 +452,35 @@ describe(Chart, () => {
       await user.unhover(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(listEdges()).toStrictEqual(['blocker:2>3:chain', 'blocker:1>2:direct']);
-      expect(screen.getByRole('button', { name: /^T\.4:/ })).toHaveAttribute('data-faded', 'true');
+      expect(screen.getByRole('button', { name: /^T\.4:/ })).toHaveAttribute('data-fade', 'soft');
 
       await user.click(screen.getByRole('button', { name: /^T\.4:/ }));
       expect(screen.getByRole('button', { name: /^T\.4:/ })).toBePressed();
+    });
+
+    it('lightly fades an unrelated gutter row while a circle is hovered', async () => {
+      const user = userEvent.setup();
+      const { [`${REPO}#5`]: _, ...scoresWithoutFive } = chainScores;
+      renderChart(chainItems, {}, scoresWithoutFive);
+
+      await user.hover(screen.getByRole('button', { name: /^T\.2:/ }));
+
+      const row = within(screen.getByRole('list', { name: 'Unscored items' })).getByRole('button', { name: /^T\.5:/ });
+      // eslint-disable-next-line testing-library/no-node-access -- the row, which carries the fade, has no role to query.
+      expect(row.closest('li')).toHaveAttribute('data-fade', 'soft');
+    });
+
+    it('fades nothing while a circle without relations is selected', async () => {
+      const user = userEvent.setup();
+      renderChart(chainItems, {}, chainScores);
+
+      await user.click(screen.getByRole('button', { name: /^T\.5:/ }));
+
+      for (const number of [1, 2, 3, 4, 5]) {
+        expect(screen.getByRole('button', { name: new RegExp(String.raw`^T\.${number}:`) })).not.toHaveAttribute(
+          'data-fade',
+        );
+      }
     });
 
     it('with All edges on, draws every edge once, faintly when nothing is focused', async () => {
@@ -482,8 +507,8 @@ describe(Chart, () => {
 
       await user.click(screen.getByRole('button', { name: 'Review agent scores (1)' }));
 
-      expect(screen.getByRole('button', { name: /^T\.5:/ })).toHaveAttribute('data-faded', 'false');
-      expect(screen.getByRole('button', { name: /^T\.2:/ })).toHaveAttribute('data-faded', 'true');
+      expect(screen.getByRole('button', { name: /^T\.5:/ })).not.toHaveAttribute('data-fade');
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toHaveAttribute('data-fade', 'strong');
     });
 
     it('draws a blocker cycle', async () => {

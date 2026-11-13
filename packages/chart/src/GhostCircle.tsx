@@ -1,19 +1,19 @@
 import type { KeyboardEvent, ReactElement } from 'react';
 
 import type { GhostPlacement } from './layout.ts';
-import { HIT_RADIUS } from './ScoredCircle.tsx';
+import { type Fade, HIT_RADIUS } from './ScoredCircle.tsx';
 
 export interface GhostCircleProps {
   ghost: GhostPlacement;
   /** The accessible name and the tooltip. */
   name: string;
-  /** Whether a review fades the ghost; it stays activatable. */
-  isFaded: boolean;
+  /** How strongly a review, the chain view, or a focus fades the ghost; it stays activatable. */
+  fade: Fade | undefined;
   onReveal: (id: string) => void;
 }
 
 /** The outline of a hidden done item at the end of a shown edge, which reveals that item when activated. */
-export function GhostCircle({ ghost, name, isFaded, onReveal }: GhostCircleProps): ReactElement {
+export function GhostCircle({ fade, ghost, name, onReveal }: GhostCircleProps): ReactElement {
   const { id, x, y, r } = ghost;
 
   function revealOnKey(event: KeyboardEvent<SVGGElement>): void {
@@ -26,7 +26,7 @@ export function GhostCircle({ ghost, name, isFaded, onReveal }: GhostCircleProps
     <g
       aria-label={name}
       className="tr-ghost"
-      data-faded={isFaded}
+      data-fade={fade}
       data-item-key={id}
       onClick={() => onReveal(id)}
       onKeyDown={revealOnKey}

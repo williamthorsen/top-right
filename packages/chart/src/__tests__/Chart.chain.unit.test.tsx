@@ -33,11 +33,11 @@ describe('Chart longest chain', () => {
 
     await showChain(user);
 
-    expect(getCircle('t.1')).toHaveAttribute('data-faded', 'false');
-    expect(getCircle('t.2')).toHaveAttribute('data-faded', 'false');
-    expect(getGutterRow('t.3')).toHaveAttribute('data-faded', 'false');
-    expect(getCircle('c.4')).toHaveAttribute('data-faded', 'true');
-    expect(getCircle('t.6')).toHaveAttribute('data-faded', 'true');
+    expect(getCircle('t.1')).not.toHaveAttribute('data-fade');
+    expect(getCircle('t.2')).not.toHaveAttribute('data-fade');
+    expect(getGutterRow('t.3')).not.toHaveAttribute('data-fade');
+    expect(getCircle('c.4')).toHaveAttribute('data-fade', 'strong');
+    expect(getCircle('t.6')).toHaveAttribute('data-fade', 'strong');
     expect(listEdges()).toStrictEqual([`blocker:${REPO}#1>${REPO}#2:direct`]);
   });
 
@@ -49,8 +49,8 @@ describe('Chart longest chain', () => {
     await user.click(getCircle('c.4'));
 
     expect(getCircle('c.4')).toBePressed();
-    expect(getCircle('c.4')).toHaveAttribute('data-faded', 'false');
-    expect(getCircle('c.5')).toHaveAttribute('data-faded', 'true');
+    expect(getCircle('c.4')).not.toHaveAttribute('data-fade');
+    expect(getCircle('c.5')).toHaveAttribute('data-fade', 'strong');
     expect(listEdges()).toContain(`blocker:${CA}#4>${CA}#5:direct`);
   });
 
@@ -64,7 +64,7 @@ describe('Chart longest chain', () => {
     await user.click(within(status).getByRole('button', { name: 'End chain view' }));
 
     expect(screen.queryByRole('toolbar', { name: 'Longest chain' })).not.toBeInTheDocument();
-    expect(getCircle('t.6')).toHaveAttribute('data-faded', 'false');
+    expect(getCircle('t.6')).not.toHaveAttribute('data-fade');
     expect(listEdges()).toStrictEqual([]);
   });
 
@@ -92,7 +92,7 @@ describe('Chart longest chain', () => {
     await chooseRepos(user, 'codeassembly (c)');
 
     expect(screen.getByRole('toolbar', { name: 'Longest chain' })).toHaveTextContent('Longest chain · 2 items');
-    expect(getCircle('4')).toHaveAttribute('data-faded', 'false');
+    expect(getCircle('4')).not.toHaveAttribute('data-fade');
 
     await user.click(screen.getByRole('button', { name: /^To do/ }));
 

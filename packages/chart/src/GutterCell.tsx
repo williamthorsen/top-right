@@ -9,13 +9,14 @@ import type { ReactElement } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
 import type { CellLayout } from './layout.ts';
+import type { Fade } from './ScoredCircle.tsx';
 import type { DragHandlers } from './useItemDrag.ts';
 
 export interface GutterCellProps {
   cell: CellLayout;
   cellSize: number;
   scores: Readonly<Record<string, ResolvedItemScores>>;
-  isFaded: (key: string) => boolean;
+  fadeOf: (key: string) => Fade | undefined;
   itemsByKey: ReadonlyMap<string, WorkItem>;
   labelOf: (item: WorkItem) => string;
   workTypeMapping: WorkTypeMapping;
@@ -42,7 +43,7 @@ export function GutterCell({
   cell,
   cellSize,
   scores,
-  isFaded,
+  fadeOf,
   itemsByKey,
   labelOf,
   workTypeMapping,
@@ -68,7 +69,7 @@ export function GutterCell({
           const isBlocked = blockedKeys.has(key);
           return (
             <li
-              data-faded={isFaded(key) && key !== selectedKey}
+              data-fade={key === selectedKey ? undefined : fadeOf(key)}
               data-work-type={classifyWorkType(item.labels, workTypeMapping)}
               key={key}
             >

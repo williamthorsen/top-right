@@ -20,10 +20,11 @@ import {
   type ScopeMode,
   sizeItem,
 } from './layout.ts';
+import type { Fade } from './ScoredCircle.tsx';
 
 export interface GhostsProps {
+  fadeOf: (key: string) => Fade | undefined;
   ghosts: readonly GhostPlacement[];
-  isFaded: (key: string) => boolean;
   itemsByKey: ReadonlyMap<string, WorkItem>;
   labelOf: (ref: Pick<ItemRef, 'number' | 'repo'>) => string;
   onReveal: (key: string) => void;
@@ -42,7 +43,7 @@ interface GhostBoard {
 }
 
 /** The ghosts of the hidden done items at the ends of the shown edges. */
-export function Ghosts({ ghosts, isFaded, itemsByKey, labelOf, onReveal }: GhostsProps): ReactElement {
+export function Ghosts({ fadeOf, ghosts, itemsByKey, labelOf, onReveal }: GhostsProps): ReactElement {
   return (
     <>
       {ghosts.map((ghost) => {
@@ -51,7 +52,7 @@ export function Ghosts({ ghosts, isFaded, itemsByKey, labelOf, onReveal }: Ghost
         return (
           <GhostCircle
             ghost={ghost}
-            isFaded={isFaded(ghost.id)}
+            fade={fadeOf(ghost.id)}
             key={ghost.id}
             name={`${labelOf(item)}: ${item.title}, done, hidden`}
             onReveal={onReveal}

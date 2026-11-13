@@ -11,7 +11,7 @@ import { Fragment, type ReactElement, type ReactNode } from 'react';
 
 import { nameCircle } from './item-label.ts';
 import type { CellLayout, ScopeMode } from './layout.ts';
-import { ScoredCircle } from './ScoredCircle.tsx';
+import { type Fade, ScoredCircle } from './ScoredCircle.tsx';
 import type { DragHandlers } from './useItemDrag.ts';
 
 export interface ScoredCellsProps {
@@ -22,7 +22,7 @@ export interface ScoredCellsProps {
   scopeMode: ScopeMode;
   workTypeMapping: WorkTypeMapping;
   labelOf: (item: WorkItem) => string;
-  isFaded: (key: string) => boolean;
+  fadeOf: (key: string) => Fade | undefined;
   /** The keys of the items that an open item blocks. */
   blockedKeys: ReadonlySet<string>;
   /** The item that a relation row in the pane points at. */
@@ -48,7 +48,7 @@ export function ScoredCells({
   scopeMode,
   workTypeMapping,
   labelOf,
-  isFaded,
+  fadeOf,
   blockedKeys,
   highlightedKey,
   selectedKey,
@@ -76,7 +76,7 @@ export function ScoredCells({
                     isAgentScored={isAgentScored(scores[circle.id])}
                     isBlocked={blockedKeys.has(circle.id)}
                     isHighlighted={circle.id === highlightedKey}
-                    isFaded={isFaded(circle.id)}
+                    fade={fadeOf(circle.id)}
                     isSelected={circle.id === selectedKey}
                     dragHandlers={dragHandlersFor(circle.id, circle.r)}
                     isDragging={circle.id === draggingKey}
