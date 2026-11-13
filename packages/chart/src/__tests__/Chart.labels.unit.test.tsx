@@ -15,7 +15,7 @@ const AT = '2026-11-08T00:00:00.000Z';
 
 describe(Chart, () => {
   describe('with scores from labels', () => {
-    it('places an item by its labels and checks their levels in the pane', () => {
+    it('places an item by its labels and checks their levels in the pane', async () => {
       renderChart([
         buildItem({ number: 1, labels: ['feature', 'urgency:high', 'value:must-have'] }),
         buildItem({ number: 2 }),
@@ -23,7 +23,7 @@ describe(Chart, () => {
 
       const gutter = screen.getByRole('list', { name: 'Unscored items' });
       expect(within(gutter).queryByRole('button', { name: /^T\.1:/ })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /^T\.1:/ })).toBeInTheDocument();
+      await userEvent.setup().click(screen.getByRole('button', { name: /^T\.1:/ }));
       expect(within(getGroup('Urgency')).getByRole('radio', { name: 'High' })).toBeChecked();
       expect(within(getGroup('Value')).getByRole('radio', { name: 'Must have' })).toBeChecked();
     });
@@ -35,7 +35,7 @@ describe(Chart, () => {
       expect(within(gutter).getByRole('button', { name: /^T\.1:/ })).toBeInTheDocument();
     });
 
-    it('ranks a stored score above the label', () => {
+    it('ranks a stored score above the label', async () => {
       renderChart(
         [buildItem({ number: 1, labels: ['urgency:high', 'value:must-have'] })],
         {},
@@ -43,6 +43,7 @@ describe(Chart, () => {
           [`${REPO}#1`]: { value: { score: 'nice-to-have', by: 'author', at: AT } },
         },
       );
+      await userEvent.setup().click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(within(getGroup('Value')).getByRole('radio', { name: 'Nice to have' })).toBeChecked();
       expect(within(getGroup('Urgency')).getByRole('radio', { name: 'High' })).toBeChecked();
@@ -58,7 +59,7 @@ describe(Chart, () => {
       expect(await within(getPane()).findByText('Issue 2')).toBeInTheDocument();
     });
 
-    it('offers no Keep for an item that labels alone score', () => {
+    it('offers no Keep for an item that labels alone score', async () => {
       render(
         <Chart
           abbreviations={{}}
@@ -66,11 +67,13 @@ describe(Chart, () => {
           onKeep={vi.fn()}
         />,
       );
+      await userEvent.setup().click(screen.getByRole('button', { name: /^T\.1:/ }));
 
+      expect(within(getPane()).getByText('Issue 1')).toBeInTheDocument();
       expect(within(getPane()).queryByRole('button', { name: 'Keep' })).not.toBeInTheDocument();
     });
 
-    it('reads labels through the mapping that the host passes', () => {
+    it('reads labels through the mapping that the host passes', async () => {
       const mapping: ScoreLabelMapping = {
         urgency: { critical: [], high: ['priority:high'], low: [], medium: [] },
         value: { 'must-have': ['value:must-have'], 'nice-to-have': [], questionable: [], 'should-have': [] },
@@ -83,6 +86,7 @@ describe(Chart, () => {
           scoreLabelMapping={mapping}
         />,
       );
+      await userEvent.setup().click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(within(getGroup('Urgency')).getByRole('radio', { name: 'High' })).toBeChecked();
     });
@@ -91,14 +95,15 @@ describe(Chart, () => {
   describe('with an effort from a label', () => {
     const LABELS = ['urgency:high', 'value:must-have', 'effort:5'];
 
-    it('sizes the circle by the label and checks its effort in the pane', () => {
+    it('sizes the circle by the label and checks its effort in the pane', async () => {
       renderChart([buildItem({ number: 1, labels: LABELS })]);
+      await userEvent.setup().click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(readRadius(screen.getByRole('button', { name: /^T\.1:/ }))).toBeCloseTo(sizeCircle(5).r);
       expect(within(getGroup('Effort')).getByRole('radio', { name: '5' })).toBeChecked();
     });
 
-    it('ranks a stored effort above the label', () => {
+    it('ranks a stored effort above the label', async () => {
       renderChart(
         [buildItem({ number: 1, labels: LABELS })],
         {},
@@ -106,6 +111,7 @@ describe(Chart, () => {
           [`${REPO}#1`]: { effort: { score: 2, by: 'author', at: AT } },
         },
       );
+      await userEvent.setup().click(screen.getByRole('button', { name: /^T\.1:/ }));
 
       expect(readRadius(screen.getByRole('button', { name: /^T\.1:/ }))).toBeCloseTo(sizeCircle(2).r);
       expect(within(getGroup('Effort')).getByRole('radio', { name: '2' })).toBeChecked();

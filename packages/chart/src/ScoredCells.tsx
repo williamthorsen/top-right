@@ -27,7 +27,6 @@ export interface ScoredCellsProps {
   blockedKeys: ReadonlySet<string>;
   /** The item that a relation row in the pane points at. */
   highlightedKey: string | undefined;
-  pickKey: string | undefined;
   selectedKey: string | undefined;
   /** Returns the handlers that let an item's circle be dragged, which only the selected item has. */
   dragHandlersFor: (key: string, r?: number) => DragHandlers | undefined;
@@ -52,7 +51,6 @@ export function ScoredCells({
   isFaded,
   blockedKeys,
   highlightedKey,
-  pickKey,
   selectedKey,
   dragHandlersFor,
   draggingKey,
@@ -78,15 +76,11 @@ export function ScoredCells({
                     isAgentScored={isAgentScored(scores[circle.id])}
                     isBlocked={blockedKeys.has(circle.id)}
                     isHighlighted={circle.id === highlightedKey}
-                    isPick={circle.id === pickKey}
                     isFaded={isFaded(circle.id)}
                     isSelected={circle.id === selectedKey}
                     dragHandlers={dragHandlersFor(circle.id, circle.r)}
                     isDragging={circle.id === draggingKey}
-                    name={nameCircle(labelOf(item), item.title, {
-                      isBlocked: blockedKeys.has(circle.id),
-                      isPick: circle.id === pickKey,
-                    })}
+                    name={nameCircle(labelOf(item), item.title, { isBlocked: blockedKeys.has(circle.id) })}
                     onPreview={onPreview}
                     onSelect={onSelect}
                     progress={scores[circle.id]?.progress?.score ?? 0}

@@ -3,7 +3,6 @@ import {
   type Collection,
   DEFAULT_SCORE_LABEL_MAPPING,
   DEFAULT_WORK_TYPE_MAPPING,
-  findNextPick,
   formatItemKey,
   type ItemFilter,
   type ItemScores,
@@ -171,8 +170,7 @@ export function Chart({
     [visibleItems, scores, scopeMode, cellSize],
   );
 
-  const pickKey = useMemo(() => findNextPick(visibleItems, scores, overrides), [visibleItems, scores, overrides]);
-  const shownKey = previewKey ?? selectedKey ?? pickKey;
+  const shownKey = previewKey ?? selectedKey;
   // A relation row unmounts without a pointer-leave or blur when the pane changes item, so the highlight ends with it.
   if (highlightOwner !== shownKey) {
     setHighlightOwner(shownKey);
@@ -283,7 +281,6 @@ export function Chart({
                   onPreview: setPreviewKey,
                   onSelect: selectItem,
                   overrides,
-                  pickKey,
                   scopeMode,
                   scores,
                   selectedKey,

@@ -21,8 +21,8 @@ import { LEVEL_NAMES } from './level-names.ts';
 import { PaneScores, type SettableStatus } from './PaneScores.tsx';
 import { listShownLabels } from './shown-labels.ts';
 
-/** Why the pane shows its item: a hover or focus, a selection, or the next pick while nothing is selected. */
-export type PaneMode = 'pick' | 'preview' | 'selected';
+/** Why the pane shows its item: a hover or focus, or a selection. */
+export type PaneMode = 'preview' | 'selected';
 
 export interface DetailPaneProps {
   item: WorkItem | undefined;
@@ -51,7 +51,6 @@ export interface DetailPaneProps {
 }
 
 const MODE_HEADINGS: Readonly<Record<PaneMode, string>> = {
-  pick: 'Next pick',
   preview: 'Preview',
   selected: 'Selected',
 };
@@ -63,10 +62,9 @@ const RELATION_HEADINGS: ReadonlyArray<[RelationKind, string]> = [
   ['sub-issue', 'Sub-issues'],
 ];
 
-/** Returns the pane's mode: a preview of another item than the selection, the selection, or else the next pick. */
+/** Returns the pane's mode: a preview of another item than the selection, or else the selection. */
 export function choosePaneMode(previewKey: string | undefined, selectedKey: string | undefined): PaneMode {
-  if (previewKey !== undefined && previewKey !== selectedKey) return 'preview';
-  return selectedKey === undefined ? 'pick' : 'selected';
+  return previewKey !== undefined && previewKey !== selectedKey ? 'preview' : 'selected';
 }
 
 /** The side pane (a bottom sheet at phone width) that shows the previewed or selected item. */

@@ -314,7 +314,7 @@ describe(Chart, () => {
       await user.keyboard('{Enter}');
       expect(screen.queryByRole('button', { name: /Agent-scored/ })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Review agent scores (0)' })).toBeDisabled();
-      expect(within(getPane()).getByText('Next pick')).toBeInTheDocument();
+      expect(within(getPane()).getByText('No item selected')).toBeInTheDocument();
     });
 
     it('scrolls each item that the review moves to into view', async () => {
@@ -512,20 +512,16 @@ describe(Chart, () => {
       expect(hasMark(row, 'tr-circle-blocked')).toBe(true);
     });
 
-    it('while nothing is selected, rings the next pick and shows it in the pane', async () => {
+    it('while nothing is hovered or selected, shows no item in the pane', async () => {
       const user = userEvent.setup();
       renderChart(chainItems, {}, chainScores);
 
-      const pick = screen.getByRole('button', { name: /^T\.5:.*, next pick$/ });
-      expect(hasMark(pick, 'tr-node-pick')).toBe(true);
-      expect(getPane()).toHaveTextContent('Next pick');
-      expect(getPane()).toHaveTextContent('Issue 5');
-      expect(within(getPane()).queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+      expect(getPane()).toHaveTextContent('No item selected');
+      expect(getPane()).not.toHaveTextContent('Issue 5');
 
       await user.click(screen.getByRole('button', { name: /^T\.4:/ }));
       expect(getPane()).toHaveTextContent('Selected');
       expect(getPane()).toHaveTextContent('Issue 4');
-      expect(hasMark(pick, 'tr-node-pick')).toBe(true);
     });
 
     it("when a relation row in the pane is hovered, rings that row's circle", async () => {
