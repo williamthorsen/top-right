@@ -102,7 +102,7 @@ export function ScoredCircle({
       <circle className="tr-node-main" r={r} />
       {status === 'in-progress' ? <Pie r={r} remaining={scopeMode === 'remaining' ? 1 : 1 - progress} /> : null}
       <circle className="tr-node-border" r={r} />
-      {circle.floored ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
+      {circle.isUnsized ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
       {isBlocked ? <circle className="tr-node-blocked" r={r + BLOCKED_GAP} /> : null}
       <circle className="tr-node-selected" r={r + 3} />
       <circle className="tr-node-focus" r={r + 5.5} />

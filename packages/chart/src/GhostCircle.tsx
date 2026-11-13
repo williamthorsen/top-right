@@ -16,7 +16,7 @@ export interface GhostCircleProps {
 
 /** A hidden done item at the end of a shown edge, drawn as a done circle, which reveals that item when activated. */
 export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCircleProps): ReactElement {
-  const { id, x, y, r, floored } = ghost;
+  const { id, x, y, r, isUnsized } = ghost;
 
   function revealOnKey(event: KeyboardEvent<SVGGElement>): void {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -42,7 +42,7 @@ export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCirc
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
       <circle className="tr-node-main" r={r} />
       <circle className="tr-node-border" r={r} />
-      {floored ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
+      {isUnsized ? <circle className="tr-node-floor" r={Math.max(2, r - 3.5)} /> : null}
       <circle className="tr-node-selected" r={r + 3} />
       <circle className="tr-node-focus" r={r + 5.5} />
     </g>

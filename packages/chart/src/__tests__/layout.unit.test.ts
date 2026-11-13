@@ -90,7 +90,7 @@ describe(layoutCells, () => {
     { case: 'an overfull cell of large circles', radii: Array.from({ length: 12 }, () => sizeCircle(13).r) },
   ])('keeps $case inside their cell', ({ radii }) => {
     const [cell] = layoutCells(
-      radii.map((r, index) => ({ id: String(index), u: 3, v: 4, r, floored: false })),
+      radii.map((r, index) => ({ id: String(index), u: 3, v: 4, r, isUnsized: false })),
       MIN_CELL_SIZE,
     );
 
@@ -137,10 +137,10 @@ describe(layoutCells, () => {
     expect(layoutCells(placements, MIN_CELL_SIZE * 2)[0]?.overflow).toBe(false);
   });
 
-  it('when a placement has no radius, draws it at the floor and marks it floored', () => {
+  it('when a placement has no radius, draws it at one point and marks it unsized', () => {
     const [cell] = layoutCells([{ id: 'a', u: 1, v: 1 }], MIN_CELL_SIZE);
 
-    expect(cell?.circles[0]).toMatchObject({ r: FLOOR_RADIUS, floored: true });
+    expect(cell?.circles[0]).toMatchObject({ r: RADIUS_PER_POINT, isUnsized: true });
   });
 
   it('if a placement is outside the grid, throws a RangeError', () => {
@@ -185,9 +185,9 @@ describe(placeGhosts, () => {
     expect(Math.hypot(first.x - second.x, first.y - second.y)).toBeGreaterThanOrEqual(20);
   });
 
-  it('centres a ghost in a cell that holds no circle, at the floor when it has no radius', () => {
+  it('centres a ghost in a cell that holds no circle, unsized at one point when it has no radius', () => {
     expect(placeGhosts([], [{ id: 'g', u: 4, v: 4 }], MIN_CELL_SIZE)).toStrictEqual([
-      { id: 'g', x: 4 * MIN_CELL_SIZE + MIN_CELL_SIZE / 2, y: MIN_CELL_SIZE / 2, r: FLOOR_RADIUS, floored: true },
+      { id: 'g', x: 4 * MIN_CELL_SIZE + MIN_CELL_SIZE / 2, y: MIN_CELL_SIZE / 2, r: RADIUS_PER_POINT, isUnsized: true },
     ]);
   });
 });
@@ -222,16 +222,16 @@ describe(placeItems, () => {
 
 describe(sizeCircle, () => {
   it('gives a circle an area proportional to its points', () => {
-    expect(sizeCircle(4)).toStrictEqual({ r: 2 * RADIUS_PER_POINT, floored: false });
+    expect(sizeCircle(4)).toStrictEqual({ r: 2 * RADIUS_PER_POINT, isUnsized: false });
     expect(sizeCircle(1).r ** 2 * 9).toBeCloseTo(sizeCircle(9).r ** 2);
   });
 
-  it('draws an unsized item at the floor, marked as floored', () => {
-    expect(sizeCircle(undefined)).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
+  it('draws an unsized item at one point, marked as unsized', () => {
+    expect(sizeCircle(undefined)).toStrictEqual({ r: RADIUS_PER_POINT, isUnsized: true });
   });
 
-  it('raises a circle smaller than the floor to the floor', () => {
-    expect(sizeCircle(0.5)).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
+  it('raises a circle smaller than the minimum radius to it, unmarked', () => {
+    expect(sizeCircle(0.5)).toStrictEqual({ r: FLOOR_RADIUS, isUnsized: false });
   });
 });
 
@@ -247,17 +247,17 @@ describe(sizeItem, () => {
     expect(sizeItem(halfDone, 'remaining')).toStrictEqual(sizeCircle(4));
   });
 
-  it('draws finished work at the floor at remaining scope', () => {
+  it('draws finished work at the minimum radius at remaining scope, unmarked', () => {
     const done: ItemScores = { ...halfDone, progress: { score: 1, by: 'author', at } };
 
-    expect(sizeItem(done, 'remaining')).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
+    expect(sizeItem(done, 'remaining')).toStrictEqual({ r: FLOOR_RADIUS, isUnsized: false });
   });
 
-  it('draws an item without effort at the floor in both modes', () => {
-    expect(sizeItem(undefined, 'original')).toStrictEqual({ r: FLOOR_RADIUS, floored: true });
+  it('draws an item without effort at one point, unsized, in both modes', () => {
+    expect(sizeItem(undefined, 'original')).toStrictEqual({ r: RADIUS_PER_POINT, isUnsized: true });
     expect(sizeItem({ progress: { score: 0.5, by: 'author', at } }, 'remaining')).toStrictEqual({
-      r: FLOOR_RADIUS,
-      floored: true,
+      r: RADIUS_PER_POINT,
+      isUnsized: true,
     });
   });
 });
