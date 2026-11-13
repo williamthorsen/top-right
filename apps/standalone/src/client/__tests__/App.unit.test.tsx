@@ -250,6 +250,7 @@ describe('setting the status', () => {
       ...item,
       labels: ['feature', 'status:in-progress'],
       sourceStatus: 'in-progress',
+      sourceStatusLabel: 'status:in-progress',
     })),
   };
   const TO_DO_WRITTEN = { itemKey: ITEM_KEY, override: null, labels: ['feature'], sourceStatus: 'to-do' };

@@ -41,6 +41,7 @@ export const itemsResponseSchema = z.object({
       createdAt: z.string(),
       labels: z.array(z.string()),
       sourceStatus: z.enum(['in-progress', 'to-do']).exactOptional(),
+      sourceStatusLabel: z.string().exactOptional(),
       relations: z.array(
         z.object({ kind: z.enum(['blocked-by', 'blocking', 'parent', 'sub-issue']), ref: itemRefSchema }),
       ),

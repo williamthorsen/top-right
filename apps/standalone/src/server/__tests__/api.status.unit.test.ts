@@ -9,7 +9,14 @@ import { closeServers, EARLIER, ITEM, ITEM_KEY, NOW, post, startServer } from '.
 const REF = { repo: ITEM.repo, number: ITEM.number };
 const LEGACY: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
 const WRITES: Array<{ status: OpenStatus; patch: ItemPatch }> = [
-  { status: 'in-progress', patch: { labels: ['feature', 'status:in-progress'], sourceStatus: 'in-progress' } },
+  {
+    status: 'in-progress',
+    patch: {
+      labels: ['feature', 'status:in-progress'],
+      sourceStatus: 'in-progress',
+      sourceStatusLabel: 'status:in-progress',
+    },
+  },
   { status: 'to-do', patch: { labels: ['feature'], sourceStatus: 'to-do' } },
 ];
 

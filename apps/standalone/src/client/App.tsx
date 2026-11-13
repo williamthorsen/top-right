@@ -340,9 +340,13 @@ function findOldestRead(reads: ItemsResponse['reads'], repos: readonly string[])
   return candidates.toSorted()[0];
 }
 
-/** Returns the labels and source status that a status answer contains, without its other fields. */
-function pickStatusPatch({ labels, sourceStatus }: ItemPatch): ItemPatch {
-  return { ...(labels !== undefined && { labels }), ...(sourceStatus !== undefined && { sourceStatus }) };
+/** Returns the labels, source status, and status label that a status answer contains, without its other fields. */
+function pickStatusPatch({ labels, sourceStatus, sourceStatusLabel }: ItemPatch): ItemPatch {
+  return {
+    ...(labels !== undefined && { labels }),
+    ...(sourceStatus !== undefined && { sourceStatus }),
+    ...(sourceStatusLabel !== undefined && { sourceStatusLabel }),
+  };
 }
 
 /** Returns `record` with `key` set to `value`, or without `key` when `value` is undefined. */
