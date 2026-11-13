@@ -104,7 +104,7 @@ describe('POST /api/status on a host whose repository has a status strategy', ()
 function createStrategy(write: () => Promise<ItemPatch>) {
   return {
     issueFields: '',
-    read: vi.fn<StatusStrategy['read']>(() => 'to-do'),
+    read: vi.fn<StatusStrategy['read']>(() => ({ sourceStatus: 'to-do' })),
     write: vi.fn<StatusStrategy['write']>(write),
   };
 }

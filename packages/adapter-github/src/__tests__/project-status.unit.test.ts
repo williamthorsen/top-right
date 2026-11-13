@@ -112,7 +112,7 @@ describe(createProjectStatusStrategy, () => {
     ])('reads $case as $status', async ({ issue, status }) => {
       const strategy = createProjectStatusStrategy(createFakeGithubProject().request, await resolveFakeProject());
 
-      expect(strategy.read(ITEM, issue)).toBe(status);
+      expect(strategy.read(ITEM, issue)).toStrictEqual({ sourceStatus: status });
     });
 
     it('reads the options that the lists name', async () => {
@@ -126,7 +126,7 @@ describe(createProjectStatusStrategy, () => {
         },
       );
 
-      expect(strategy.read(ITEM, buildIssue('Review'))).toBe('in-progress');
+      expect(strategy.read(ITEM, buildIssue('Review'))).toStrictEqual({ sourceStatus: 'in-progress' });
     });
 
     it('asks the issues query for the Status of each project item', async () => {

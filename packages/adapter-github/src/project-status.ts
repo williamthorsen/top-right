@@ -67,7 +67,7 @@ export function createProjectStatusStrategy(
         }`,
     read(item, issue) {
       const name = readOptionName(item, issue, project.id);
-      return name !== undefined && inProgress.has(name.toLowerCase()) ? 'in-progress' : 'to-do';
+      return { sourceStatus: name !== undefined && inProgress.has(name.toLowerCase()) ? 'in-progress' : 'to-do' };
     },
     async write(ref, status) {
       const key = `${ref.repo}#${ref.number}`;
