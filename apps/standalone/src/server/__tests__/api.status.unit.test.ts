@@ -9,7 +9,14 @@ import { closeServers, EARLIER, ITEM, ITEM_KEY, NOW, post, startServer } from '.
 const REF = { repo: ITEM.repo, number: ITEM.number };
 const LEGACY: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
 const WRITES: Array<{ status: OpenStatus; patch: ItemPatch }> = [
-  { status: 'in-progress', patch: { labels: ['feature', 'status:in-progress'], sourceStatus: 'in-progress' } },
+  {
+    status: 'in-progress',
+    patch: {
+      labels: ['feature', 'status:in-progress'],
+      sourceStatus: 'in-progress',
+      sourceStatusLabel: 'status:in-progress',
+    },
+  },
   { status: 'to-do', patch: { labels: ['feature'], sourceStatus: 'to-do' } },
 ];
 
@@ -104,7 +111,7 @@ describe('POST /api/status on a host whose repository has a status strategy', ()
 function createStrategy(write: () => Promise<ItemPatch>) {
   return {
     issueFields: '',
-    read: vi.fn<StatusStrategy['read']>(() => 'to-do'),
+    read: vi.fn<StatusStrategy['read']>(() => ({ sourceStatus: 'to-do' })),
     write: vi.fn<StatusStrategy['write']>(write),
   };
 }

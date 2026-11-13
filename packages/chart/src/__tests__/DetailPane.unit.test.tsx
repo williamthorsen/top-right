@@ -195,6 +195,70 @@ describe(DetailPane, () => {
     expect(screen.getByRole('region', { name: 'Scores' })).toHaveTextContent('Closed at the source');
   });
 
+  describe('the Labels list', () => {
+    const labelled: WorkItem = {
+      ...ITEM,
+      labels: ['feature', 'bug', 'urgency:medium', 'urgency:low', 'value:must-have', 'effort:3', 'help wanted'],
+    };
+
+    it('leaves out the labels that supply the displayed scores and the type, and keeps the outranked ones', () => {
+      renderPane({
+        item: labelled,
+        scores: {
+          urgency: { score: 'medium', by: 'label', label: 'urgency:medium' },
+          value: { score: 'must-have', by: 'label', label: 'value:must-have' },
+          effort: { score: 3, by: 'label', label: 'effort:3' },
+        },
+      });
+
+      expect(getLabelChips()).toStrictEqual(['bug', 'urgency:low', 'help wanted']);
+    });
+
+    it('keeps a score label that a stored score outranks', () => {
+      renderPane({
+        item: { ...ITEM, labels: ['urgency:medium'] },
+        scores: { urgency: { score: 'high', by: 'author', at: AT } },
+      });
+
+      expect(getLabelChips()).toStrictEqual(['urgency:medium']);
+    });
+
+    it('reads None when every label is left out', () => {
+      renderPane({ item: { ...ITEM, labels: ['feature'] } });
+
+      expect(screen.queryByRole('list', { name: 'Labels' })).not.toBeInTheDocument();
+      expect(screen.getByText('None')).toBeInTheDocument();
+    });
+
+    describe('with the status label', () => {
+      const inProgress: WorkItem = {
+        ...ITEM,
+        labels: ['feature', 'Status:In-Progress'],
+        sourceStatus: 'in-progress',
+        sourceStatusLabel: 'Status:In-Progress',
+      };
+      const toDo: StatusOverride = { status: 'to-do', sourceState: 'open', at: AT };
+
+      it('leaves it out while the source reads In progress', () => {
+        renderPane({ item: inProgress });
+
+        expect(screen.queryByRole('list', { name: 'Labels' })).not.toBeInTheDocument();
+      });
+
+      it('keeps it while an override shows To do', () => {
+        renderPane({ item: inProgress, override: toDo });
+
+        expect(getLabelChips()).toStrictEqual(['Status:In-Progress']);
+      });
+
+      it('keeps it once the source reads To do, although the item still names it', () => {
+        renderPane({ item: { ...inProgress, sourceStatus: 'to-do' } });
+
+        expect(getLabelChips()).toStrictEqual(['Status:In-Progress']);
+      });
+    });
+  });
+
   it('commits progress as a fraction when the range reports a change', () => {
     const { onScoresChange } = renderPane();
     const range = screen.getByRole('slider', { name: 'Progress' });
@@ -212,7 +276,14 @@ function getGroup(name: string): HTMLElement {
   return screen.getByRole('radiogroup', { name });
 }
 
-function renderPane(overrides: Partial<DetailPaneProps> & { scores?: ItemScores } = {}) {
+/** Returns the text of each chip in the Labels list, in order. */
+function getLabelChips(): string[] {
+  return within(screen.getByRole('list', { name: 'Labels' }))
+    .getAllByRole('listitem')
+    .map((chip) => chip.textContent);
+}
+
+function renderPane(overrides: Partial<DetailPaneProps> = {}) {
   const onScoresChange = vi.fn<DetailPaneProps['onScoresChange']>();
   const onScoresClear = vi.fn<NonNullable<DetailPaneProps['onScoresClear']>>();
   const onStatusChange = vi.fn<DetailPaneProps['onStatusChange']>();

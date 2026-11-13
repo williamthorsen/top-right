@@ -9,16 +9,28 @@ const REPO_LABELS: Record<string, string> = { bug: 'L_bug', [IN_PROGRESS_LABEL]:
 
 describe(createLabelStatusStrategy, () => {
   describe('read', () => {
-    it('returns in-progress for an item with the label in any case', () => {
+    it('returns in-progress with the label as written for an item with the label in any case', () => {
       const strategy = createLabelStatusStrategy(createFakeGithub(REPO_LABELS, []).request);
 
-      expect(strategy.read(buildItem(['bug', 'Status:In-Progress']), {})).toBe('in-progress');
+      expect(strategy.read(buildItem(['bug', 'Status:In-Progress']), {})).toStrictEqual({
+        sourceStatus: 'in-progress',
+        sourceStatusLabel: 'Status:In-Progress',
+      });
     });
 
-    it('returns to-do for an item without the label', () => {
+    it('when the label appears in two cases, returns the first', () => {
       const strategy = createLabelStatusStrategy(createFakeGithub(REPO_LABELS, []).request);
 
-      expect(strategy.read(buildItem(['bug', 'status:blocked']), {})).toBe('to-do');
+      expect(strategy.read(buildItem(['STATUS:IN-PROGRESS', IN_PROGRESS_LABEL]), {})).toHaveProperty(
+        'sourceStatusLabel',
+        'STATUS:IN-PROGRESS',
+      );
+    });
+
+    it('returns to-do without a label for an item without the label', () => {
+      const strategy = createLabelStatusStrategy(createFakeGithub(REPO_LABELS, []).request);
+
+      expect(strategy.read(buildItem(['bug', 'status:blocked']), {})).toStrictEqual({ sourceStatus: 'to-do' });
     });
   });
 
@@ -29,7 +41,11 @@ describe(createLabelStatusStrategy, () => {
       const patch = await createLabelStatusStrategy(github.request).write(REF, 'in-progress');
 
       expect(github.mutations).toEqual([{ id: 'I_7', add: ['L_in_progress'] }]);
-      expect(patch).toEqual({ labels: ['bug', IN_PROGRESS_LABEL], sourceStatus: 'in-progress' });
+      expect(patch).toStrictEqual({
+        labels: ['bug', IN_PROGRESS_LABEL],
+        sourceStatus: 'in-progress',
+        sourceStatusLabel: IN_PROGRESS_LABEL,
+      });
     });
 
     it('removes the label in any case for to-do and resolves to the resulting labels and status', async () => {
@@ -38,7 +54,7 @@ describe(createLabelStatusStrategy, () => {
       const patch = await createLabelStatusStrategy(github.request).write(REF, 'to-do');
 
       expect(github.mutations).toEqual([{ id: 'I_7', remove: ['L_in_progress'] }]);
-      expect(patch).toEqual({ labels: ['bug'], sourceStatus: 'to-do' });
+      expect(patch).toStrictEqual({ labels: ['bug'], sourceStatus: 'to-do' });
     });
 
     it('if the repository lacks the label, rejects naming it and writes nothing', async () => {

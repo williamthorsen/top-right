@@ -64,7 +64,7 @@ export async function fetchIssues(
   const items = new Map<string, WorkItem>();
   for (const issue of [...open, ...closed]) {
     const mapped = mapIssue(issue, repo);
-    const item = status && mapped.state === 'open' ? { ...mapped, sourceStatus: status.read(mapped, issue) } : mapped;
+    const item = status && mapped.state === 'open' ? { ...mapped, ...status.read(mapped, issue) } : mapped;
     // An issue whose state changes between the two reads appears in both; the first record stands.
     const key = formatItemKey(item);
     if (!items.has(key)) items.set(key, item);
