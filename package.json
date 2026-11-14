@@ -1,6 +1,6 @@
 {
   "name": "top-right",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Work items as sized bubbles on urgency and importance axes, with adapters for GitHub and Jira",
   "homepage": "https://github.com/williamthorsen/top-right#readme",

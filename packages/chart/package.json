@@ -1,6 +1,6 @@
 {
   "name": "@top-right/chart",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "The Top Right chart: work items by urgency and value, with a detail pane",
   "keywords": [

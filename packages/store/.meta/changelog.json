@@ -1,1 +1,65 @@
-[]
+[
+  {
+    "version": "0.1.0",
+    "date": "2026-11-14",
+    "sections": [
+      {
+        "title": "🎉 Features",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Adds the `@top-right/store` package, which declares the async `Store` interface for scores, status overrides, and visits and exports from `@top-right/store/testing` a conformance suite that each implementation runs against itself. (#20)",
+            "hash": "cdb68cda00b92c8e9dbefadab4fcf6641efb4795",
+            "entry": 5
+          },
+          {
+            "description": "Score the backlog with an agent and review its scores on the chart (#21)",
+            "body": "Adds a `top-right` CLI through which an agent writes scores for the open issues, and adds a review to the chart that marks each agent score, including one that replaced a score of the author's, until the author keeps or corrects it.",
+            "hash": "c2fa272ed54e8964841353ae7eb9865b22fabdb5"
+          },
+          {
+            "description": "Adds a Settings page at `/settings` to the local host for editing the labels that assign each work type and each repository's abbreviation, which the host saves per GitHub user and applies to the chart's borders and ids, with a saved mapping replacing the default mapping whole and Settings refusing a label that two work types list. (#31)",
+            "hash": "eb6ad0fecea878526c2a024c8b2450470959df4e",
+            "entry": 1
+          },
+          {
+            "description": "Score urgency and value on four named levels (#56)",
+            "body": "Replaces the 1-to-5 urgency and impact scores with four named levels per axis and renames the impact axis to value, across the chart, the host's API, the `top-right` CLI, and the store. The first run against an existing store deletes every saved score, effort and progress included, so the items must be scored again.",
+            "hash": "3018c3341eb6fa9a4d3f6b356c29543389edf73c"
+          },
+          {
+            "description": "Adds a section to the Settings page that edits the labels that supply each urgency and value level, and refuses a label listed under two levels. (#57)",
+            "hash": "8ebccf71ed40668924b286f2b2ea1239a88a48f0",
+            "entry": 2
+          },
+          {
+            "description": "Derive effort from repo labels (#59)",
+            "body": "Lets an issue's label supply its effort, by default one of `effort:1` through `effort:13`, so that the chart draws the issue's circle at that size before anyone scores the issue in the app. Adds an Effort section to the Settings page for mapping other labels to each point value, and keeps a score-label mapping saved before this change loading, with the default effort labels.",
+            "hash": "8dfe8e66429d702ffd57140c28faf02be9a62bfa"
+          },
+          {
+            "description": "Write urgency, value, and effort to labels (#61)",
+            "body": "Makes the local host write the urgency, value, and effort that the author sets or keeps on the chart to the issue's GitHub labels, so that the app and GitHub no longer disagree about an item's level. Keeps the scores that an agent writes through `top-right write-scores` in the app's store and out of the labels until the author keeps or corrects them.",
+            "hash": "aea06373f0ce0b7ba8089fbadf00189076907dc3"
+          },
+          {
+            "description": "Adds a Collections section to the Settings page, in which a user creates, renames, edits, and deletes named groups of the configured repositories and chooses a default collection, and saves both per user in the store. (#78)",
+            "hash": "e7dd4a3f8649985caefccf3bae99f57ca7237247",
+            "entry": 1
+          }
+        ]
+      },
+      {
+        "title": "📦 Dependencies",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Upgrades Node.js from 24 to 26 by pinning 26.13.1 in `.tool-versions`, raising the `engines.node` floor to `>=26` in the root and every workspace manifest, and moving `@types/node` in the catalog from 24.19.2 to 26.6.6. (#105)",
+            "hash": "2924a0485ec9b6754b7822eee72c8ae69d92f1da",
+            "entry": 1
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,6 +1,6 @@
 {
   "name": "@top-right/standalone",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Serves the Top Right chart for the author's GitHub issues from a local process",
   "keywords": [

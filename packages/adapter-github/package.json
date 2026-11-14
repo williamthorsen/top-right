@@ -1,6 +1,6 @@
 {
   "name": "@top-right/adapter-github",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Reads GitHub issues as Top Right work items",
   "keywords": [
