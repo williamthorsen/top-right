@@ -23,7 +23,7 @@
     "@top-right/chart": "workspace:*",
     "@top-right/model": "workspace:*",
     "@top-right/store": "workspace:*",
-    "@vitejs/plugin-react": "6.2.1",
+    "@vitejs/plugin-react": "6.3.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "vite": "catalog:",
