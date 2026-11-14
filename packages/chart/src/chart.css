@@ -256,6 +256,63 @@
   pointer-events: none;
 }
 
+/* Like the gutter layer, the callout layer lays its column out in chart units and scales to the chart. */
+.tr-callout-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: var(--tr-font);
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+.tr-callouts {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tr-callout {
+  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+  /* `CALLOUT_PITCH` in callout-layout.ts matches the row's height. */
+  height: 17px;
+  padding: 0 4px;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font-size: 12px;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tr-callouts[data-side='left'] .tr-callout {
+  margin-left: auto;
+}
+
+.tr-callout-id {
+  margin-right: 6px;
+  font-family: var(--tr-mono);
+  font-weight: 600;
+}
+
+.tr-callout-more {
+  color: var(--tr-ink-2);
+}
+
+.tr-callout-leaders line {
+  stroke: var(--tr-axis);
+  stroke-width: 1;
+}
+
+.tr-cell-hover {
+  fill: var(--tr-ink);
+  opacity: 0.04;
+  pointer-events: none;
+}
+
 .tr-chart text {
   user-select: none;
 }
