@@ -85,6 +85,22 @@ export function measureFrame(cellSize: number): { width: number; height: number 
   return { width: MARGIN_LEFT + matrixSize + MARGIN_RIGHT, height: MARGIN_TOP + matrixSize + AXIS_HEIGHT };
 }
 
+/** Converts a pointer's client position to matrix units, whose origin is the top-left of the must-have row. */
+export function toMatrixPoint(
+  svg: SVGSVGElement | null,
+  clientX: number,
+  clientY: number,
+  cellSize: number,
+): { x: number; y: number } | undefined {
+  const rect = svg?.getBoundingClientRect();
+  if (!rect || rect.width === 0 || rect.height === 0) return undefined;
+  const frame = measureFrame(cellSize);
+  return {
+    x: ((clientX - rect.left) * frame.width) / rect.width - MARGIN_LEFT,
+    y: ((clientY - rect.top) * frame.height) / rect.height - MARGIN_TOP,
+  };
+}
+
 // region | Helpers
 /** Returns the class of the gridline at `index` along an axis, counted from the gutter side. */
 function lineClass(index: number): string {

@@ -1,5 +1,7 @@
 import type { ReactElement, RefObject } from 'react';
 
+import type { CellCallouts } from './callout-layout.ts';
+import { CalloutLeaders, Callouts } from './Callouts.tsx';
 import { DragProxy, DropTarget } from './DragMarks.tsx';
 import type { EdgeEnd } from './edge-path.ts';
 import { Edges, type WeightedEdge } from './Edges.tsx';
@@ -22,6 +24,8 @@ export interface ChartCanvasProps {
   ends: ReadonlyMap<string, EdgeEnd>;
   /** The props of the scored cells, which the gutter cells share. */
   scoredCells: ScoredCellsProps;
+  /** The hovered cell's callouts, when a pointer rests on an empty spot of a scored cell. */
+  callouts?: CellCallouts | undefined;
 }
 
 /** Where the matrix's origin sits in the SVG, past the axis margins. */
@@ -29,8 +33,8 @@ const MATRIX_ORIGIN = { x: MARGIN_LEFT, y: MARGIN_TOP };
 const MATRIX_TRANSFORM = `translate(${MATRIX_ORIGIN.x} ${MATRIX_ORIGIN.y})`;
 
 /**
- * The chart's scrolling drawing surface: the matrix with its trails, edges, and circles, the gutter cells, and the drag
- * proxy.
+ * The chart's scrolling drawing surface: the matrix with its trails, edges, and circles, the gutter cells, a hovered
+ * cell's callouts, and the drag proxy.
  */
 export function ChartCanvas({
   scrollRef,
@@ -42,6 +46,7 @@ export function ChartCanvas({
   edges,
   ends,
   scoredCells,
+  callouts,
 }: ChartCanvasProps): ReactElement {
   const frame = measureFrame(cellSize);
   const { cells, ghostOwner, ghosts } = scoredCells;
@@ -59,6 +64,15 @@ export function ChartCanvas({
         >
           <Grid cellSize={cellSize} />
           <g transform={MATRIX_TRANSFORM}>
+            {callouts ? (
+              <rect
+                className="tr-cell-hover"
+                height={cellSize}
+                width={cellSize}
+                x={callouts.cell.x}
+                y={callouts.cell.y}
+              />
+            ) : null}
             <DropTarget cellSize={cellSize} drag={drag} />
             {trails.map((trail) => (
               <Trail cellSize={cellSize} key={trail.id} origin={trail.origin} r={trail.r} x={trail.x} y={trail.y} />
@@ -93,8 +107,23 @@ export function ChartCanvas({
             ) : null,
           )}
         </div>
+        {callouts ? (
+          <div
+            aria-hidden="true"
+            className="tr-callout-layer"
+            style={{ width: frame.width, height: frame.height, transform: `scale(${scale})` }}
+          >
+            <Callouts
+              callouts={callouts}
+              itemsByKey={scoredCells.itemsByKey}
+              labelOf={scoredCells.labelOf}
+              origin={MATRIX_ORIGIN}
+            />
+          </div>
+        ) : null}
         <svg aria-hidden="true" className="tr-chart-overlay" viewBox={`0 0 ${frame.width} ${frame.height}`}>
           <g transform={MATRIX_TRANSFORM}>
+            {callouts ? <CalloutLeaders callouts={callouts} /> : null}
             <DragProxy drag={drag} />
           </g>
         </svg>
