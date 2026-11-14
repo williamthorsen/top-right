@@ -1697,6 +1697,7 @@ button.tr-relation {
 }
 .tr-settings-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 .tr-settings-collection {
@@ -1727,15 +1728,24 @@ button.tr-relation {
   outline: 3px solid var(--tr-focus);
   outline-offset: 2px;
 }
-.tr-settings-error,
+/* The outcome fills the rest of the buttons' row, so that a one-line outcome leaves the row's height alone. */
+.tr-settings-outcome {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0 0 0 4px;
+  overflow-wrap: anywhere;
+}
 .tr-settings-saved {
-  margin: 0;
+  color: var(--tr-success);
 }
 .tr-settings-error {
-  color: var(--tr-block);
+  color: var(--tr-danger);
 }
-.tr-settings-error::before {
-  content: '⚠ ';
+.tr-status-icon {
+  flex: none;
 }
 @media (max-width: 520px) {
   .tr-settings-field {

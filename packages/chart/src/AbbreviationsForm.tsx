@@ -8,7 +8,7 @@ import {
 } from '@top-right/model';
 import { type ReactElement, type SubmitEvent, useId, useState } from 'react';
 
-import { type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
+import { clearSaved, type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
 
 /** The repository abbreviations, refused while invalid or shared by two repositories. */
 export function AbbreviationsForm({
@@ -63,17 +63,20 @@ export function AbbreviationsForm({
           <span>{repo}</span>
           <input
             className="tr-input"
-            onChange={(event) => setValues((current) => ({ ...current, [repo]: event.target.value }))}
+            onChange={(event) => {
+              setValues((current) => ({ ...current, [repo]: event.target.value }));
+              setOutcome(clearSaved);
+            }}
             placeholder={abbreviate(repo)}
             value={values[repo] ?? ''}
           />
         </label>
       ))}
-      <OutcomeMessage outcome={outcome} />
       <div className="tr-settings-actions">
         <button className="tr-button" disabled={isSaving} type="submit">
           Save
         </button>
+        <OutcomeMessage outcome={outcome} />
       </div>
     </form>
   );
