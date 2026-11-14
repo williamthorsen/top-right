@@ -1,3 +1,24 @@
+/* The status tokens are on the page's root, so that a host's own messages share them. */
+:root {
+  --tr-success: #1d7a3a;
+  --tr-warning: #8a5a00;
+  --tr-danger: #c22a2a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --tr-success: #5cc97a;
+    --tr-warning: #e0a84a;
+    --tr-danger: #f07070;
+  }
+}
+
+:root[data-theme='dark'] {
+  --tr-success: #5cc97a;
+  --tr-warning: #e0a84a;
+  --tr-danger: #f07070;
+}
+
 /* Tokens are scoped to the chart's root, so that a host page keeps its own. */
 .tr-root {
   --tr-bg: #f4f4f1;
