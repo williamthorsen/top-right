@@ -21,8 +21,9 @@ export interface HoveredCell {
 }
 
 /**
- * Returns the scored cell on whose empty spot a mouse or pen has rested for `CALLOUT_DWELL`. A circle, a gutter, a press,
- * or the pointer's leaving clears it at once; a move within the cell leaves it as it is.
+ * Returns the scored cell on whose empty spot a mouse or pen has rested for `CALLOUT_DWELL`: Each move restarts the wait
+ * until the cell shows, and a later move within the cell keeps it. A circle, a gutter, a press, or the pointer's leaving
+ * clears it at once.
  */
 export function useCellHover({ scrollRef, svgRef, cellSize }: CellHoverOptions): HoveredCell | undefined {
   const [hovered, setHovered] = useState<HoveredCell>();
@@ -36,21 +37,29 @@ export function useCellHover({ scrollRef, svgRef, cellSize }: CellHoverOptions):
     const container = scrollRef.current;
     if (!container) return;
     let pending: HoveredCell | undefined;
+    let isShown = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     function clear(): void {
       clearTimeout(timer);
       pending = undefined;
+      isShown = false;
       setHovered(undefined);
     }
 
     function handlePointerMove(event: PointerEvent): void {
       if (event.pointerType === 'touch') return;
       const cell = event.buttons === 0 ? findCellAt(event) : undefined;
-      if (cell?.u === pending?.u && cell?.v === pending?.v) return;
-      clear();
+      if (cell?.u !== pending?.u || cell?.v !== pending?.v) clear();
+      else if (isShown) return;
       pending = cell;
-      if (cell) timer = setTimeout(() => setHovered(cell), CALLOUT_DWELL);
+      clearTimeout(timer);
+      if (cell) {
+        timer = setTimeout(() => {
+          isShown = true;
+          setHovered(cell);
+        }, CALLOUT_DWELL);
+      }
     }
 
     container.addEventListener('pointermove', handlePointerMove);

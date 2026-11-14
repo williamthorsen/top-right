@@ -50,6 +50,19 @@ describe('Chart cell callouts', () => {
     expect(getGutterRow(4)).toHaveAttribute('data-fade', 'soft');
   });
 
+  it('waits for the pointer to rest, restarting the wait on each move within the cell', () => {
+    renderCalloutHost();
+    hoverCorner(2, 2);
+
+    elapse(CALLOUT_DWELL - 50);
+    hoverCorner(2, 2, 12);
+    elapse(CALLOUT_DWELL - 50);
+    expect(listCallouts()).toStrictEqual([]);
+
+    elapse(50);
+    expect(listCallouts()).toHaveLength(2);
+  });
+
   it('keeps the callouts through a move within the cell', () => {
     renderCalloutHost();
     hoverCorner(2, 2);
