@@ -17,6 +17,7 @@ import {
 } from '@top-right/model';
 import { type ReactElement, useMemo, useRef, useState } from 'react';
 
+import { layoutCallouts } from './callout-layout.ts';
 import { ChartCanvas } from './ChartCanvas.tsx';
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
@@ -32,6 +33,7 @@ import type { ChartRefresh } from './RefreshControl.tsx';
 import { resolveScores } from './resolve-scores.ts';
 import type { Fade } from './ScoredCircle.tsx';
 import { listTrails } from './Trail.tsx';
+import { useCellHover } from './useCellHover.ts';
 import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
@@ -205,6 +207,11 @@ export function Chart({
     onSelect: selection.push,
   });
   usePan({ scrollRef, isHoldingPress });
+  const hoveredCell = useCellHover({ scrollRef, svgRef, cellSize });
+  const calloutCell = cells.find(
+    (cell) => !cell.isGutter && cell.circles.length > 0 && cell.u === hoveredCell?.u && cell.v === hoveredCell.v,
+  );
+  const callouts = calloutCell && { cell: calloutCell, layout: layoutCallouts(calloutCell, cellSize) };
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 
@@ -240,10 +247,12 @@ export function Chart({
     />
   );
   const focusRelated = findShownRelated(focus.related, focusKey, visibleKeys, ghosts);
-  // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover.
+  // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover; then a
+  // hovered cell's, so that its callouts read over the rest.
   function fadeOf(key: string): Fade | undefined {
     if (review.kind !== undefined) return review.isFaded(key) ? 'strong' : undefined;
     if (chainView.isShown) return chainView.isFaded(key) ? 'strong' : undefined;
+    if (calloutCell) return calloutCell.ids.includes(key) ? undefined : 'soft';
     return focusRelated === undefined || focusRelated.has(key) ? undefined : 'soft';
   }
 
@@ -271,6 +280,7 @@ export function Chart({
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
               <ChartCanvas
+                callouts={callouts}
                 cellSize={cellSize}
                 drag={drag}
                 edges={shownEdges}
