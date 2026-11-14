@@ -1,8 +1,8 @@
 import type { StatusStrategy } from '@top-right/adapter-github';
 import type { ItemPatch, ItemRef, OpenStatus } from '@top-right/model';
 import type { Store } from '@top-right/store';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 
-import { describeError } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
 
 /** What a host needs to write an item's status at its source. */

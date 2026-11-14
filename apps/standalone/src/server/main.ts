@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 
+import { describeError } from '@williamthorsen/toolbelt.errors';
 import { createServer as createViteServer } from 'vite';
 
 import { createApiHandler } from './api.ts';
@@ -49,7 +50,7 @@ async function startFirstRead(items: ItemsCache, repos: readonly string[]): Prom
   try {
     await items.refresh(repos);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
+    const reason = describeError(error);
     console.error(`top-right: the first read of issues failed: ${reason}`);
   }
 }

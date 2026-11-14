@@ -1,3 +1,4 @@
+import { describeError } from '@williamthorsen/toolbelt.errors';
 import type { z } from 'zod';
 
 import { errorResponseSchema } from '#src/shared/items-response.ts';
@@ -14,9 +15,9 @@ export class HostResponseError extends Error {
 }
 
 /** Returns the reason for a failed request as a phrase: the host's message, or what the client observed. */
-export function describeError(error: unknown): string {
+export function describeRequestError(error: unknown): string {
   if (error instanceof TypeError) return 'the host did not respond';
-  return error instanceof Error ? error.message : String(error);
+  return describeError(error);
 }
 
 /** Reads a JSON body from the host, throwing the host's error message on a failed response. */

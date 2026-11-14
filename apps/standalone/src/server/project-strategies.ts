@@ -9,6 +9,7 @@ import {
   resolveProject,
   type StatusStrategy,
 } from '@top-right/adapter-github';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 
 import type { HostConfig } from './config.ts';
 import { StartupError } from './startup-error.ts';
@@ -45,11 +46,6 @@ export async function resolveProjectStrategies(
 }
 
 // region | Helpers
-/** Returns the error's message, or the value as a string when it is not an `Error`. */
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 /** Returns the startup message for a project that could not be read, with the fix that applies. */
 function describeResolveFailure(url: string, error: unknown): string {
   if (error instanceof GitHubScopeError) return `The GitHub token cannot read ${url}. ${SCOPE_FIX}`;

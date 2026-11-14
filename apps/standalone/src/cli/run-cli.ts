@@ -9,6 +9,7 @@ import {
   type WorkItem,
 } from '@top-right/model';
 import type { Store } from '@top-right/store';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 
 import { StartupError } from '#src/server/startup-error.ts';
 
@@ -210,7 +211,7 @@ function parseCommandArgs<T extends ParseArgsOptionsConfig>(args: readonly strin
   try {
     return parseArgs({ args: [...args], options, allowPositionals: true, strict: true });
   } catch (error) {
-    throw new UsageError(`${error instanceof Error ? error.message : String(error)}; run with --help for usage`);
+    throw new UsageError(`${describeError(error)}; run with --help for usage`);
   }
 }
 
