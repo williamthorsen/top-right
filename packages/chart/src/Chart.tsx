@@ -22,16 +22,15 @@ import { ChartCanvas } from './ChartCanvas.tsx';
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
-import { focusItem, mergeChainEdges } from './Edges.tsx';
-import { Ghosts, layoutGhosts } from './Ghosts.tsx';
+import { buildFocusView } from './focus-view.ts';
+import { Ghosts } from './Ghosts.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { findCellLevels, type GhostPlacement, layoutCells, placeItems, type ScopeMode } from './layout.ts';
+import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
 import { resolveScores } from './resolve-scores.ts';
-import type { Fade } from './ScoredCircle.tsx';
 import { listTrails } from './Trail.tsx';
 import { useCellHover } from './useCellHover.ts';
 import { useChainView } from './useChainView.ts';
@@ -227,11 +226,9 @@ export function Chart({
     selection.push(key);
   }
 
-  const focusKey = previewKey ?? selectedKey;
-  const focus = focusItem(graph, focusKey, showAllEdges);
   const board = { itemsByKey, overrides, scopeMode, scores, shownRepos, visibleKeys };
-  const shownEdges = chainView.isShown ? mergeChainEdges(focus.edges, chainView.chain) : focus.edges;
-  const { ends, ghosts, ghostOwner } = layoutGhosts(cells, shownEdges, focusKey, board, cellSize);
+  const focusState = { graph, focusKey: previewKey ?? selectedKey, showAllEdges, chainView, review, callouts };
+  const { edges, ends, ghosts, ghostOwner, fadeOf } = buildFocusView(focusState, cells, board, cellSize);
   const ghostElements = (
     <Ghosts
       fadeOf={fadeOf}
@@ -242,15 +239,6 @@ export function Chart({
       workTypeMapping={workTypeMapping}
     />
   );
-  const focusRelated = findShownRelated(focus.related, focusKey, visibleKeys, ghosts);
-  // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover; then a
-  // hovered cell's, so that its callouts read over the rest.
-  function fadeOf(key: string): Fade | undefined {
-    if (review.kind !== undefined) return review.isFaded(key) ? 'strong' : undefined;
-    if (chainView.isShown) return chainView.isFaded(key) ? 'strong' : undefined;
-    if (callouts) return callouts.cell.ids.includes(key) ? undefined : 'soft';
-    return focusRelated === undefined || focusRelated.has(key) ? undefined : 'soft';
-  }
 
   const trails = listTrails(
     cells,
@@ -279,7 +267,7 @@ export function Chart({
                 callouts={callouts}
                 cellSize={cellSize}
                 drag={drag}
-                edges={shownEdges}
+                edges={edges}
                 ends={ends}
                 scale={scale}
                 scoredCells={{
@@ -350,20 +338,3 @@ export function Chart({
     </div>
   );
 }
-
-// region | Helpers
-/**
- * Returns the focus's related items while the board shows one of them other than the focused item, as a circle, a
- * gutter row, or a ghost, since only then does the focus fade emphasise anything.
- */
-function findShownRelated(
-  related: ReadonlySet<string> | undefined,
-  focusKey: string | undefined,
-  visibleKeys: ReadonlySet<string>,
-  ghosts: readonly GhostPlacement[],
-): ReadonlySet<string> | undefined {
-  const ghostKeys = new Set(ghosts.map((ghost) => ghost.id));
-  const isShown = related?.values().some((key) => key !== focusKey && (visibleKeys.has(key) || ghostKeys.has(key)));
-  return isShown ? related : undefined;
-}
-// endregion | Helpers
