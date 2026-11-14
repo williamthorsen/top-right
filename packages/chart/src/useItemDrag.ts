@@ -1,7 +1,7 @@
 import type { ResolvedItemScores } from '@top-right/model';
 import { type PointerEvent, type RefObject, useRef, useState } from 'react';
 
-import { MARGIN_LEFT, MARGIN_TOP, measureFrame } from './Grid.tsx';
+import { toMatrixPoint } from './Grid.tsx';
 import { findItemCell, findScoredCellAt, type ScopeMode, sizeItem } from './layout.ts';
 
 /** A drag in progress: the dragged item, its circle's radius, the pointer in matrix units, and the drop target. */
@@ -151,21 +151,5 @@ function findTarget(
 
 function preventDefault(event: Event): void {
   event.preventDefault();
-}
-
-/** Converts a pointer's client position to matrix units, whose origin is the top-left of the must-have row. */
-function toMatrixPoint(
-  svg: SVGSVGElement | null,
-  clientX: number,
-  clientY: number,
-  cellSize: number,
-): { x: number; y: number } | undefined {
-  const rect = svg?.getBoundingClientRect();
-  if (!rect || rect.width === 0 || rect.height === 0) return undefined;
-  const frame = measureFrame(cellSize);
-  return {
-    x: ((clientX - rect.left) * frame.width) / rect.width - MARGIN_LEFT,
-    y: ((clientY - rect.top) * frame.height) / rect.height - MARGIN_TOP,
-  };
 }
 // endregion | Helpers
