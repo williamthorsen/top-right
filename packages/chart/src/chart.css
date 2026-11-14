@@ -1697,8 +1697,11 @@ button.tr-relation {
 }
 .tr-settings-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+}
+.tr-settings-actions > .tr-button {
+  flex: none;
 }
 .tr-settings-collection {
   padding-top: 8px;
@@ -1728,13 +1731,14 @@ button.tr-relation {
   outline: 3px solid var(--tr-focus);
   outline-offset: 2px;
 }
-/* The outcome fills the rest of the buttons' row, so that a one-line outcome leaves the row's height alone. */
+/* The outcome's first line centres on the buttons, and further lines grow the row downward. */
 .tr-settings-outcome {
   display: flex;
   flex: 1 1 auto;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   min-width: 0;
+  padding-block: calc((32px - 1lh) / 2);
   margin: 0 0 0 4px;
   overflow-wrap: anywhere;
 }
@@ -1746,6 +1750,9 @@ button.tr-relation {
 }
 .tr-status-icon {
   flex: none;
+}
+.tr-settings-outcome > .tr-status-icon {
+  height: 1lh;
 }
 @media (max-width: 520px) {
   .tr-settings-field {
