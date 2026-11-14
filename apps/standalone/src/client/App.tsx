@@ -23,14 +23,12 @@ import { scoresResponseSchema, statusPatchSchema, statusResponseSchema } from '#
 import { AppHeader } from './AppHeader.tsx';
 import { describeRequestError, getJson, HostResponseError, postJson } from './host-requests.ts';
 import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
+import { clearFailureOf, type Failure } from './request-failure.ts';
 import { useStoredMagnification } from './useStoredMagnification.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
 
 /** The dimensions whose scores the host keeps in an issue's labels. */
 const LABEL_DIMENSIONS: readonly LabelDimension[] = ['urgency', 'value', 'effort'];
-
-/** The last failed request that the alert reports: a read of repositories' issues, or a write of an item. */
-type Failure = { kind: 'read' | 'write'; message: string };
 
 /**
  * The page: the chart of the configured repositories' open issues, whose scores and status it writes to the host, with
@@ -321,11 +319,6 @@ export function App(): ReactElement {
 }
 
 // region | Helpers
-/** Returns the updater that drops a failure of `kind`, which the next success of that kind answers. */
-function clearFailureOf(kind: Failure['kind']): (current: Failure | undefined) => Failure | undefined {
-  return (current) => (current?.kind === kind ? undefined : current);
-}
-
 /** Returns `text` ending in a period, unless it already ends a sentence, as the host's GitHub messages do. */
 function endSentence(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;

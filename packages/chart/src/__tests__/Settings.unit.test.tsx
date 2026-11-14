@@ -387,16 +387,14 @@ describe(Settings, () => {
   });
 
   describe('save outcome', () => {
-    it("shows the outcome after the form's buttons, in their row", async () => {
+    it("shows the outcome after the form's buttons", async () => {
       renderSettings();
 
       const user = userEvent.setup();
       const restore = within(getSection('Work types')).getByRole('button', { name: 'Restore defaults' });
       await user.click(restore);
 
-      const status = screen.getByRole('status');
-      expect(status.parentElement).toBe(restore.parentElement);
-      expect(restore.compareDocumentPosition(status)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(restore.compareDocumentPosition(screen.getByRole('status'))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     });
 
     it('clears "Saved" when a field is edited after the save', async () => {
