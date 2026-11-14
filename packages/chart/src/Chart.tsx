@@ -17,7 +17,7 @@ import {
 } from '@top-right/model';
 import { type ReactElement, useMemo, useRef, useState } from 'react';
 
-import { layoutCallouts } from './callout-layout.ts';
+import { findCellCallouts } from './callout-layout.ts';
 import { ChartCanvas } from './ChartCanvas.tsx';
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
@@ -207,11 +207,7 @@ export function Chart({
     onSelect: selection.push,
   });
   usePan({ scrollRef, isHoldingPress });
-  const hoveredCell = useCellHover({ scrollRef, svgRef, cellSize });
-  const calloutCell = cells.find(
-    (cell) => !cell.isGutter && cell.circles.length > 0 && cell.u === hoveredCell?.u && cell.v === hoveredCell.v,
-  );
-  const callouts = calloutCell && { cell: calloutCell, layout: layoutCallouts(calloutCell, cellSize) };
+  const callouts = findCellCallouts(cells, useCellHover({ scrollRef, svgRef, cellSize }), cellSize);
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 
@@ -252,7 +248,7 @@ export function Chart({
   function fadeOf(key: string): Fade | undefined {
     if (review.kind !== undefined) return review.isFaded(key) ? 'strong' : undefined;
     if (chainView.isShown) return chainView.isFaded(key) ? 'strong' : undefined;
-    if (calloutCell) return calloutCell.ids.includes(key) ? undefined : 'soft';
+    if (callouts) return callouts.cell.ids.includes(key) ? undefined : 'soft';
     return focusRelated === undefined || focusRelated.has(key) ? undefined : 'soft';
   }
 

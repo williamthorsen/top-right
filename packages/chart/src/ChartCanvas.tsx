@@ -1,6 +1,7 @@
 import type { ReactElement, RefObject } from 'react';
 
-import { CalloutLeaders, type CellCallouts, Callouts } from './Callouts.tsx';
+import type { CellCallouts } from './callout-layout.ts';
+import { CalloutLeaders, Callouts } from './Callouts.tsx';
 import { DragProxy, DropTarget } from './DragMarks.tsx';
 import type { EdgeEnd } from './edge-path.ts';
 import { Edges, type WeightedEdge } from './Edges.tsx';

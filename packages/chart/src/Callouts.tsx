@@ -1,14 +1,7 @@
 import type { WorkItem } from '@top-right/model';
 import type { ReactElement } from 'react';
 
-import type { CalloutLayout } from './callout-layout.ts';
-import type { CellLayout } from './layout.ts';
-
-/** A hovered cell with its callout column. */
-export interface CellCallouts {
-  cell: CellLayout;
-  layout: CalloutLayout;
-}
+import type { CellCallouts } from './callout-layout.ts';
 
 /** The leader lines that join a cell's callouts to their circles, drawn in the matrix's units. */
 export function CalloutLeaders({ callouts }: { callouts: CellCallouts }): ReactElement {

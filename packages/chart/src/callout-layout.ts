@@ -27,6 +27,24 @@ export interface CalloutLayout {
   overflow: number;
 }
 
+/** A hovered cell with its callout column. */
+export interface CellCallouts {
+  cell: CellLayout;
+  layout: CalloutLayout;
+}
+
+/** Returns the callouts of the hovered cell among `cells`, or undefined when that cell is a gutter or holds no circle. */
+export function findCellCallouts(
+  cells: readonly CellLayout[],
+  hovered: { u: number; v: number } | undefined,
+  cellSize: number,
+): CellCallouts | undefined {
+  const cell = cells.find(
+    (each) => !each.isGutter && each.circles.length > 0 && each.u === hovered?.u && each.v === hovered.v,
+  );
+  return cell && { cell, layout: layoutCallouts(cell, cellSize) };
+}
+
 /**
  * Lays out a scored cell's callouts as one column beside the cell, on the side with at least two cells of room: one row
  * per circle from top to bottom, clamped to the matrix's bottom edge, with a last row that counts the circles for which

@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chart } from '../Chart.tsx';
 import { MARGIN_LEFT, MARGIN_TOP, measureFrame } from '../Grid.tsx';
 import { GRID_SIZE, MIN_CELL_SIZE } from '../layout.ts';
-import { CALLOUT_DWELL } from '../useCellHover.ts';
 import { buildItem, place, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getPane } from '../test-utils/chart-queries.ts';
+import { CALLOUT_DWELL } from '../useCellHover.ts';
 
 /** The chart's size in chart units at the smallest cell, which the mocked SVG box draws at 1×. */
 const FRAME = measureFrame(MIN_CELL_SIZE);
@@ -164,7 +164,6 @@ function hoverCorner(u: number, v: number, inset?: number): void {
 
 /** Returns each callout's text; the callouts are hidden from the accessibility tree. */
 function listCallouts(): string[] {
-  // eslint-disable-next-line testing-library/no-node-access -- the callouts are aria-hidden and have no role to query.
   return Array.from(document.querySelectorAll('.tr-callout'), (callout) => callout.textContent);
 }
 
