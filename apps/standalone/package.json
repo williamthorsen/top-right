@@ -24,6 +24,7 @@
     "@top-right/model": "workspace:*",
     "@top-right/store": "workspace:*",
     "@vitejs/plugin-react": "6.3.0",
+    "@williamthorsen/toolbelt.errors": "0.10.1",
     "react": "catalog:",
     "react-dom": "catalog:",
     "vite": "catalog:",
