@@ -34,7 +34,7 @@ export interface GhostsProps {
 }
 
 /** What the board needs to know to draw edges and ghosts. */
-interface GhostBoard {
+export interface GhostBoard {
   itemsByKey: ReadonlyMap<string, WorkItem>;
   overrides: Readonly<Record<string, StatusOverride>>;
   scores: Readonly<Record<string, ResolvedItemScores>>;

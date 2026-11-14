@@ -1,5 +1,15 @@
 import { render, type RenderResult } from '@testing-library/react';
-import { type ItemScores, type StatusOverride, URGENCY_LEVELS, VALUE_LEVELS, type WorkItem } from '@top-right/model';
+import {
+  applyScoreWrite,
+  type ItemScores,
+  keepItemScores,
+  type Scores,
+  type StatusOverride,
+  URGENCY_LEVELS,
+  VALUE_LEVELS,
+  type WorkItem,
+} from '@top-right/model';
+import { type ReactElement, useState } from 'react';
 
 import { Chart } from '../Chart.tsx';
 
@@ -38,4 +48,24 @@ export function renderChart(
   overrides: Record<string, StatusOverride> = {},
 ): RenderResult {
   return render(<Chart abbreviations={abbreviations} items={items} overrides={overrides} scores={scores} />);
+}
+
+/** Renders the chart with a host that applies the author's writes and Keep to its scores, as the page does. */
+export function renderReview(items: WorkItem[], initialScores: Record<string, ItemScores>): RenderResult {
+  function ReviewHost(): ReactElement {
+    const [scores, setScores] = useState(initialScores);
+    const at = '2026-11-09T00:00:00.000Z';
+    return (
+      <Chart
+        abbreviations={{}}
+        items={items}
+        onKeep={(itemKey) => setScores((current) => ({ ...current, [itemKey]: keepItemScores(current[itemKey], at) }))}
+        onScoresChange={(itemKey, changed: Scores) =>
+          setScores((current) => ({ ...current, [itemKey]: applyScoreWrite(current[itemKey], changed, 'author', at) }))
+        }
+        scores={scores}
+      />
+    );
+  }
+  return render(<ReviewHost />);
 }

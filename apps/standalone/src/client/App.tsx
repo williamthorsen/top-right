@@ -1,8 +1,7 @@
-import { Chart, type SettableStatus, StatusIcon } from '@top-right/chart';
+import { Chart, type SettableStatus } from '@top-right/chart';
 import {
   applyScoreWrite,
   clearScoreFields,
-  describeAbbreviationClash,
   formatItemKey,
   type ItemPatch,
   type ItemScores,
@@ -23,6 +22,7 @@ import { scoresResponseSchema, statusPatchSchema, statusResponseSchema } from '#
 import { AppHeader } from './AppHeader.tsx';
 import { describeRequestError, getJson, HostResponseError, postJson } from './host-requests.ts';
 import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
+import { PageAlerts } from './PageAlerts.tsx';
 import { clearFailureOf, type Failure } from './request-failure.ts';
 import { useStoredMagnification } from './useStoredMagnification.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
@@ -270,22 +270,12 @@ export function App(): ReactElement {
   return (
     <>
       {header}
-      {data.abbreviationClashes.map((clash) => (
-        <div className="host-alert host-alert-warning" key={clash.abbreviation} role="alert">
-          <StatusIcon kind="warning" />
-          <span className="host-alert-text">{describeAbbreviationClash(clash)}</span>
-          <a href={buildSettingsHref(selectedKey)}>Settings</a>
-        </div>
-      ))}
-      {failure === undefined ? null : (
-        <div className="host-alert host-alert-failure" role="alert">
-          <StatusIcon kind="danger" />
-          <span className="host-alert-text">{failure.message}</span>
-          <button className="host-button" onClick={() => setFailure(undefined)} type="button">
-            Dismiss
-          </button>
-        </div>
-      )}
+      <PageAlerts
+        clashes={data.abbreviationClashes}
+        failure={failure}
+        onDismiss={() => setFailure(undefined)}
+        settingsHref={buildSettingsHref(selectedKey)}
+      />
       <Chart
         abbreviations={data.abbreviations}
         collections={data.collections}
