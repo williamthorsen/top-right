@@ -12,7 +12,7 @@ import {
 } from '#src/shared/settings.ts';
 
 import { AppHeader } from './AppHeader.tsx';
-import { describeError, getJson, postJson } from './host-requests.ts';
+import { describeRequestError, getJson, postJson } from './host-requests.ts';
 import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
 import { RepositoriesSection } from './RepositoriesSection.tsx';
 
@@ -27,7 +27,7 @@ export function SettingsPage(): ReactElement {
       try {
         setState({ kind: 'loaded', data: await getJson('/api/settings', settingsResponseSchema) });
       } catch (error) {
-        setState({ kind: 'error', message: describeError(error) });
+        setState({ kind: 'error', message: describeRequestError(error) });
       }
     })();
   }, []);
@@ -86,7 +86,7 @@ async function refuseOnFailure(save: () => Promise<unknown>): Promise<string | u
     await save();
     return undefined;
   } catch (error) {
-    const reason = describeError(error);
+    const reason = describeRequestError(error);
     return `Not saved: ${reason}${reason.endsWith('.') ? '' : '. Try again.'}`;
   }
 }

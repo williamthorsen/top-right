@@ -9,8 +9,8 @@ import {
   type ScoreLabelMapping,
 } from '@top-right/model';
 import type { Store } from '@top-right/store';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 
-import { describeError } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
 
 /** What a host needs to answer an author's write. */

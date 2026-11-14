@@ -21,7 +21,7 @@ import { type ItemsResponse, itemsResponseSchema, repoReadsResponseSchema } from
 import { scoresResponseSchema, statusPatchSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
 
 import { AppHeader } from './AppHeader.tsx';
-import { describeError, getJson, HostResponseError, postJson } from './host-requests.ts';
+import { describeRequestError, getJson, HostResponseError, postJson } from './host-requests.ts';
 import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
 import { useStoredMagnification } from './useStoredMagnification.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
@@ -88,7 +88,7 @@ export function App(): ReactElement {
       return listStaleRepos(answer.reads);
     } catch (error) {
       const verb = path === '/api/items/read' ? 'read' : 'refreshed';
-      setFailure(`Issues not ${verb}: ${endSentence(describeError(error))}`);
+      setFailure(`Issues not ${verb}: ${endSentence(describeRequestError(error))}`);
       return [];
     } finally {
       for (const repo of repos) reposInFlight.current.delete(repo);
@@ -108,7 +108,7 @@ export function App(): ReactElement {
         setState({ kind: 'loaded', data });
         void readRepos('/api/items/refresh', listStaleRepos(data.reads));
       } catch (error) {
-        setState({ kind: 'error', message: describeError(error) });
+        setState({ kind: 'error', message: describeRequestError(error) });
       }
     })();
   }, [readRepos]);
@@ -177,7 +177,7 @@ export function App(): ReactElement {
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
-        setFailure(`Score not saved: ${describeError(error)}. Try again.`);
+        setFailure(`Score not saved: ${describeRequestError(error)}. Try again.`);
       }
     });
   }
@@ -199,7 +199,7 @@ export function App(): ReactElement {
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
         if (item && dimensions.length > 0) applyPatch(itemKey, { labels: item.labels });
-        setFailure(`Score not cleared: ${describeError(error)}. Try again.`);
+        setFailure(`Score not cleared: ${describeRequestError(error)}. Try again.`);
       }
     });
   }
@@ -215,7 +215,7 @@ export function App(): ReactElement {
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
-        setFailure(`Scores not kept: ${describeError(error)}. Try again.`);
+        setFailure(`Scores not kept: ${describeRequestError(error)}. Try again.`);
       }
     });
   }
@@ -236,7 +236,7 @@ export function App(): ReactElement {
         const written = error instanceof HostResponseError ? statusPatchSchema.safeParse(error.body) : undefined;
         if (written?.success) applyPatch(itemKey, written.data);
         setOverrides((current) => replaceEntry(current, itemKey, previous));
-        setFailure(`Status not saved: ${describeError(error)}. Try again.`);
+        setFailure(`Status not saved: ${describeRequestError(error)}. Try again.`);
       }
     });
   }

@@ -15,6 +15,7 @@ import {
   updateIssueLabels,
 } from '@top-right/adapter-github';
 import type { WorkItem } from '@top-right/model';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 
 import { computeClosedSince, formatAbbreviationNotice, readConfig } from './config.ts';
 import { resolveDatabasePath } from './database-path.ts';
@@ -107,7 +108,7 @@ function openStore(databasePath: string): SqliteStore {
     mkdirSync(path.dirname(databasePath), { recursive: true });
     return openSqliteStore(databasePath);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
+    const reason = describeError(error);
     throw new StartupError(
       `The score store did not open at ${databasePath}: ${reason}. Set TOP_RIGHT_DB to another path.`,
     );
@@ -119,7 +120,7 @@ async function resolveUserId(request: GraphqlRequest): Promise<string> {
   try {
     return `github:${await fetchViewerLogin(request)}`;
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
+    const reason = describeError(error);
     throw new StartupError(`The GitHub user could not be read: ${reason}`);
   }
 }

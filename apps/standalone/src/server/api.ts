@@ -2,8 +2,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { StatusStrategy } from '@top-right/adapter-github';
 import type { Store } from '@top-right/store';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 
-import { describeError, sendJson } from './http-json.ts';
+import { sendJson } from './http-json.ts';
 import { createItemRoutes } from './item-routes.ts';
 import type { ItemsCache } from './items-cache.ts';
 import type { LabelWriter } from './label-write.ts';

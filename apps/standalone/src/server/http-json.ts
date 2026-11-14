@@ -5,11 +5,6 @@ import type { z } from 'zod';
 /** The largest request body that the host reads; a scores or status request is far smaller. */
 const MAX_BODY_BYTES = 16_384;
 
-/** Returns an error's message, or the thrown value as text. */
-export function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 /** Reads and validates a JSON request body, or answers 400 and resolves to `undefined`. */
 export async function readRequest<T>(
   request: IncomingMessage,

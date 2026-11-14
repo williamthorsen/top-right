@@ -14,6 +14,7 @@ import {
   type StatusOverride,
 } from '@top-right/model';
 import type { Store } from '@top-right/store';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 
 import type { ItemsResponse, RepoReadsResponse } from '#src/shared/items-response.ts';
 import {
@@ -26,7 +27,7 @@ import {
 } from '#src/shared/write-requests.ts';
 
 import { resolveFirstLoadRepos } from './first-load-repos.ts';
-import { describeError, readRequest, sendJson } from './http-json.ts';
+import { readRequest, sendJson } from './http-json.ts';
 import type { ItemsCache, ItemsRead, RepoRead } from './items-cache.ts';
 import { clearAuthorScores, type LabelWriter, writeAuthorChange } from './label-write.ts';
 import type { RouteTable } from './route-table.ts';
