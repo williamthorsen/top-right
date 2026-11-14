@@ -52,7 +52,7 @@ describe(Settings, () => {
       await user.click(within(getSection('Work types')).getByRole('button', { name: 'Save' }));
 
       expect(onSaveWorkTypeMapping).toHaveBeenCalledWith({ ...MAPPING, ops: ['infra', 'admin'] });
-      expect(screen.getByRole('status')).toHaveTextContent('Saved.');
+      expect(screen.getByRole('status')).toHaveTextContent('Saved');
     });
 
     it('refuses a label in two types without saving', async () => {
@@ -139,7 +139,7 @@ describe(Settings, () => {
         ...DEFAULT_SCORE_LABEL_MAPPING,
         urgency: { ...DEFAULT_SCORE_LABEL_MAPPING.urgency, high: ['urgency:high', 'priority:high'] },
       });
-      expect(within(getSection('Score labels')).getByRole('status')).toHaveTextContent('Saved.');
+      expect(within(getSection('Score labels')).getByRole('status')).toHaveTextContent('Saved');
     });
 
     it('refuses a label under two levels without saving', async () => {
@@ -297,7 +297,7 @@ describe(Settings, () => {
       });
       const [saved] = onSaveCollections.mock.calls[0] ?? [];
       expect(saved?.defaultCollectionId).toBe(saved?.collections[0]?.id);
-      expect(screen.getByRole('status')).toHaveTextContent('Saved.');
+      expect(screen.getByRole('status')).toHaveTextContent('Saved');
     });
 
     it('renames a collection and edits its repositories, keeping its id', async () => {
@@ -383,6 +383,54 @@ describe(Settings, () => {
       expect(within(getSection('Collections')).getByRole('alert')).toHaveTextContent(
         'Not saved: the host did not respond. Try again.',
       );
+    });
+  });
+
+  describe('save outcome', () => {
+    it("shows the outcome after the form's buttons", async () => {
+      renderSettings();
+
+      const user = userEvent.setup();
+      const restore = within(getSection('Work types')).getByRole('button', { name: 'Restore defaults' });
+      await user.click(restore);
+
+      expect(restore.compareDocumentPosition(screen.getByRole('status'))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+
+    it('clears "Saved" when a field is edited after the save', async () => {
+      renderSettings();
+
+      const user = userEvent.setup();
+      await user.click(within(getSection('Work types')).getByRole('button', { name: 'Save' }));
+      await user.type(getField('Work types', 'Ops'), ', infra');
+
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('clears "Saved" when a collection is added after the save', async () => {
+      renderSettings();
+
+      const user = userEvent.setup();
+      await user.click(getSaveButton());
+      await user.click(within(getSection('Collections')).getByRole('button', { name: 'Add collection' }));
+
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('keeps a refusal while the form is edited, until the next save', async () => {
+      renderSettings();
+
+      const user = userEvent.setup();
+      await user.type(getField('Work types', 'Task'), ', bug');
+      await user.click(within(getSection('Work types')).getByRole('button', { name: 'Save' }));
+      await user.type(getField('Work types', 'Task'), '{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}');
+
+      expect(within(getSection('Work types')).getByRole('alert')).toHaveTextContent('Keep it in one type.');
+
+      await user.click(within(getSection('Work types')).getByRole('button', { name: 'Save' }));
+
+      expect(within(getSection('Work types')).queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('Saved');
     });
   });
 });

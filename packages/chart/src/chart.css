@@ -1,3 +1,24 @@
+/* The status tokens are on the page's root, so that a host's own messages share them. */
+:root {
+  --tr-success: #1d7a3a;
+  --tr-warning: #8a5a00;
+  --tr-danger: #c22a2a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --tr-success: #5cc97a;
+    --tr-warning: #e0a84a;
+    --tr-danger: #f07070;
+  }
+}
+
+:root[data-theme='dark'] {
+  --tr-success: #5cc97a;
+  --tr-warning: #e0a84a;
+  --tr-danger: #f07070;
+}
+
 /* Tokens are scoped to the chart's root, so that a host page keeps its own. */
 .tr-root {
   --tr-bg: #f4f4f1;
@@ -1676,7 +1697,11 @@ button.tr-relation {
 }
 .tr-settings-actions {
   display: flex;
+  align-items: flex-start;
   gap: 8px;
+}
+.tr-settings-actions > .tr-button {
+  flex: none;
 }
 .tr-settings-collection {
   padding-top: 8px;
@@ -1706,15 +1731,28 @@ button.tr-relation {
   outline: 3px solid var(--tr-focus);
   outline-offset: 2px;
 }
-.tr-settings-error,
+/* The outcome's first line centres on the buttons, and further lines grow the row downward. */
+.tr-settings-outcome {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding-block: calc((32px - 1lh) / 2);
+  margin: 0 0 0 4px;
+  overflow-wrap: anywhere;
+}
 .tr-settings-saved {
-  margin: 0;
+  color: var(--tr-success);
 }
 .tr-settings-error {
-  color: var(--tr-block);
+  color: var(--tr-danger);
 }
-.tr-settings-error::before {
-  content: '⚠ ';
+.tr-status-icon {
+  flex: none;
+}
+.tr-settings-outcome > .tr-status-icon {
+  height: 1lh;
 }
 @media (max-width: 520px) {
   .tr-settings-field {

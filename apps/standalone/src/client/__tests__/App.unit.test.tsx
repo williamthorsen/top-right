@@ -158,6 +158,27 @@ describe(App, () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('clears a write failure once a later write succeeds', async () => {
+    const user = userEvent.setup();
+    let writes = 0;
+    stubFetch((path) => {
+      if (path !== '/api/scores') return Promise.resolve(Response.json(ITEMS));
+      if (writes++ === 0) return Promise.reject(new TypeError('Failed to fetch'));
+      return Promise.resolve(
+        Response.json({ itemKey: ITEM_KEY, scores: { urgency: { score: 'low', by: 'author', at: AT } } }),
+      );
+    });
+    render(<App />);
+
+    await selectItem(user);
+    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Score not saved');
+
+    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Low' }));
+
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  });
+
   it('when the host writes the level to a label, shows the level that the returned label supplies', async () => {
     const user = userEvent.setup();
     const write = Promise.withResolvers<Response>();
@@ -409,6 +430,33 @@ describe('refreshing the issues', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(new RegExp(`^${RegExp.escape(expected)}Dismiss$`));
     expect(screen.getAllByText('Score items').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Refresh' })).toHaveAttribute('aria-disabled', 'false');
+  });
+
+  it('keeps a read failure after a write succeeds, and clears it once a later refresh succeeds', async () => {
+    const user = userEvent.setup();
+    let refreshes = 0;
+    stubFetch((path) => {
+      if (path === '/api/scores') {
+        return Promise.resolve(
+          Response.json({ itemKey: ITEM_KEY, scores: { urgency: { score: 'critical', by: 'author', at: AT } } }),
+        );
+      }
+      if (path === '/api/items/refresh' && refreshes++ === 0) return Promise.reject(new TypeError('Failed to fetch'));
+      return Promise.resolve(Response.json(ITEMS));
+    });
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Refresh' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Issues not refreshed');
+
+    await selectItem(user);
+    await user.click(within(getGroup('Urgency')).getByRole('radio', { name: 'Critical' }));
+    expect(await within(getGroup('Urgency')).findByRole('radio', { name: 'Critical' })).toBeChecked();
+    expect(screen.getByRole('alert')).toHaveTextContent('Issues not refreshed');
+
+    await user.click(screen.getByRole('button', { name: 'Refresh' }));
+
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
   });
 });
 

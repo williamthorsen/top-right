@@ -11,7 +11,7 @@ import {
 import { type ReactElement, type SubmitEvent, useId, useState } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
-import { type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
+import { clearSaved, type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
 import { parseLabels } from './parse-labels.ts';
 
 /** The labels that assign each work type, refused while one label is in two types. */
@@ -71,12 +71,14 @@ export function WorkTypeMappingForm({
           <input
             aria-describedby={hintId}
             className="tr-input"
-            onChange={(event) => setTexts((current) => ({ ...current, [workType]: event.target.value }))}
+            onChange={(event) => {
+              setTexts((current) => ({ ...current, [workType]: event.target.value }));
+              setOutcome(clearSaved);
+            }}
             value={texts[workType]}
           />
         </label>
       ))}
-      <OutcomeMessage outcome={outcome} />
       <div className="tr-settings-actions">
         <button className="tr-button" disabled={isSaving} type="submit">
           Save
@@ -84,6 +86,7 @@ export function WorkTypeMappingForm({
         <button className="tr-button" disabled={isSaving} onClick={() => void submit(undefined)} type="button">
           Restore defaults
         </button>
+        <OutcomeMessage outcome={outcome} />
       </div>
     </form>
   );

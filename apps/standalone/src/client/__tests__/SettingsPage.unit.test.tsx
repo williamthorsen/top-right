@@ -110,7 +110,7 @@ describe(SettingsPage, () => {
       '/api/work-type-mapping',
       expect.objectContaining({ body: JSON.stringify({ mapping: null }) }),
     );
-    expect(await within(section).findByRole('status')).toHaveTextContent('Saved.');
+    expect(await within(section).findByRole('status')).toHaveTextContent('Saved');
   });
 
   it('saves the score-label mapping through its own route', async () => {
@@ -128,7 +128,7 @@ describe(SettingsPage, () => {
       '/api/score-label-mapping',
       expect.objectContaining({ body: JSON.stringify({ mapping: DEFAULT_SCORE_LABEL_MAPPING }) }),
     );
-    expect(await within(section).findByRole('status')).toHaveTextContent('Saved.');
+    expect(await within(section).findByRole('status')).toHaveTextContent('Saved');
   });
 
   it('saves the collections through their own route, posting a missing default as null', async () => {
@@ -142,7 +142,7 @@ describe(SettingsPage, () => {
     await userEvent.setup().click(within(section).getByRole('button', { name: 'Save' }));
 
     expect(fetch).toHaveBeenCalledWith('/api/collections', expect.objectContaining({ body: JSON.stringify(saved) }));
-    expect(await within(section).findByRole('status')).toHaveTextContent('Saved.');
+    expect(await within(section).findByRole('status')).toHaveTextContent('Saved');
   });
 });
 

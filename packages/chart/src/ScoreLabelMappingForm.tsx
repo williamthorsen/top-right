@@ -14,7 +14,7 @@ import {
 import { type ReactElement, type SubmitEvent, useId, useState } from 'react';
 
 import { LEVEL_NAMES } from './level-names.ts';
-import { type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
+import { clearSaved, type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
 import { parseLabels } from './parse-labels.ts';
 import { formatPoints } from './provenance.ts';
 
@@ -70,14 +70,16 @@ export function ScoreLabelMappingForm({
               <input
                 aria-describedby={hintId}
                 className="tr-input"
-                onChange={(event) => setTexts((current) => ({ ...current, [key]: event.target.value }))}
+                onChange={(event) => {
+                  setTexts((current) => ({ ...current, [key]: event.target.value }));
+                  setOutcome(clearSaved);
+                }}
                 value={texts[key]}
               />
             </label>
           ))}
         </fieldset>
       ))}
-      <OutcomeMessage outcome={outcome} />
       <div className="tr-settings-actions">
         <button className="tr-button" disabled={isSaving} type="submit">
           Save
@@ -85,6 +87,7 @@ export function ScoreLabelMappingForm({
         <button className="tr-button" disabled={isSaving} onClick={() => void submit(undefined)} type="button">
           Restore defaults
         </button>
+        <OutcomeMessage outcome={outcome} />
       </div>
     </form>
   );

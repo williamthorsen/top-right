@@ -5,4 +5,5 @@ export type { SettableStatus } from './PaneScores.tsx';
 export type { ChartRefresh } from './RefreshControl.tsx';
 export { Settings, type SettingsProps } from './Settings.tsx';
 export { SettingsSection, type SettingsSectionProps } from './SettingsSection.tsx';
+export { StatusIcon, type StatusKind } from './StatusIcon.tsx';
 export { NATURAL_SCALE, ZOOM_STEPS } from './zoom.ts';

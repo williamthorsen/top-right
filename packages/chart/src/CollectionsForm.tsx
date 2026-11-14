@@ -1,7 +1,7 @@
 import { type Collection, type CollectionSettings, findCollectionProblem } from '@top-right/model';
 import { type ReactElement, type SubmitEvent, useId, useState } from 'react';
 
-import { type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
+import { clearSaved, type Outcome, OutcomeMessage, type SaveSettings } from './OutcomeMessage.tsx';
 import { sortRepos } from './repo-names.ts';
 
 /**
@@ -35,8 +35,19 @@ export function CollectionsForm({
   const [outcome, setOutcome] = useState<Outcome>();
   const [isSaving, setIsSaving] = useState(false);
 
+  function addDraft(): void {
+    setDrafts((current) => [...current, { id: crypto.randomUUID(), name: '', repos: [] }]);
+    setOutcome(clearSaved);
+  }
+
+  function changeDefault(id: string): void {
+    setDefaultId(id);
+    setOutcome(clearSaved);
+  }
+
   function updateDraft(id: string, update: (collection: Collection) => Collection): void {
     setDrafts((current) => current.map((collection) => (collection.id === id ? update(collection) : collection)));
+    setOutcome(clearSaved);
   }
 
   function toggleRepo(id: string, repo: string): void {
@@ -51,6 +62,7 @@ export function CollectionsForm({
   function deleteDraft(id: string): void {
     setDrafts((current) => current.filter((collection) => collection.id !== id));
     if (defaultId === id) setDefaultId('');
+    setOutcome(clearSaved);
   }
 
   async function save(event: SubmitEvent): Promise<void> {
@@ -110,11 +122,7 @@ export function CollectionsForm({
         </fieldset>
       ))}
       <div className="tr-settings-actions">
-        <button
-          className="tr-button"
-          onClick={() => setDrafts((current) => [...current, { id: crypto.randomUUID(), name: '', repos: [] }])}
-          type="button"
-        >
+        <button className="tr-button" onClick={addDraft} type="button">
           Add collection
         </button>
       </div>
@@ -123,7 +131,7 @@ export function CollectionsForm({
         <select
           aria-describedby={defaultHintId}
           className="tr-select"
-          onChange={(event) => setDefaultId(event.target.value)}
+          onChange={(event) => changeDefault(event.target.value)}
           value={defaultId}
         >
           <option value="">None (all repos)</option>
@@ -137,11 +145,11 @@ export function CollectionsForm({
       <p className="tr-settings-hint" id={defaultHintId}>
         The chart opens with this collection after each reload.
       </p>
-      <OutcomeMessage outcome={outcome} />
       <div className="tr-settings-actions">
         <button className="tr-button" disabled={isSaving} type="submit">
           Save
         </button>
+        <OutcomeMessage outcome={outcome} />
       </div>
     </form>
   );
