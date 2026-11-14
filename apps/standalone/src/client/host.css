@@ -33,13 +33,52 @@ body {
 .host-alert {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 12px 16px 0;
+  gap: 8px;
+  margin: 12px 16px;
   padding: 8px 12px;
   border: 1px solid CanvasText;
   border-left-width: 4px;
   border-radius: 6px;
+  background: Canvas;
+}
+
+.host-alert-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.host-alert-warning {
+  border-left-color: var(--tr-warning);
+}
+
+/* The page's flex column does not collapse margins, so stacked alerts share one gap. */
+.host-alert-warning + .host-alert-warning {
+  margin-top: 0;
+}
+
+.host-alert-warning > svg {
+  flex: none;
+  color: var(--tr-warning);
+}
+
+/* A failure floats over the chart, above its bottom sheet and menus, rather than pushing it down. */
+.host-alert-failure {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 20;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  border-left-color: var(--tr-danger);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+  transform: translateX(-50%);
+}
+
+.host-alert-failure > svg {
+  flex: none;
+  color: var(--tr-danger);
 }
 
 .host-button {

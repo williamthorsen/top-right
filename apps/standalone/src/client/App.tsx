@@ -1,4 +1,4 @@
-import { Chart, type SettableStatus } from '@top-right/chart';
+import { Chart, type SettableStatus, StatusIcon } from '@top-right/chart';
 import {
   applyScoreWrite,
   clearScoreFields,
@@ -29,6 +29,9 @@ import { useUrlSelection } from './useUrlSelection.ts';
 /** The dimensions whose scores the host keeps in an issue's labels. */
 const LABEL_DIMENSIONS: readonly LabelDimension[] = ['urgency', 'value', 'effort'];
 
+/** The last failed request that the alert reports: a read of repositories' issues, or a write of an item. */
+type Failure = { kind: 'read' | 'write'; message: string };
+
 /**
  * The page: the chart of the configured repositories' open issues, whose scores and status it writes to the host, with
  * the selected item in the URL. It asks the host for the repositories that the chart shows.
@@ -40,7 +43,7 @@ export function App(): ReactElement {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [scores, setScores] = useState<Record<string, ItemScores>>({});
   const [overrides, setOverrides] = useState<Record<string, StatusOverride>>({});
-  const [failure, setFailure] = useState<string>();
+  const [failure, setFailure] = useState<Failure>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [shownRepos, setShownRepos] = useState<ReadonlySet<string>>();
   const [selectedKey, changeSelectedKey] = useUrlSelection();
@@ -85,10 +88,11 @@ export function App(): ReactElement {
             }
           : current,
       );
+      setFailure(clearFailureOf('read'));
       return listStaleRepos(answer.reads);
     } catch (error) {
       const verb = path === '/api/items/read' ? 'read' : 'refreshed';
-      setFailure(`Issues not ${verb}: ${endSentence(describeRequestError(error))}`);
+      setFailure({ kind: 'read', message: `Issues not ${verb}: ${endSentence(describeRequestError(error))}` });
       return [];
     } finally {
       for (const repo of repos) reposInFlight.current.delete(repo);
@@ -175,9 +179,10 @@ export function App(): ReactElement {
         const body = await postJson('/api/scores', { itemKey, scores: changed }, scoresResponseSchema);
         if (body.labels) applyPatch(itemKey, { labels: body.labels });
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
+        setFailure(clearFailureOf('write'));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
-        setFailure(`Score not saved: ${describeRequestError(error)}. Try again.`);
+        setFailure({ kind: 'write', message: `Score not saved: ${describeRequestError(error)}. Try again.` });
       }
     });
   }
@@ -196,10 +201,11 @@ export function App(): ReactElement {
         const body = await postJson('/api/scores/clear', { itemKey, fields }, scoresResponseSchema);
         if (body.labels) applyPatch(itemKey, { labels: body.labels });
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
+        setFailure(clearFailureOf('write'));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
         if (item && dimensions.length > 0) applyPatch(itemKey, { labels: item.labels });
-        setFailure(`Score not cleared: ${describeRequestError(error)}. Try again.`);
+        setFailure({ kind: 'write', message: `Score not cleared: ${describeRequestError(error)}. Try again.` });
       }
     });
   }
@@ -213,9 +219,10 @@ export function App(): ReactElement {
         const body = await postJson('/api/keep', { itemKey }, scoresResponseSchema);
         if (body.labels) applyPatch(itemKey, { labels: body.labels });
         setScores((current) => ({ ...current, [itemKey]: body.scores }));
+        setFailure(clearFailureOf('write'));
       } catch (error) {
         setScores((current) => replaceEntry(current, itemKey, previous));
-        setFailure(`Scores not kept: ${describeRequestError(error)}. Try again.`);
+        setFailure({ kind: 'write', message: `Scores not kept: ${describeRequestError(error)}. Try again.` });
       }
     });
   }
@@ -231,12 +238,13 @@ export function App(): ReactElement {
         // The patch schema strips the answer's other fields.
         applyPatch(itemKey, statusPatchSchema.parse(body));
         setOverrides((current) => replaceEntry(current, itemKey, body.override ?? undefined));
+        setFailure(clearFailureOf('write'));
       } catch (error) {
         // Apply the item's new fields when the host wrote the source before its store failed.
         const written = error instanceof HostResponseError ? statusPatchSchema.safeParse(error.body) : undefined;
         if (written?.success) applyPatch(itemKey, written.data);
         setOverrides((current) => replaceEntry(current, itemKey, previous));
-        setFailure(`Status not saved: ${describeRequestError(error)}. Try again.`);
+        setFailure({ kind: 'write', message: `Status not saved: ${describeRequestError(error)}. Try again.` });
       }
     });
   }
@@ -265,14 +273,16 @@ export function App(): ReactElement {
     <>
       {header}
       {data.abbreviationClashes.map((clash) => (
-        <div className="host-alert" key={clash.abbreviation} role="alert">
-          <span>{describeAbbreviationClash(clash)}</span>
+        <div className="host-alert host-alert-warning" key={clash.abbreviation} role="alert">
+          <StatusIcon kind="warning" />
+          <span className="host-alert-text">{describeAbbreviationClash(clash)}</span>
           <a href={buildSettingsHref(selectedKey)}>Settings</a>
         </div>
       ))}
       {failure === undefined ? null : (
-        <div className="host-alert" role="alert">
-          <span>{failure}</span>
+        <div className="host-alert host-alert-failure" role="alert">
+          <StatusIcon kind="danger" />
+          <span className="host-alert-text">{failure.message}</span>
           <button className="host-button" onClick={() => setFailure(undefined)} type="button">
             Dismiss
           </button>
@@ -311,6 +321,11 @@ export function App(): ReactElement {
 }
 
 // region | Helpers
+/** Returns the updater that drops a failure of `kind`, which the next success of that kind answers. */
+function clearFailureOf(kind: Failure['kind']): (current: Failure | undefined) => Failure | undefined {
+  return (current) => (current?.kind === kind ? undefined : current);
+}
+
 /** Returns `text` ending in a period, unless it already ends a sentence, as the host's GitHub messages do. */
 function endSentence(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;
