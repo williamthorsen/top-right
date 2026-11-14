@@ -164,6 +164,16 @@ The border carries work type, from a classifier over the item's labels: feature 
 
 Added after the data-visualization evaluation: The doc assigned no channel to status or category. Revised at the prototype round: The developer chose the pie over the arc (row 32) and the four-type classifier over a border per label (rows 11, 12); 2.1's text codes with legend chips (rows 10, 13), 4.1's dash patterns (row 12), the checkmark (row 38), and 3.1's diamond mark (row 37) were dropped. Decided at the Settings iteration (#27): the whole-mapping replacement and the refusal of a label in two types. Revised at #94: The dotted border marks an item without effort, not a work type, so 4.1's dash patterns per work type stay dropped.
 
+### Messages and status colours
+
+A message that reports an outcome shows its kind by an icon and a colour, so that colour is never the only signal: success, warning, and danger, whose tokens `chart.css` defines with a value for each colour scheme, each legible as text against every surface on which a message sits. The tokens are on the page's root rather than the chart's, so that the host's own messages share them; colour elsewhere in the interface is not part of them. No message moves the content around it:
+
+- A Settings form's outcome appears beside its buttons, in their row. An edit of the form clears "Saved", which would otherwise claim that the edit is saved; a refusal stays until the next save, because it names what the author is fixing.
+- A failed request on the chart page floats at the bottom centre of the viewport, over the chart and its bottom sheet, until the author dismisses it or the next request of its kind succeeds: A write clears a write failure, and a read clears a read failure, so that a write does not hide that the issues were not refreshed. It does not sit at the chart's top edge, where it would cover the chart strip's controls.
+- The abbreviation-clash alert stays in the page's flow above the chart, because it reports a condition rather than an event.
+
+Decided at #109: The messages pushed the Save buttons and the chart down when they appeared, and only the Settings refusal showed its kind.
+
 ### Circle labels and repo abbreviations
 
 A circle shows its id as the repo's abbreviation and the number, `N.382`, because a bare number is not helpful across repos. While the filter shows one repo, the number alone. A Jira key stacks over its number in a smaller font. Abbreviations default to the repo's first letter, uppercased, and are mapped per repo in Settings, because two repos can share a letter. Settings is the only place that changes a stored abbreviation; the CLI's `seed-abbreviations` sets only those of repos that do not have one, and refuses a seed that would leave a repo that it sets sharing an abbreviation. Settings refuses a save that leaves two repos sharing an abbreviation, compared case-insensitively, and while a clash remains the page shows an alert that links to Settings. The host does not refuse to start over a clash, because the refusal would lock the author out of the page that fixes it. Larger circles add the title at higher zoom.
