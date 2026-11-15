@@ -8,6 +8,7 @@ import { sendJson } from './http-json.ts';
 import { createItemRoutes } from './item-routes.ts';
 import type { ItemsCache } from './items-cache.ts';
 import type { LabelWriter } from './label-write.ts';
+import { findRefusal } from './request-guard.ts';
 import type { RouteTable } from './route-table.ts';
 import { createSettingsRoutes } from './settings-routes.ts';
 
@@ -47,6 +48,11 @@ export function createApiHandler({
     const route = routes[new URL(request.url ?? '/', 'http://localhost').pathname];
     if (!route) {
       next();
+      return;
+    }
+    const refusal = findRefusal(request);
+    if (refusal !== undefined) {
+      sendJson(response, 403, { error: refusal });
       return;
     }
     if (request.method !== route.method) {
