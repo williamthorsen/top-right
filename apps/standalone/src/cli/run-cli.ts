@@ -1,17 +1,11 @@
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
 
 import { GitHubAdapterError } from '@top-right/adapter-github';
-import {
-  DEFAULT_SCORE_LABEL_MAPPING,
-  formatItemKey,
-  type ResolvedItemScores,
-  resolveItemScores,
-  type WorkItem,
-} from '@top-right/model';
+import { DEFAULT_SCORE_LABEL_MAPPING, type WorkItem } from '@top-right/model';
 import type { Store } from '@top-right/store';
 import { describeError } from '@williamthorsen/toolbelt.errors';
 
-import { omitHeldScores, parseScoreBatch, planScoreChanges, writeScoreBatch } from '#src/server/score-batch.ts';
+import { submitScoreBatch } from '#src/server/score-batch.ts';
 import { StartupError } from '#src/server/startup-error.ts';
 
 import { listItems, renderItemsText } from './list-items.ts';
@@ -271,24 +265,16 @@ async function runWriteScores(args: readonly string[], io: CliIo): Promise<numbe
   const isDryRun = values['dry-run'] === true;
   return withContext(io, async (context) => {
     const items = await loadOpenItems(context);
-    const batch = parseScoreBatch(json, { openKeys: new Set(items.map((item) => formatItemKey(item))) });
-    if (batch.kind === 'invalid') {
+    const submission = await submitScoreBatch(context.store, context.userId, items, json, {
+      at: io.now().toISOString(),
+      isDryRun,
+    });
+    if (submission.kind === 'invalid') {
       io.stderr(`top-right write-scores: the batch is refused, and nothing was written:\n`);
-      io.stderr(batch.problems.map((problem) => `  ${problem}\n`).join(''));
+      io.stderr(submission.problems.map((problem) => `  ${problem}\n`).join(''));
       return USAGE_ERROR;
     }
-    const at = io.now().toISOString();
-    const { scores, scoreLabelMapping } = await context.store.readUserState(context.userId);
-    const mapping = scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING;
-    const resolved = Object.fromEntries(
-      items.map((item): [string, ResolvedItemScores] => {
-        const itemKey = formatItemKey(item);
-        return [itemKey, resolveItemScores(scores[itemKey], item.labels, mapping)];
-      }),
-    );
-    const entries = omitHeldScores(batch.entries, resolved);
-    const changes = planScoreChanges(entries, scores, resolved, at);
-    if (!isDryRun) await writeScoreBatch(context.store, context.userId, entries, at);
+    const { changes } = submission;
     io.stdout(renderChangesText(changes, isDryRun));
     return 0;
   });

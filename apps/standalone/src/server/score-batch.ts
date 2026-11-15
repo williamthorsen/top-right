@@ -1,14 +1,18 @@
 import {
   applyScoreWrite,
+  DEFAULT_SCORE_LABEL_MAPPING,
+  formatItemKey,
   type ItemScores,
   omitUnchangedScores,
   planLabelChange,
   type ResolvedItemScores,
+  resolveItemScores,
   SCORE_FIELDS,
   type ScoreField,
   type ScoreLabelMapping,
   type Scores,
   type ScoreTypes,
+  type WorkItem,
 } from '@top-right/model';
 import type { Store } from '@top-right/store';
 import { z } from 'zod';
@@ -40,6 +44,21 @@ export interface BatchLimits {
   /** When given, a level for which the mapping lists no label is refused, as `planLabelChange` refuses it. */
   mapping?: ScoreLabelMapping | undefined;
 }
+
+/** How `submitScoreBatch` writes a batch. */
+export interface SubmitOptions {
+  /** The stamp of every score that the batch writes. */
+  at: string;
+  /** Plans the batch without writing it. */
+  isDryRun?: boolean | undefined;
+  /** Refuses a level for which the user's score-label mapping lists no label. */
+  requiresLabels?: boolean | undefined;
+}
+
+/** A submitted batch: the problems that refused it, or the changes that it made and each written item's scores. */
+export type BatchSubmission =
+  | { kind: 'invalid'; problems: string[] }
+  | { kind: 'valid'; entries: BatchEntry[]; changes: ScoreChange[]; written: Record<string, ItemScores> };
 
 const batchEntrySchema = scoresRequestSchema.extend({ reason: z.string().trim().min(1).optional() });
 
@@ -108,6 +127,34 @@ export function planScoreChanges(
     }
   }
   return changes;
+}
+
+/**
+ * Parses `json` as a batch for the open `items`, drops each level that an item already holds, and writes the rest as
+ * the agent's, unless `isDryRun`.
+ */
+export async function submitScoreBatch(
+  store: Store,
+  userId: string,
+  items: readonly WorkItem[],
+  json: unknown,
+  { at, isDryRun = false, requiresLabels = false }: SubmitOptions,
+): Promise<BatchSubmission> {
+  const { scores, scoreLabelMapping } = await store.readUserState(userId);
+  const mapping = scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING;
+  const openKeys = new Set(items.map((item) => formatItemKey(item)));
+  const batch = parseScoreBatch(json, { openKeys, mapping: requiresLabels ? mapping : undefined });
+  if (batch.kind === 'invalid') return batch;
+  const resolved = Object.fromEntries(
+    items.map((item): [string, ResolvedItemScores] => {
+      const itemKey = formatItemKey(item);
+      return [itemKey, resolveItemScores(scores[itemKey], item.labels, mapping)];
+    }),
+  );
+  const entries = omitHeldScores(batch.entries, resolved);
+  const changes = planScoreChanges(entries, scores, resolved, at);
+  const written = isDryRun ? {} : await writeScoreBatch(store, userId, entries, at);
+  return { kind: 'valid', entries, changes, written };
 }
 
 /**
