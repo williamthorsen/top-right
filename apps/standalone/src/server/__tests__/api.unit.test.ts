@@ -279,7 +279,11 @@ describe(createApiHandler, () => {
     it('if the body is not JSON, responds 400', async () => {
       const baseUrl = await startServer({});
 
-      const response = await fetch(`${baseUrl}/api/scores`, { method: 'POST', body: '{' });
+      const response = await fetch(`${baseUrl}/api/scores`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{',
+      });
 
       expect(response.status).toBe(400);
     });

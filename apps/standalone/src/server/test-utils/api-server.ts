@@ -1,4 +1,4 @@
-import { createServer, type Server } from 'node:http';
+import { createServer, type OutgoingHttpHeaders, request, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import type { WorkItem } from '@top-right/model';
@@ -33,6 +33,24 @@ export function closeServers(): void {
 /** Posts `body` as JSON to `url`. */
 export function post(url: string, body: unknown): Promise<Response> {
   return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+}
+
+/**
+ * Sends a request to `url` through `node:http`, which sends the `Host` that `headers` names, and resolves to the
+ * response's status; a request without a `body` sends none.
+ */
+export function send(
+  url: string,
+  { method = 'GET', headers = {}, body }: { method?: string; headers?: OutgoingHttpHeaders; body?: string },
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const outgoing = request(url, { method, headers }, (response) => {
+      response.resume();
+      response.on('end', () => resolve(response.statusCode ?? 0));
+    });
+    outgoing.on('error', reject);
+    outgoing.end(body);
+  });
 }
 
 /**
