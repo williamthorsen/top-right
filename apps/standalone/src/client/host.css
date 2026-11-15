@@ -169,7 +169,8 @@ body {
   background: Canvas;
 }
 
-/* The open state keeps a bar and weight at rest, as the current page's link does, so that it does not rely on colour. */
+/* The open state keeps a bar and weight at rest, as the current page's link does, so that it does not rely on
+   colour. */
 .host-header-toggle {
   margin-left: auto;
   padding: 0 4px;
