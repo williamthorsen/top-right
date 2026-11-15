@@ -35,6 +35,24 @@ describe(DetailPane, () => {
       expect(onKeep).toHaveBeenCalledWith(ITEM_KEY);
     });
 
+    it('shows each distinct reason that the agent gave, and none once the scores are the author’s', () => {
+      const reasoned: ItemScores = {
+        urgency: { score: 'critical', by: 'agent', at: AT, reason: 'Blocks the release' },
+        value: { score: 'must-have', by: 'agent', at: AT, reason: 'Blocks the release' },
+      };
+      const { rerenderPane } = renderPane({ scores: reasoned });
+
+      expect(screen.getAllByText('Blocks the release')).toHaveLength(1);
+      rerenderPane({
+        scores: {
+          urgency: { score: 'critical', by: 'author', at: AT },
+          value: { score: 'must-have', by: 'author', at: AT },
+        },
+      });
+
+      expect(screen.queryByText('Blocks the release')).not.toBeInTheDocument();
+    });
+
     it('shows the Enter hint on Keep only during a review', () => {
       renderPane({ scores: moved, isReviewing: true });
 
