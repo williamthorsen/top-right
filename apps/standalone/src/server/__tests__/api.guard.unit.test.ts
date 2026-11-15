@@ -20,17 +20,18 @@ describe(createApiHandler, () => {
       expect(status).toBe(200);
     });
 
-    it.each(['evil.example', 'localhost.evil.example', 'localhost'])(
-      'refuses %s at another port, or under a foreign name',
-      async (name) => {
-        const baseUrl = await startServer({});
-        const port = name === 'localhost' ? Number(portOf(baseUrl)) + 1 : portOf(baseUrl);
+    it.each([
+      ['evil.example', 0],
+      ['localhost.evil.example', 0],
+      ['localhost', 1],
+    ])('refuses %s at port offset %d', async (name, portOffset) => {
+      const baseUrl = await startServer({});
+      const port = Number(portOf(baseUrl)) + portOffset;
 
-        const status = await send(`${baseUrl}/api/items`, { headers: { host: `${name}:${port}` } });
+      const status = await send(`${baseUrl}/api/items`, { headers: { host: `${name}:${port}` } });
 
-        expect(status).toBe(403);
-      },
-    );
+      expect(status).toBe(403);
+    });
 
     it('refuses a write under a foreign name before its handler runs', async () => {
       const store = createMemoryStore();
