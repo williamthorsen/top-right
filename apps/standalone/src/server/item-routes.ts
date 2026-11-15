@@ -44,6 +44,8 @@ export const STATUS_PATH = '/api/status';
 export const VISIT_PATH = '/api/visit';
 
 export interface ItemRoutesOptions {
+  /** Whether the host runs an agent that the author instructs from the page. */
+  hasAgent: boolean;
   items: ItemsCache;
   /** Writes urgency, value, and effort to an issue's labels; without it, the host keeps every score in the store. */
   labelWriter?: LabelWriter | undefined;
@@ -59,6 +61,7 @@ export interface ItemRoutesOptions {
 
 /** Returns the routes that read the work items and write their scores, status, and the end of a visit. */
 export function createItemRoutes({
+  hasAgent,
   items: itemsCache,
   labelWriter,
   repos,
@@ -105,6 +108,7 @@ export function createItemRoutes({
           overrides,
           ...(state.lastVisitAt !== undefined && { lastVisitAt: state.lastVisitAt }),
           reads: serializeReads(reads),
+          agent: hasAgent,
         };
         sendJson(response, 200, body);
       },

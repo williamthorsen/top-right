@@ -66,6 +66,8 @@ export const itemsResponseSchema = z.object({
   lastVisitAt: z.string().exactOptional(),
   /** The read of each repository whose issues `items` holds, by repository. */
   reads: z.record(z.string(), repoReadSchema),
+  /** Whether the host runs an agent that the author instructs from the page. */
+  agent: z.boolean(),
 });
 
 /**

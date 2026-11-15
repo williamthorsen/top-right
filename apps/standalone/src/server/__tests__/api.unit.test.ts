@@ -62,6 +62,7 @@ describe(createApiHandler, () => {
         overrides: { [ITEM_KEY]: IN_PROGRESS },
         lastVisitAt: EARLIER,
         reads: { [ITEM.repo]: FRESH_READ },
+        agent: false,
       });
     });
 
