@@ -1,3 +1,4 @@
 {
-  "repos": [{ "repo": "williamthorsen/top-right" }, { "repo": "williamthorsen/codeassembly" }]
+  "repos": [{ "repo": "williamthorsen/top-right" }, { "repo": "williamthorsen/codeassembly" }],
+  "agent": { "harness": "claude-code", "model": "sonnet" }
 }
