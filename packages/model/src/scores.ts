@@ -107,6 +107,37 @@ export function clearScoreFields(existing: ItemScores | undefined, fields: reado
   };
 }
 
+/**
+ * Returns an item's scores without the agent entries written at `stamp`. For a field in `restoreFields`, a discarded
+ * entry's previous score returns as the author's at `at`.
+ */
+export function discardAgentEntries(
+  existing: ItemScores | undefined,
+  stamp: string,
+  restoreFields: readonly ScoreField[],
+  at: string,
+): ItemScores {
+  function discard<T extends ScoreTypes[ScoreField]>(
+    field: ScoreField,
+    entry: ScoreEntry<T> | undefined,
+  ): ScoreEntry<T> | undefined {
+    if (entry?.by !== 'agent' || entry.at !== stamp) return entry;
+    return entry.previous !== undefined && restoreFields.includes(field)
+      ? { score: entry.previous, by: 'author', at }
+      : undefined;
+  }
+  const urgency = discard('urgency', existing?.urgency);
+  const value = discard('value', existing?.value);
+  const effort = discard('effort', existing?.effort);
+  const progress = discard('progress', existing?.progress);
+  return {
+    ...(urgency && { urgency }),
+    ...(value && { value }),
+    ...(effort && { effort }),
+    ...(progress && { progress }),
+  };
+}
+
 /** Returns effort × (1 − progress), with a missing progress as none done, or undefined when the effort is unknown. */
 export function computeRemainingScope(scores: ResolvedItemScores | undefined): number | undefined {
   const effort = scores?.effort?.score;

@@ -107,6 +107,33 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
       expect(scores[OTHER_ITEM]?.value).toEqual({ score: 'must-have', by: 'author', at: LATER });
     });
 
+    it('discards the agent scores written at a stamp, restoring previous scores for the listed fields', async () => {
+      const LATEST = '2026-11-03T09:00:00.000Z';
+      await opened.store.writeScores(USER, ITEM, { urgency: 'medium', progress: 0.5 }, 'author', EARLIER);
+      await opened.store.writeScores(USER, ITEM, { urgency: 'high', progress: 0.75, effort: 5 }, 'agent', LATER, 'Why');
+      await opened.store.writeScores(USER, OTHER_ITEM, { value: 'must-have' }, 'agent', EARLIER, 'Other run');
+
+      const changed = await opened.store.discardAgentScores(USER, LATER, ['progress'], LATEST);
+
+      expect(changed).toEqual({ [ITEM]: { progress: { score: 0.5, by: 'author', at: LATEST } } });
+      expect((await opened.store.readUserState(USER)).scores).toEqual({
+        [ITEM]: { progress: { score: 0.5, by: 'author', at: LATEST } },
+        [OTHER_ITEM]: { value: { score: 'must-have', by: 'agent', at: EARLIER, reason: 'Other run' } },
+      });
+    });
+
+    it('leaves an author entry written at the stamp, and removes an item left without scores', async () => {
+      await opened.store.writeScores(USER, ITEM, { urgency: 'high' }, 'agent', LATER);
+      await opened.store.writeScores(USER, OTHER_ITEM, { value: 'must-have' }, 'author', LATER);
+
+      const changed = await opened.store.discardAgentScores(USER, LATER, ['urgency', 'value'], LATER);
+
+      expect(changed).toEqual({ [ITEM]: {} });
+      expect((await opened.store.readUserState(USER)).scores).toEqual({
+        [OTHER_ITEM]: { value: { score: 'must-have', by: 'author', at: LATER } },
+      });
+    });
+
     it('keeps an item’s agent scores as the author’s', async () => {
       await opened.store.writeScores(USER, ITEM, { value: 'nice-to-have' }, 'author', EARLIER);
       await opened.store.writeScores(USER, ITEM, { value: 'must-have', urgency: 'medium' }, 'agent', EARLIER);

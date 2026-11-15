@@ -29,6 +29,16 @@ export interface UserState {
 export interface Store {
   /** Removes the item's entries for `fields`, and returns the item's remaining scores. */
   clearScores(userId: string, itemKey: string, fields: readonly ScoreField[]): Promise<ItemScores>;
+  /**
+   * Removes the agent entries written at `stamp` by the rules of `discardAgentEntries` from `@top-right/model`, and
+   * returns the resulting scores of each item that it changed, keyed by item.
+   */
+  discardAgentScores(
+    userId: string,
+    stamp: string,
+    restoreFields: readonly ScoreField[],
+    at: string,
+  ): Promise<Record<string, ItemScores>>;
   /** Keeps the item's agent scores as the author's, at `at`, and returns the item's resulting scores. */
   keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores>;
   readUserState(userId: string): Promise<UserState>;

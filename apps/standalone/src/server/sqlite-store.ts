@@ -4,6 +4,7 @@ import {
   applyScoreWrite,
   clearScoreFields,
   type CollectionSettings,
+  discardAgentEntries,
   EMPTY_COLLECTION_SETTINGS,
   isValidScore,
   type ItemScores,
@@ -77,6 +78,9 @@ export function openSqliteStore(path: string): SqliteStore {
     `SELECT item_key, field, score, scored_by, scored_at, previous_score, reason FROM scores
      WHERE user_id = ? AND item_key = ?`,
   );
+  const selectStampedItems = db.prepare(
+    `SELECT DISTINCT item_key FROM scores WHERE user_id = ? AND scored_by = 'agent' AND scored_at = ? ORDER BY item_key`,
+  );
   const deleteItemScores = db.prepare('DELETE FROM scores WHERE user_id = ? AND item_key = ?');
   const insertScore = db.prepare(
     `INSERT INTO scores (user_id, item_key, field, score, scored_by, scored_at, previous_score, reason)
@@ -146,6 +150,22 @@ export function openSqliteStore(path: string): SqliteStore {
     clearScores(userId: string, itemKey: string, fields: readonly ScoreField[]): Promise<ItemScores> {
       return Promise.resolve(updateItemScores(userId, itemKey, (existing) => clearScoreFields(existing, fields)));
     },
+    discardAgentScores(
+      userId: string,
+      stamp: string,
+      restoreFields: readonly ScoreField[],
+      at: string,
+    ): Promise<Record<string, ItemScores>> {
+      const changed: Record<string, ItemScores> = {};
+      const rows = z.array(z.object({ item_key: z.string() })).parse(selectStampedItems.all(userId, stamp));
+      for (const { item_key: itemKey } of rows) {
+        changed[itemKey] = updateItemScores(userId, itemKey, (existing) =>
+          discardAgentEntries(existing, stamp, restoreFields, at),
+        );
+      }
+      return Promise.resolve(changed);
+    },
+
     keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores> {
       return Promise.resolve(updateItemScores(userId, itemKey, (existing) => keepItemScores(existing, at)));
     },
