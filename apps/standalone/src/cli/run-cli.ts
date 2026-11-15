@@ -11,17 +11,12 @@ import {
 import type { Store } from '@top-right/store';
 import { describeError } from '@williamthorsen/toolbelt.errors';
 
+import { omitHeldScores, parseScoreBatch, planScoreChanges, writeScoreBatch } from '#src/server/score-batch.ts';
 import { StartupError } from '#src/server/startup-error.ts';
 
 import { listItems, renderItemsText } from './list-items.ts';
 import { planAbbreviationSeed, renderSeedText } from './seed-abbreviations.ts';
-import {
-  omitHeldScores,
-  parseScoreBatch,
-  planScoreChanges,
-  renderChangesText,
-  writeScoreBatch,
-} from './write-scores.ts';
+import { renderChangesText } from './write-scores.ts';
 
 /** The user's store and items, opened for one run of the CLI. */
 export interface CliContext {
@@ -128,9 +123,10 @@ const WRITE_SCORES_HELP = `Write an agent's scores for open issues to the user's
 Usage: top-right write-scores [--dry-run] <file>
 
 Arguments:
-  <file>         A JSON array of { "itemKey": "owner/name#number", "scores": { ... } }, or - to read stdin.
-                 Scores: urgency critical, high, medium, or low; value must-have, should-have,
+  <file>         A JSON array of { "itemKey": "owner/name#number", "scores": { ... }, "reason": "..." }, or - to
+                 read stdin. Scores: urgency critical, high, medium, or low; value must-have, should-have,
                  nice-to-have, or questionable; effort 1, 2, 3, 5, 8, or 13; progress 0-1 in steps of 0.05.
+                 The optional reason, which the chart shows beside the agent's scores, says why they were chosen.
 
 Options:
   -n, --dry-run  Report each change, and write nothing
@@ -275,7 +271,7 @@ async function runWriteScores(args: readonly string[], io: CliIo): Promise<numbe
   const isDryRun = values['dry-run'] === true;
   return withContext(io, async (context) => {
     const items = await loadOpenItems(context);
-    const batch = parseScoreBatch(json, new Set(items.map((item) => formatItemKey(item))));
+    const batch = parseScoreBatch(json, { openKeys: new Set(items.map((item) => formatItemKey(item))) });
     if (batch.kind === 'invalid') {
       io.stderr(`top-right write-scores: the batch is refused, and nothing was written:\n`);
       io.stderr(batch.problems.map((problem) => `  ${problem}\n`).join(''));
