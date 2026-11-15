@@ -155,6 +155,28 @@ describe('POST /api/agent/run', () => {
     });
   });
 
+  it('cancels the run on request, streaming the discard and the outcome', async () => {
+    const store = createMemoryStore();
+    const url = await startAgentServer(async function* ({ callTool, options }) {
+      await callTool('suggest_scores', { changes: [SUGGESTION] });
+      yield message('Thinking');
+      await new Promise((resolve) => options.signal?.addEventListener('abort', resolve));
+      throw new Error('cancelled');
+    }, store);
+
+    const response = await post(`${url}/api/agent/run`, { prompt: 'Score' });
+    const reader = response.body?.getReader();
+    await reader?.read();
+    const cancelled = await post(`${url}/api/agent/cancel`, {});
+    const rest = await readRest(reader);
+
+    expect(cancelled.status).toBe(204);
+    expect(rest).toContain('"type":"discarded"');
+    expect(rest).toContain('{"type":"ended","outcome":"cancelled"}');
+    expect(store.state.scores).toStrictEqual({});
+    await expect(post(`${url}/api/agent/cancel`, {})).resolves.toHaveProperty('status', 409);
+  });
+
   it('is absent when the config names no agent', async () => {
     const url = await startServer({});
 
@@ -204,6 +226,16 @@ async function runPrompt(url: string): Promise<AgentEvent[]> {
     .split('\n')
     .filter((line) => line !== '')
     .map((line) => agentEventSchema.parse(JSON.parse(line)));
+}
+
+/** Returns the text that remains in the stream. */
+async function readRest(reader: ReadableStreamDefaultReader<Uint8Array> | undefined): Promise<string> {
+  const decoder = new TextDecoder();
+  let text = '';
+  for (let chunk = await reader?.read(); chunk && !chunk.done; chunk = await reader?.read()) {
+    text += decoder.decode(chunk.value, { stream: true });
+  }
+  return text;
 }
 
 /** Starts the API with an agent whose run follows `script`, which may call the run's tools. */

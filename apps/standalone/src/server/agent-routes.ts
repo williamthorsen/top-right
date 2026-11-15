@@ -22,6 +22,7 @@ import { readRequest, sendJson } from './http-json.ts';
 import type { ItemsCache } from './items-cache.ts';
 import type { RouteTable } from './route-table.ts';
 
+export const AGENT_CANCEL_PATH = '/api/agent/cancel';
 export const AGENT_DISCARD_PATH = '/api/agent/discard';
 export const AGENT_RUN_PATH = '/api/agent/run';
 
@@ -61,17 +62,30 @@ const TOOL_ACTIVITY: Record<(typeof AGENT_TOOL_NAMES)[number], string> = {
 };
 
 /**
- * Returns the routes through which the page runs the author's prompt on the configured agent, one run at a time, and
- * discards a finished run's suggestions.
+ * Returns the routes through which the page runs the author's prompt on the configured agent, one run at a time,
+ * cancels the run, and discards a finished run's suggestions.
  */
 export function createAgentRoutes(options: AgentRoutesOptions): RouteTable {
   const { hasLabelWriter, now, store, userId } = options;
   const restoreFields: readonly ScoreField[] = hasLabelWriter ? ['progress'] : SCORE_FIELDS;
   // The stamps of the runs that finished since startup, whose suggestions the page may discard.
   const finishedRuns = new Set<string>();
-  let isRunning = false;
+  // Cancels the run in progress; undefined while none runs.
+  let cancelRun: (() => void) | undefined;
 
   return {
+    [AGENT_CANCEL_PATH]: {
+      method: 'POST',
+      handle: (_request, response) => {
+        if (cancelRun === undefined) {
+          sendJson(response, 409, { error: 'No run is in progress.' });
+        } else {
+          cancelRun();
+          response.writeHead(204).end();
+        }
+        return Promise.resolve();
+      },
+    },
     [AGENT_DISCARD_PATH]: {
       method: 'POST',
       handle: async (request, response) => {
@@ -91,14 +105,15 @@ export function createAgentRoutes(options: AgentRoutesOptions): RouteTable {
       handle: async (request, response) => {
         const body = await readRequest(request, response, agentRunRequestSchema);
         if (!body) return;
-        if (isRunning) {
+        if (cancelRun) {
           sendJson(response, 409, { error: 'Another run is in progress.' });
           return;
         }
-        isRunning = true;
+        const controller = new AbortController();
+        cancelRun = () => controller.abort();
         try {
           const at = now().toISOString();
-          const ended = await streamRun(options, body.prompt, at, response);
+          const ended = await streamRun(options, body.prompt, at, response, controller);
           if (ended.outcome === 'cancelled' || ended.outcome === 'failed') {
             const scores = await store.discardAgentScores(userId, at, restoreFields, now().toISOString());
             if (Object.keys(scores).length > 0) send(response, { type: 'discarded', scores });
@@ -107,7 +122,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): RouteTable {
           }
           send(response, ended);
         } finally {
-          isRunning = false;
+          cancelRun = undefined;
           response.end();
         }
       },
@@ -137,15 +152,15 @@ function send(response: ServerResponse, event: AgentEvent): void {
 
 /**
  * Runs the prompt in an empty temporary directory, streaming its events but the last, and returns that `ended` event;
- * the page's disconnection cancels the run.
+ * `controller` and the page's disconnection cancel the run.
  */
 async function streamRun(
   options: AgentRoutesOptions,
   prompt: string,
   at: string,
   response: ServerResponse,
+  controller: AbortController,
 ): Promise<EndedEvent> {
-  const controller = new AbortController();
   response.on('close', () => {
     if (!response.writableFinished) controller.abort();
   });
