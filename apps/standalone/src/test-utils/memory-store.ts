@@ -65,7 +65,7 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
       const state = stateOf(userId);
       const changed: Record<string, ItemScores> = {};
       for (const [itemKey, existing] of Object.entries(state.scores)) {
-        if (!SCORE_FIELDS.some((field) => existing[field]?.by === 'agent' && existing[field].at === stamp)) continue;
+        if (SCORE_FIELDS.every((field) => existing[field]?.by !== 'agent' || existing[field].at !== stamp)) continue;
         const itemScores = discardAgentEntries(existing, stamp, restoreFields, at);
         if (Object.keys(itemScores).length > 0) state.scores[itemKey] = itemScores;
         else state.scores = Object.fromEntries(Object.entries(state.scores).filter(([key]) => key !== itemKey));
