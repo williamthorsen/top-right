@@ -91,6 +91,7 @@ function buildScoreEntrySchema<T extends z.ZodType>(score: T) {
     by: z.enum(['agent', 'author']),
     at: z.string(),
     previous: score.exactOptional(),
+    reason: z.string().exactOptional(),
   });
 }
 // endregion | Helpers

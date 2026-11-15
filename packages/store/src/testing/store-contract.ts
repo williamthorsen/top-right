@@ -92,6 +92,21 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
       expect((await opened.store.readUserState(USER)).scores[ITEM]).toEqual(expected);
     });
 
+    it('keeps an agent score’s reason, which an author write and Keep drop', async () => {
+      await opened.store.writeScores(USER, ITEM, { urgency: 'high' }, 'agent', EARLIER, 'Blocks the release');
+      expect((await opened.store.readUserState(USER)).scores[ITEM]).toEqual({
+        urgency: { score: 'high', by: 'agent', at: EARLIER, reason: 'Blocks the release' },
+      });
+      await opened.store.writeScores(USER, OTHER_ITEM, { value: 'must-have' }, 'agent', EARLIER, 'Core flow');
+
+      await opened.store.writeScores(USER, ITEM, { value: 'nice-to-have' }, 'author', LATER);
+      await opened.store.keepScores(USER, OTHER_ITEM, LATER);
+
+      const { scores } = await opened.store.readUserState(USER);
+      expect(scores[ITEM]?.urgency).toEqual({ score: 'high', by: 'author', at: LATER });
+      expect(scores[OTHER_ITEM]?.value).toEqual({ score: 'must-have', by: 'author', at: LATER });
+    });
+
     it('keeps an item’s agent scores as the author’s', async () => {
       await opened.store.writeScores(USER, ITEM, { value: 'nice-to-have' }, 'author', EARLIER);
       await opened.store.writeScores(USER, ITEM, { value: 'must-have', urgency: 'medium' }, 'agent', EARLIER);

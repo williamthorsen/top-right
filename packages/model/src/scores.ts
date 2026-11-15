@@ -42,6 +42,8 @@ export interface ScoreEntry<T extends ScoreTypes[ScoreField] = ScoreTypes[ScoreF
   at: string;
   /** The score that the author held before an agent changed it; present only on an agent's entry. */
   previous?: T;
+  /** Why the agent chose the score; present only on an agent's entry. */
+  reason?: string;
 }
 
 /** An item's scores with their provenance, by field. */
@@ -70,13 +72,20 @@ export const SCORE_FIELDS: readonly ScoreField[] = ['urgency', 'value', 'effort'
 /**
  * Returns an item's scores after `by` writes `values` at `at`. An author write reviews the whole item: Every agent
  * entry becomes the author's and loses its previous score. An agent write leaves an unchanged score alone, and on a
- * changed one records the score that the author last held, which survives later agent writes until a review.
+ * changed one records the score that the author last held, which survives later agent writes until a review, and the
+ * agent's `reason`, which an author write drops.
  */
-export function applyScoreWrite(existing: ItemScores | undefined, values: Scores, by: Scorer, at: string): ItemScores {
-  const urgency = writeEntry(existing?.urgency, values.urgency, by, at);
-  const value = writeEntry(existing?.value, values.value, by, at);
-  const effort = writeEntry(existing?.effort, values.effort, by, at);
-  const progress = writeEntry(existing?.progress, values.progress, by, at);
+export function applyScoreWrite(
+  existing: ItemScores | undefined,
+  values: Scores,
+  by: Scorer,
+  at: string,
+  reason?: string,
+): ItemScores {
+  const urgency = writeEntry(existing?.urgency, values.urgency, by, at, reason);
+  const value = writeEntry(existing?.value, values.value, by, at, reason);
+  const effort = writeEntry(existing?.effort, values.effort, by, at, reason);
+  const progress = writeEntry(existing?.progress, values.progress, by, at, reason);
   return {
     ...(urgency && { urgency }),
     ...(value && { value }),
@@ -172,10 +181,17 @@ function writeAgentEntry<T extends ScoreTypes[ScoreField]>(
   entry: ScoreEntry<T> | undefined,
   score: T | undefined,
   at: string,
+  reason: string | undefined,
 ): ScoreEntry<T> | undefined {
   if (score === undefined || entry?.score === score) return entry;
   const previous = entry?.by === 'author' ? entry.score : entry?.previous;
-  return { score, by: 'agent', at, ...(previous !== undefined && { previous }) };
+  return {
+    score,
+    by: 'agent',
+    at,
+    ...(previous !== undefined && { previous }),
+    ...(reason !== undefined && { reason }),
+  };
 }
 
 function writeAuthorEntry<T extends ScoreTypes[ScoreField]>(
@@ -196,7 +212,8 @@ function writeEntry<T extends ScoreTypes[ScoreField]>(
   score: T | undefined,
   by: Scorer,
   at: string,
+  reason: string | undefined,
 ): ScoreEntry<T> | undefined {
-  return by === 'author' ? writeAuthorEntry(entry, score, at) : writeAgentEntry(entry, score, at);
+  return by === 'author' ? writeAuthorEntry(entry, score, at) : writeAgentEntry(entry, score, at, reason);
 }
 // endregion | Helpers

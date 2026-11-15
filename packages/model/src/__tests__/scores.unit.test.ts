@@ -126,6 +126,23 @@ describe(applyScoreWrite, () => {
     });
   });
 
+  it('records an agent’s reason on each field that it changes', () => {
+    const existing: ItemScores = { urgency: { score: 'medium', by: 'author', at: EARLIER } };
+
+    expect(applyScoreWrite(existing, { urgency: 'medium', value: 'must-have' }, 'agent', LATER, 'Core flow')).toEqual({
+      urgency: { score: 'medium', by: 'author', at: EARLIER },
+      value: { score: 'must-have', by: 'agent', at: LATER, reason: 'Core flow' },
+    });
+  });
+
+  it('drops an agent’s reason when the author writes any field', () => {
+    const existing: ItemScores = { urgency: { score: 'high', by: 'agent', at: EARLIER, reason: 'Blocks the release' } };
+
+    expect(applyScoreWrite(existing, {}, 'author', LATER, 'ignored')).toEqual({
+      urgency: { score: 'high', by: 'author', at: LATER },
+    });
+  });
+
   it('drops a previous score left on an author entry', () => {
     const existing: ItemScores = { urgency: { score: 'high', by: 'author', at: EARLIER, previous: 'medium' } };
 

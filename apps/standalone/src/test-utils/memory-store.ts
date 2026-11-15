@@ -64,9 +64,9 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
       if (Object.keys(itemScores).length > 0) state.scores[itemKey] = itemScores;
       return Promise.resolve(structuredClone(itemScores));
     },
-    writeScores: (userId, itemKey, values, by, at) => {
+    writeScores: (userId, itemKey, values, by, at, reason) => {
       const state = stateOf(userId);
-      const itemScores = applyScoreWrite(state.scores[itemKey], values, by, at);
+      const itemScores = applyScoreWrite(state.scores[itemKey], values, by, at, reason);
       state.scores[itemKey] = itemScores;
       return Promise.resolve(structuredClone(itemScores));
     },

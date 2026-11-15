@@ -32,8 +32,18 @@ export interface Store {
   /** Keeps the item's agent scores as the author's, at `at`, and returns the item's resulting scores. */
   keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores>;
   readUserState(userId: string): Promise<UserState>;
-  /** Writes `scores` by the rules of `applyScoreWrite` from `@top-right/model`, and returns the item's resulting scores. */
-  writeScores(userId: string, itemKey: string, scores: Scores, by: Scorer, at: string): Promise<ItemScores>;
+  /**
+   * Writes `scores`, with an agent's `reason`, by the rules of `applyScoreWrite` from `@top-right/model`, and returns the
+   * item's resulting scores.
+   */
+  writeScores(
+    userId: string,
+    itemKey: string,
+    scores: Scores,
+    by: Scorer,
+    at: string,
+    reason?: string,
+  ): Promise<ItemScores>;
   /** Sets the override, or clears it when `override` is undefined. */
   writeStatusOverride(userId: string, itemKey: string, override: StatusOverride | undefined): Promise<void>;
   /** Replaces the user's repository abbreviations with `abbreviations`. */
