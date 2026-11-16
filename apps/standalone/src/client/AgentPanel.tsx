@@ -39,8 +39,15 @@ export function AgentPanel({
 }: AgentPanelProps): ReactElement {
   const [draft, setDraft] = useState('');
   const panelRef = useRef<HTMLElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { isRunning, runs, start } = conversation;
   const canSend = !isRunning && draft.trim() !== '';
+
+  // The panel follows the chart in the page, so opening it moves focus in rather than leaving the reader to tab past
+  // every chart control.
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   // Escape returns focus to the toggle, rather than reaching the chart, which would clear the selection.
   useEffect(() => {
@@ -64,7 +71,14 @@ export function AgentPanel({
     <aside aria-label="Agent" className="host-agent-panel" id={AGENT_PANEL_ID} ref={panelRef}>
       <div className="host-agent-head">
         <h2 className="host-agent-title">Agent</h2>
-        <button className="host-button" onClick={onClose} type="button">
+        <button
+          className="host-button"
+          onClick={() => {
+            onClose();
+            toggleRef.current?.focus();
+          }}
+          type="button"
+        >
           Close
         </button>
       </div>
@@ -107,6 +121,7 @@ export function AgentPanel({
           aria-label="Instruction"
           className="host-agent-input"
           onChange={(event) => setDraft(event.target.value)}
+          ref={inputRef}
           onKeyDown={(event) => {
             if (event.key !== 'Enter' || event.shiftKey) return;
             event.preventDefault();

@@ -54,10 +54,23 @@ describe('the agent in the app', () => {
 
     await user.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('complementary', { name: 'Agent' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Instruction' })).toHaveFocus();
     await user.click(toggle);
 
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('complementary', { name: 'Agent' })).not.toBeInTheDocument();
+  });
+
+  it('returns focus to the toggle when Close closes the panel', async () => {
+    const user = userEvent.setup();
+    stubFetch(() => Promise.resolve(Response.json(WITH_AGENT)));
+    render(<App />);
+    const toggle = await screen.findByRole('button', { name: 'Agent' });
+    await user.click(toggle);
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(toggle).toHaveFocus();
     expect(screen.queryByRole('complementary', { name: 'Agent' })).not.toBeInTheDocument();
   });
 
