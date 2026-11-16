@@ -149,6 +149,40 @@ describe('the agent in the app', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Failed: Another run is in progress.');
   });
+
+  it('fails a run whose stream closes before it ends', async () => {
+    const user = userEvent.setup();
+    stubFetch((path) =>
+      Promise.resolve(
+        path === '/api/agent/run' ? streamEvents([{ type: 'started', at: RUN_AT }]) : Response.json(WITH_AGENT),
+      ),
+    );
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Agent' }));
+
+    await user.click(screen.getByRole('button', { name: 'Suggest urgency changes' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed: the host did not respond');
+  });
+
+  it('reports a discard that the host refuses and keeps offering Discard', async () => {
+    const user = userEvent.setup();
+    stubFetch((path) => {
+      if (path === '/api/agent/run') return Promise.resolve(streamEvents(SUGGESTED_RUN));
+      if (path === '/api/agent/discard') {
+        return Promise.resolve(Response.json({ error: 'A run is in progress.' }, { status: 409 }));
+      }
+      return Promise.resolve(Response.json(WITH_AGENT));
+    });
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Agent' }));
+    await user.click(screen.getByRole('button', { name: 'Suggest urgency changes' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Discard' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not discarded: A run is in progress.');
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeInTheDocument();
+  });
 });
 
 // region | Helpers
