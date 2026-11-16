@@ -23,7 +23,9 @@ import { AppHeader } from './AppHeader.tsx';
 import { describeRequestError, getJson, HostResponseError, postJson } from './host-requests.ts';
 import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
 import { PageAlerts } from './PageAlerts.tsx';
+import { findOldestRead, listStaleRepos } from './repo-reads.ts';
 import { clearFailureOf, type Failure } from './request-failure.ts';
+import { useAgentPanel } from './useAgentPanel.tsx';
 import { useStoredMagnification } from './useStoredMagnification.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
 
@@ -46,6 +48,7 @@ export function App(): ReactElement {
   const [shownRepos, setShownRepos] = useState<ReadonlySet<string>>();
   const [selectedKey, changeSelectedKey] = useUrlSelection();
   const [magnification, changeMagnification] = useStoredMagnification();
+  const agentPanel = useAgentPanel(state.kind === 'loaded' ? state.data : undefined, setScores, changeSelectedKey);
   // Writes for one item run in order, so that a late response cannot overwrite a newer change.
   const writeQueues = useRef(new Map<string, Promise<void>>());
   // The repositories that a read or a refresh is fetching, which a second request for them skips.
@@ -124,7 +127,13 @@ export function App(): ReactElement {
   }, []);
 
   const header = (
-    <AppHeader chartHref={buildChartHref(selectedKey)} current="chart" settingsHref={buildSettingsHref(selectedKey)} />
+    <AppHeader
+      agentToggle={agentPanel.toggle}
+      agentToggleRef={agentPanel.toggleRef}
+      chartHref={buildChartHref(selectedKey)}
+      current="chart"
+      settingsHref={buildSettingsHref(selectedKey)}
+    />
   );
   if (state.kind === 'loading') {
     return (
@@ -276,34 +285,37 @@ export function App(): ReactElement {
         onDismiss={() => setFailure(undefined)}
         settingsHref={buildSettingsHref(selectedKey)}
       />
-      <Chart
-        abbreviations={data.abbreviations}
-        collections={data.collections}
-        defaultCollectionId={data.defaultCollectionId ?? undefined}
-        items={data.items}
-        magnification={magnification}
-        onKeep={keepScores}
-        onMagnificationChange={changeMagnification}
-        onScoresChange={changeScores}
-        onScoresClear={clearScores}
-        onSelectedKeyChange={changeSelectedKey}
-        onShownReposChange={followShownRepos}
-        onStatusChange={(itemKey, status) => {
-          const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
-          if (item) changeStatus(itemKey, status, item.state);
-        }}
-        overrides={overrides}
-        refresh={
-          readAt === undefined
-            ? undefined
-            : { readAt, isRefreshing, onRefresh: () => void readRepos('/api/items/refresh', shownRepoList) }
-        }
-        scoreLabelMapping={data.scoreLabelMapping}
-        scores={scores}
-        selectedKey={selectedKey}
-        settingsHref={buildSettingsHref(selectedKey)}
-        workTypeMapping={data.workTypeMapping}
-      />
+      <div className="host-page">
+        <Chart
+          abbreviations={data.abbreviations}
+          collections={data.collections}
+          defaultCollectionId={data.defaultCollectionId ?? undefined}
+          items={data.items}
+          magnification={magnification}
+          onKeep={keepScores}
+          onMagnificationChange={changeMagnification}
+          onScoresChange={changeScores}
+          onScoresClear={clearScores}
+          onSelectedKeyChange={changeSelectedKey}
+          onShownReposChange={followShownRepos}
+          onStatusChange={(itemKey, status) => {
+            const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
+            if (item) changeStatus(itemKey, status, item.state);
+          }}
+          overrides={overrides}
+          refresh={
+            readAt === undefined
+              ? undefined
+              : { readAt, isRefreshing, onRefresh: () => void readRepos('/api/items/refresh', shownRepoList) }
+          }
+          scoreLabelMapping={data.scoreLabelMapping}
+          scores={scores}
+          selectedKey={selectedKey}
+          settingsHref={buildSettingsHref(selectedKey)}
+          workTypeMapping={data.workTypeMapping}
+        />
+        {agentPanel.panel}
+      </div>
     </>
   );
 }
@@ -320,23 +332,6 @@ function applyPatches(items: readonly WorkItem[], patches: ReadonlyMap<string, I
     const patch = patches.get(formatItemKey(item));
     return patch ? { ...item, ...patch } : item;
   });
-}
-
-/** Returns the repositories whose read the host judged stale. */
-function listStaleRepos(reads: ItemsResponse['reads']): string[] {
-  return Object.entries(reads)
-    .filter(([, read]) => read.isStale)
-    .map(([repo]) => repo);
-}
-
-/**
- * Returns the oldest read time among `repos`, or among every read when none of `repos` has been read, as an ISO
- * timestamp; undefined without any read.
- */
-function findOldestRead(reads: ItemsResponse['reads'], repos: readonly string[]): string | undefined {
-  const shown = repos.flatMap((repo) => reads[repo]?.readAt ?? []);
-  const candidates = shown.length > 0 ? shown : Object.values(reads).map((read) => read.readAt);
-  return candidates.toSorted()[0];
 }
 
 /** Returns `record` with `key` set to `value`, or without `key` when `value` is undefined. */

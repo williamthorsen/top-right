@@ -40,6 +40,36 @@ export async function postJson<T>(path: string, payload: unknown, schema: z.ZodT
   return schema.parse(body);
 }
 
+/**
+ * Posts `payload` as JSON and calls `onLine` with each line of the host's NDJSON answer, parsed by `schema`, until the
+ * stream ends; throws the host's error message on a failed response.
+ */
+export async function postStream<T>(
+  path: string,
+  payload: unknown,
+  schema: z.ZodType<T>,
+  onLine: (line: T) => void,
+): Promise<void> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok || response.body === null) {
+    const body = await readJsonBody(response);
+    throw new HostResponseError(readErrorMessage(body, response.status), body);
+  }
+  const decoder = new TextDecoder();
+  let pending = '';
+  for await (const chunk of response.body) {
+    pending += decoder.decode(chunk, { stream: true });
+    const lines = pending.split('\n');
+    pending = lines.pop() ?? '';
+    for (const line of lines) if (line.trim() !== '') onLine(schema.parse(JSON.parse(line)));
+  }
+  if (pending.trim() !== '') onLine(schema.parse(JSON.parse(pending)));
+}
+
 // region | Helpers
 /** Returns the response's JSON body, or `undefined` when the body is not JSON. */
 async function readJsonBody(response: Response): Promise<unknown> {

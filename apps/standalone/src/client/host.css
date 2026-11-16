@@ -97,7 +97,7 @@ body {
 }
 
 .host-button:focus-visible {
-  outline: 3px solid Highlight;
+  outline: 3px solid CanvasText;
   outline-offset: 2px;
 }
 
@@ -157,4 +157,259 @@ body {
 .host-repo-list {
   margin: 0;
   padding-left: 20px;
+}
+
+/* -- Agent: the header's toggle, and the panel docked at the page's right edge -- */
+.host-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.host-button:disabled:hover {
+  background: Canvas;
+}
+
+/* The open state keeps a bar and weight at rest, as the current page's link does, so that it does not rely on
+   colour. */
+.host-header-toggle {
+  margin-left: auto;
+  padding: 0 4px;
+  border: 0;
+  border-block: 2px solid transparent;
+  background: none;
+  color: CanvasText;
+  font: inherit;
+  cursor: pointer;
+}
+
+.host-header-toggle[aria-expanded='true'] {
+  border-bottom-color: CanvasText;
+  font-weight: 600;
+}
+
+.host-header-toggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.host-header-toggle:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 2px;
+}
+
+/* The chart and the panel share the height that the header and the alerts leave. */
+.host-page {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.host-agent-panel {
+  --host-ink-2: color-mix(in srgb, CanvasText 72%, Canvas);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 12px;
+  width: 360px;
+  padding: 12px 16px;
+  overflow: auto;
+  border-left: 1px solid color-mix(in srgb, CanvasText 25%, Canvas);
+  background: Canvas;
+}
+
+.host-agent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.host-agent-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.host-agent-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.host-agent-empty,
+.host-agent-note {
+  margin: 0;
+  color: var(--host-ink-2);
+  font-size: 12px;
+}
+
+.host-agent-log {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.host-agent-run {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.host-agent-prompt {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, CanvasText 8%, Canvas);
+}
+
+.host-agent-answer {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.host-agent-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.host-agent-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid color-mix(in srgb, CanvasText 30%, Canvas);
+  border-top-color: CanvasText;
+  border-radius: 50%;
+  animation: host-agent-spin 0.9s linear infinite;
+}
+
+@keyframes host-agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .host-agent-spinner {
+    animation: none;
+  }
+}
+
+.host-agent-suggestions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.host-agent-outcome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.host-agent-badge {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: CanvasText;
+  color: Canvas;
+  font-size: 12px;
+  text-align: center;
+}
+
+.host-agent-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.host-agent-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, CanvasText 45%, Canvas);
+  border-radius: 6px;
+  background: Canvas;
+  color: CanvasText;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.host-agent-row:hover {
+  background: color-mix(in srgb, CanvasText 8%, Canvas);
+}
+
+.host-agent-row:focus-visible {
+  outline: 3px solid CanvasText;
+  outline-offset: 2px;
+}
+
+.host-agent-row-head {
+  display: flex;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.host-agent-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.host-agent-failure {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--tr-danger);
+}
+
+.host-agent-compose {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.host-agent-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, CanvasText 60%, Canvas);
+  border-radius: 6px;
+  background: Canvas;
+  color: CanvasText;
+  font: inherit;
+  resize: vertical;
+}
+
+.host-agent-input:hover {
+  background: color-mix(in srgb, CanvasText 6%, Canvas);
+}
+
+.host-agent-input:focus-visible {
+  outline: 3px solid CanvasText;
+  outline-offset: 1px;
+}
+
+/* On a phone, the panel covers the page as a sheet below the header, which keeps the toggle in reach. */
+@media (max-width: 760px) {
+  .host-agent-panel {
+    position: fixed;
+    inset: 44px 0 0;
+    z-index: 20;
+    width: auto;
+    overscroll-behavior: contain;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, CanvasText 25%, Canvas);
+  }
 }

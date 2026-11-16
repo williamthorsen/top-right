@@ -71,6 +71,20 @@ An issue whose label maps to an urgency or value level, such as `value:must-have
 
 `scores.json` is a JSON array of `{ "itemKey": "owner/name#number", "scores": { "urgency": "high", "value": "should-have" }, "reason": "Blocks the release" }`, whose optional `reason` the detail pane shows beside the agent's scores. `top-right write-scores --help` lists the accepted values. `top-right seed-abbreviations --help` states when a seed is refused. Set `TOP_RIGHT_DB` to trial a run on a copy of the store.
 
+## Instruct an agent from the page
+
+The optional `agent` key turns on the Agent toggle at the right end of the header, which opens a panel of starters, a field for an instruction, and the conversation:
+
+```json
+{
+  "agent": { "harness": "claude-code", "model": "sonnet" }
+}
+```
+
+`harness` is `claude-code` or `antigravity`; `model` applies to Claude Code alone, and `command` names the program that starts the harness when the default does not fit. Claude Code runs through the `@agentclientprotocol/claude-agent-acp` adapter that the host depends on and signs in with the `claude` CLI's login. Antigravity runs `agy` from `PATH` with its own Google login. The [`@williamthorsen/toolbelt.acp` README](https://www.npmjs.com/package/@williamthorsen/toolbelt.acp) states what each harness's session loads and what it cannot isolate.
+
+The agent reads the titles, labels, and scores of the items that the host has read, never an issue's body, and records each score that it judges, with a reason, as a suggestion that waits in the Agent-scored queue; the pane shows the reason. It has no tool that writes to GitHub, starts in an empty temporary directory, and is refused every tool but the host's own. Discard on a run removes its suggestions that are still pending and restores the author's previous scores, and a cancelled or failed run's suggestions are discarded at once. One run goes at a time, and each instruction starts a new session.
+
 ## Where the scores live
 
 The scores, status overrides, visits, and settings that the page writes are kept per GitHub user in a SQLite file outside the repository, so that every worktree reads the same scores: `$XDG_DATA_HOME/top-right/top-right.sqlite`, or `~/.local/share/top-right/top-right.sqlite` when `XDG_DATA_HOME` is unset. Set `TOP_RIGHT_DB` to keep them in another file, such as a scratch copy for a trial run. The host prints the path when it starts.
