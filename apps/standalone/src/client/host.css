@@ -392,6 +392,10 @@ body {
   resize: vertical;
 }
 
+.host-agent-input:hover {
+  background: color-mix(in srgb, CanvasText 6%, Canvas);
+}
+
 .host-agent-input:focus-visible {
   outline: 3px solid CanvasText;
   outline-offset: 1px;
