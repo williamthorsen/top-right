@@ -106,21 +106,31 @@ describe('the agent in the app', () => {
     expect(readPostedBody('/api/agent/discard')).toStrictEqual({ at: RUN_AT });
   });
 
-  it('asks the host to cancel the run in progress', async () => {
+  it('cancels the run in progress and applies the scores that the host restored', async () => {
     const user = userEvent.setup();
-    const { promise: never } = Promise.withResolvers<Response>();
+    const { promise: afterCancel, resolve: endRun } = Promise.withResolvers<readonly AgentEvent[]>();
     stubFetch((path) => {
-      if (path === '/api/agent/run') return Promise.resolve(streamEvents([{ type: 'started', at: RUN_AT }], never));
-      if (path === '/api/agent/cancel') return Promise.resolve(new Response(null, { status: 204 }));
+      if (path === '/api/agent/run') return Promise.resolve(streamEvents(SUGGESTED_RUN.slice(0, -1), afterCancel));
+      if (path === '/api/agent/cancel') {
+        endRun([
+          { type: 'discarded', scores: { [ITEM_KEY]: ITEMS.scores[ITEM_KEY] ?? {} } },
+          { type: 'ended', outcome: 'cancelled' },
+        ]);
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
       return Promise.resolve(Response.json(WITH_AGENT));
     });
     render(<App />);
     await user.click(await screen.findByRole('button', { name: 'Agent' }));
     await user.click(screen.getByRole('button', { name: 'Suggest urgency changes' }));
+    await user.click(await screen.findByRole('button', { name: /Medium → Critical urgency/ }));
+    const pane = screen.getByRole('complementary', { name: 'Item detail' });
+    expect(pane).toHaveTextContent('Blocks the release');
 
-    await user.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(vi.mocked(fetch).mock.calls.some(([input]) => input === '/api/agent/cancel')).toBe(true);
+    expect(await screen.findByText('Cancelled.')).toBeInTheDocument();
+    expect(pane).not.toHaveTextContent('Blocks the release');
   });
 
   it('reports a run that the host refuses', async () => {
@@ -148,14 +158,18 @@ function readPostedBody(path: string): unknown {
   return typeof call?.[1]?.body === 'string' ? JSON.parse(call[1].body) : undefined;
 }
 
-/** Returns a response that streams `events` as NDJSON, and stays open until `held` settles when it is given. */
-function streamEvents(events: readonly AgentEvent[], held?: Promise<unknown>): Response {
+/**
+ * Returns a response that streams `events` as NDJSON and, when `held` is given, stays open until it settles and then
+ * streams the events that it resolves to.
+ */
+function streamEvents(events: readonly AgentEvent[], held?: Promise<readonly AgentEvent[]>): Response {
   const encoder = new TextEncoder();
   return new Response(
     new ReadableStream({
       async start(controller) {
         for (const event of events) controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
-        if (held) await held;
+        const heldEvents = held ? await held : [];
+        for (const event of heldEvents) controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
         controller.close();
       },
     }),
