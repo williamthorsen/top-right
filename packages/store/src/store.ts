@@ -43,8 +43,8 @@ export interface Store {
   keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores>;
   readUserState(userId: string): Promise<UserState>;
   /**
-   * Writes `scores`, with an agent's `reason`, by the rules of `applyScoreWrite` from `@top-right/model`, and returns the
-   * item's resulting scores.
+   * Writes `scores`, with an agent's `reason`, by the rules of `applyScoreWrite` from `@top-right/model`, and returns
+   * the item's resulting scores.
    */
   writeScores(
     userId: string,

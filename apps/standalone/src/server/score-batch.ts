@@ -109,8 +109,8 @@ export function parseScoreBatch(json: unknown, { openKeys, mapping }: BatchLimit
 }
 
 /**
- * Returns the field changes that writing `entries` as the agent at `at` makes to the stored `scores`, each reported from
- * the score that the item resolves to in `resolved`, a label's level included.
+ * Returns the field changes that writing `entries` as the agent at `at` makes to the stored `scores`, each reported
+ * from the score that the item resolves to in `resolved`, a label's level included.
  */
 export function planScoreChanges(
   entries: readonly BatchEntry[],
