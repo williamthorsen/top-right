@@ -46,6 +46,7 @@ export {
   applyScoreWrite,
   clearScoreFields,
   computeRemainingScope,
+  discardAgentEntries,
   EFFORT_SCALE,
   type EffortPoints,
   isValidScore,

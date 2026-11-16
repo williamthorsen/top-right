@@ -69,7 +69,7 @@ pnpm --filter @top-right/standalone top-right seed-abbreviations owner/name=ABBR
 
 An issue whose label maps to an urgency or value level, such as `value:must-have`, is placed at that level until a score is stored for it, and one whose label maps to an effort, such as `effort:5`, is drawn at that size until an effort is stored for it; [`DEFAULT_SCORE_LABEL_MAPPING`](../../packages/model/src/score-labels.ts) defines the default labels. `list-items` reports such a score with `by: "label"` and the label in its JSON, and with `(label)` after the score in its text.
 
-`scores.json` is a JSON array of `{ "itemKey": "owner/name#number", "scores": { "urgency": "high", "value": "should-have" } }`. `top-right write-scores --help` lists the accepted values. `top-right seed-abbreviations --help` states when a seed is refused. Set `TOP_RIGHT_DB` to trial a run on a copy of the store.
+`scores.json` is a JSON array of `{ "itemKey": "owner/name#number", "scores": { "urgency": "high", "value": "should-have" }, "reason": "Blocks the release" }`, whose optional `reason` the detail pane shows beside the agent's scores. `top-right write-scores --help` lists the accepted values. `top-right seed-abbreviations --help` states when a seed is refused. Set `TOP_RIGHT_DB` to trial a run on a copy of the store.
 
 ## Where the scores live
 

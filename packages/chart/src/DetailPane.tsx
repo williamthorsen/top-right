@@ -211,8 +211,21 @@ function AgentReview({
           Moved by the agent from {LEVEL_NAMES[origin.urgency]} urgency, {LEVEL_NAMES[origin.value]} value
         </p>
       ) : null}
+      {listAgentReasons(scores).map((reason) => (
+        <p className="tr-pane-note" key={reason}>
+          {reason}
+        </p>
+      ))}
     </div>
   );
+}
+
+/** Returns each distinct reason that the agent gave for the item's unreviewed scores. */
+function listAgentReasons(scores: ResolvedItemScores | undefined): string[] {
+  const entries = [scores?.urgency, scores?.value, scores?.effort, scores?.progress];
+  const reasons = new Set<string>();
+  for (const entry of entries) if (entry?.by === 'agent' && entry.reason !== undefined) reasons.add(entry.reason);
+  return [...reasons];
 }
 
 /** Fades the pane body in, unless the browser lacks the Web Animations API or the reader prefers reduced motion. */

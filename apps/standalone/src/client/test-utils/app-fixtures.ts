@@ -27,4 +27,5 @@ export const ITEMS: ItemsResponse = {
   scores: { [ITEM_KEY]: { urgency: { score: 'medium', by: 'author', at: AT } } },
   overrides: {},
   reads: { [REPO]: { readAt: AT, isStale: false } },
+  agent: false,
 };

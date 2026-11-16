@@ -66,6 +66,8 @@ export const itemsResponseSchema = z.object({
   lastVisitAt: z.string().exactOptional(),
   /** The read of each repository whose issues `items` holds, by repository. */
   reads: z.record(z.string(), repoReadSchema),
+  /** Whether the host runs an agent that the author instructs from the page. */
+  agent: z.boolean(),
 });
 
 /**
@@ -91,6 +93,7 @@ function buildScoreEntrySchema<T extends z.ZodType>(score: T) {
     by: z.enum(['agent', 'author']),
     at: z.string(),
     previous: score.exactOptional(),
+    reason: z.string().exactOptional(),
   });
 }
 // endregion | Helpers

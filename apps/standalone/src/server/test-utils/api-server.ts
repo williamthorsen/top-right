@@ -30,9 +30,14 @@ export function closeServers(): void {
   for (const server of servers.splice(0)) server.close();
 }
 
-/** Posts `body` as JSON to `url`. */
-export function post(url: string, body: unknown): Promise<Response> {
-  return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+/** Posts `body` as JSON to `url`, abandoning the request when `signal` aborts. */
+export function post(url: string, body: unknown, signal?: AbortSignal): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    ...(signal && { signal }),
+  });
 }
 
 /**

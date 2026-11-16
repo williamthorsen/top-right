@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyScoreWrite,
   computeRemainingScope,
+  discardAgentEntries,
   isValidScore,
   type ItemScores,
   keepItemScores,
@@ -126,12 +127,49 @@ describe(applyScoreWrite, () => {
     });
   });
 
+  it('records an agent’s reason on each field that it changes', () => {
+    const existing: ItemScores = { urgency: { score: 'medium', by: 'author', at: EARLIER } };
+
+    expect(applyScoreWrite(existing, { urgency: 'medium', value: 'must-have' }, 'agent', LATER, 'Core flow')).toEqual({
+      urgency: { score: 'medium', by: 'author', at: EARLIER },
+      value: { score: 'must-have', by: 'agent', at: LATER, reason: 'Core flow' },
+    });
+  });
+
+  it('drops an agent’s reason when the author writes any field', () => {
+    const existing: ItemScores = { urgency: { score: 'high', by: 'agent', at: EARLIER, reason: 'Blocks the release' } };
+
+    expect(applyScoreWrite(existing, {}, 'author', LATER, 'ignored')).toEqual({
+      urgency: { score: 'high', by: 'author', at: LATER },
+    });
+  });
+
   it('drops a previous score left on an author entry', () => {
     const existing: ItemScores = { urgency: { score: 'high', by: 'author', at: EARLIER, previous: 'medium' } };
 
     expect(applyScoreWrite(existing, { value: 'questionable' }, 'author', LATER)).toEqual({
       urgency: { score: 'high', by: 'author', at: EARLIER },
       value: { score: 'questionable', by: 'author', at: LATER },
+    });
+  });
+});
+
+describe(discardAgentEntries, () => {
+  const STAMP = '2026-11-02T09:00:00.000Z';
+  const NOW = '2026-11-03T09:00:00.000Z';
+
+  it('removes the agent entries written at the stamp and restores the previous score of each listed field', () => {
+    const existing: ItemScores = {
+      urgency: { score: 'high', by: 'agent', at: STAMP, previous: 'medium', reason: 'Why' },
+      value: { score: 'must-have', by: 'agent', at: STAMP, previous: 'nice-to-have' },
+      effort: { score: 5, by: 'agent', at: '2026-11-01T09:00:00.000Z' },
+      progress: { score: 0.5, by: 'author', at: STAMP },
+    };
+
+    expect(discardAgentEntries(existing, STAMP, ['value'], NOW)).toEqual({
+      value: { score: 'nice-to-have', by: 'author', at: NOW },
+      effort: { score: 5, by: 'agent', at: '2026-11-01T09:00:00.000Z' },
+      progress: { score: 0.5, by: 'author', at: STAMP },
     });
   });
 });

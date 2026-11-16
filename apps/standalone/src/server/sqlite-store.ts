@@ -4,6 +4,7 @@ import {
   applyScoreWrite,
   clearScoreFields,
   type CollectionSettings,
+  discardAgentEntries,
   EMPTY_COLLECTION_SETTINGS,
   isValidScore,
   type ItemScores,
@@ -48,6 +49,7 @@ const scoreRowSchema = z.object({
   scored_by: z.enum(['agent', 'author']),
   scored_at: z.string(),
   previous_score: z.union([z.number(), z.string()]).nullable(),
+  reason: z.string().nullable(),
 });
 
 const overrideRowSchema = z.object({
@@ -69,17 +71,20 @@ export function openSqliteStore(path: string): SqliteStore {
   migrate(db);
 
   const selectScores = db.prepare(
-    `SELECT item_key, field, score, scored_by, scored_at, previous_score FROM scores
+    `SELECT item_key, field, score, scored_by, scored_at, previous_score, reason FROM scores
      WHERE user_id = ? ORDER BY item_key, field`,
   );
   const selectItemScores = db.prepare(
-    `SELECT item_key, field, score, scored_by, scored_at, previous_score FROM scores
+    `SELECT item_key, field, score, scored_by, scored_at, previous_score, reason FROM scores
      WHERE user_id = ? AND item_key = ?`,
+  );
+  const selectStampedItems = db.prepare(
+    `SELECT DISTINCT item_key FROM scores WHERE user_id = ? AND scored_by = 'agent' AND scored_at = ? ORDER BY item_key`,
   );
   const deleteItemScores = db.prepare('DELETE FROM scores WHERE user_id = ? AND item_key = ?');
   const insertScore = db.prepare(
-    `INSERT INTO scores (user_id, item_key, field, score, scored_by, scored_at, previous_score)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO scores (user_id, item_key, field, score, scored_by, scored_at, previous_score, reason)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   /** Reads the item's scores, applies `update` to them, and replaces the stored rows, in one transaction. */
@@ -90,7 +95,9 @@ export function openSqliteStore(path: string): SqliteStore {
       deleteItemScores.run(userId, itemKey);
       for (const field of SCORE_FIELDS) {
         const entry = result[field];
-        if (entry) insertScore.run(userId, itemKey, field, entry.score, entry.by, entry.at, entry.previous ?? null);
+        if (!entry) continue;
+        const { score, by, at, previous, reason } = entry;
+        insertScore.run(userId, itemKey, field, score, by, at, previous ?? null, reason ?? null);
       }
     });
     return result;
@@ -143,6 +150,22 @@ export function openSqliteStore(path: string): SqliteStore {
     clearScores(userId: string, itemKey: string, fields: readonly ScoreField[]): Promise<ItemScores> {
       return Promise.resolve(updateItemScores(userId, itemKey, (existing) => clearScoreFields(existing, fields)));
     },
+    discardAgentScores(
+      userId: string,
+      stamp: string,
+      restoreFields: readonly ScoreField[],
+      at: string,
+    ): Promise<Record<string, ItemScores>> {
+      const changed: Record<string, ItemScores> = {};
+      const rows = z.array(z.object({ item_key: z.string() })).parse(selectStampedItems.all(userId, stamp));
+      for (const { item_key: itemKey } of rows) {
+        changed[itemKey] = updateItemScores(userId, itemKey, (existing) =>
+          discardAgentEntries(existing, stamp, restoreFields, at),
+        );
+      }
+      return Promise.resolve(changed);
+    },
+
     keepScores(userId: string, itemKey: string, at: string): Promise<ItemScores> {
       return Promise.resolve(updateItemScores(userId, itemKey, (existing) => keepItemScores(existing, at)));
     },
@@ -184,9 +207,16 @@ export function openSqliteStore(path: string): SqliteStore {
       return Promise.resolve();
     },
 
-    writeScores(userId: string, itemKey: string, values: Scores, by: Scorer, at: string): Promise<ItemScores> {
+    writeScores(
+      userId: string,
+      itemKey: string,
+      values: Scores,
+      by: Scorer,
+      at: string,
+      reason?: string,
+    ): Promise<ItemScores> {
       return Promise.resolve(
-        updateItemScores(userId, itemKey, (existing) => applyScoreWrite(existing, values, by, at)),
+        updateItemScores(userId, itemKey, (existing) => applyScoreWrite(existing, values, by, at, reason)),
       );
     },
 
@@ -247,11 +277,17 @@ function migrate(db: DatabaseSync): void {
 
 /** Returns the row's entry, or throws when a score is off the scale of `field`, which the table's checks prevent. */
 function readEntry<F extends ScoreField>(field: F, row: z.infer<typeof scoreRowSchema>): ScoreEntry<ScoreTypes[F]> {
-  const { score, previous_score: previous } = row;
+  const { score, previous_score: previous, reason } = row;
   if (!isValidScore(field, score) || (previous !== null && !isValidScore(field, previous))) {
     throw new Error(`The store holds a ${field} score off its scale for ${row.item_key}`);
   }
-  return { score, by: row.scored_by, at: row.scored_at, ...(previous !== null && { previous }) };
+  return {
+    score,
+    by: row.scored_by,
+    at: row.scored_at,
+    ...(previous !== null && { previous }),
+    ...(reason !== null && { reason }),
+  };
 }
 
 /** Returns the scores of the rows' item. */

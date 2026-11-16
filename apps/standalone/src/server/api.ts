@@ -2,8 +2,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { StatusStrategy } from '@top-right/adapter-github';
 import type { Store } from '@top-right/store';
+import { runPrompt } from '@williamthorsen/toolbelt.acp/proposed';
 import { describeError } from '@williamthorsen/toolbelt.errors';
 
+import { createAgentRoutes, type RunAgent } from './agent-routes.ts';
+import type { AgentConfig } from './config.ts';
 import { sendJson } from './http-json.ts';
 import { createItemRoutes } from './item-routes.ts';
 import type { ItemsCache } from './items-cache.ts';
@@ -13,6 +16,10 @@ import type { RouteTable } from './route-table.ts';
 import { createSettingsRoutes } from './settings-routes.ts';
 
 export interface ApiOptions {
+  /** The agent that the author instructs from the page; without it, the host has no agent routes. */
+  agent?: AgentConfig | undefined;
+  /** Runs a prompt on the agent; `runPrompt` from `@williamthorsen/toolbelt.acp` outside tests. */
+  runAgent?: RunAgent | undefined;
   /** The absolute path of the config file that lists `repos`. */
   configPath: string;
   items: ItemsCache;
@@ -30,6 +37,8 @@ export interface ApiOptions {
 
 /** Returns a handler that answers the host's `/api/` routes and passes every other request to `next`. */
 export function createApiHandler({
+  agent,
+  runAgent = runPrompt,
   configPath,
   items,
   labelWriter,
@@ -41,7 +50,28 @@ export function createApiHandler({
 }: ApiOptions) {
   const routes: RouteTable = {
     ...createSettingsRoutes({ configPath, repos, store, userId }),
-    ...createItemRoutes({ items, labelWriter, repos, statusStrategyFor, store, userId, now }),
+    ...createItemRoutes({
+      hasAgent: agent !== undefined,
+      items,
+      labelWriter,
+      repos,
+      statusStrategyFor,
+      store,
+      userId,
+      now,
+    }),
+    ...(agent && {
+      ...createAgentRoutes({
+        agent,
+        hasLabelWriter: labelWriter !== undefined,
+        items,
+        repos,
+        runAgent,
+        store,
+        userId,
+        now,
+      }),
+    }),
   };
 
   return async (request: IncomingMessage, response: ServerResponse, next: () => void): Promise<void> => {

@@ -14,6 +14,18 @@ const PROJECT_URL_MESSAGE = 'expected a project URL, such as https://github.com/
 
 const optionListSchema = z.array(z.string().trim().min(1)).min(1);
 
+const agentSchema = z
+  .object({
+    harness: z.enum(['antigravity', 'claude-code']),
+    model: z.string().trim().min(1).optional(),
+    command: z.string().trim().min(1).optional(),
+  })
+  .strict()
+  .refine((agent) => agent.harness === 'claude-code' || agent.model === undefined, {
+    path: ['model'],
+    message: 'only the claude-code harness takes a model',
+  });
+
 const configSchema = z
   .object({
     repos: z
@@ -30,6 +42,7 @@ const configSchema = z
       .min(1),
     closedWindowDays: z.number().int().min(0).default(DEFAULT_CLOSED_WINDOW_DAYS),
     projects: z.record(z.string(), z.object({ toDo: optionListSchema, inProgress: optionListSchema })).default({}),
+    agent: agentSchema.optional(),
   })
   .superRefine((config, context) => {
     const named = new Set(config.repos.map((entry) => entry.project && canonicalizeProjectUrl(entry.project)));
@@ -48,6 +61,8 @@ const configSchema = z
  * Project whose Status field supplies a repository's status.
  */
 export interface HostConfig {
+  /** The agent that the author instructs from the page; without one, the page offers no agent. */
+  agent: AgentConfig | undefined;
   /** The number of days back from each refresh within which a closed issue is read; 0 reads none. */
   closedWindowDays: number;
   /** The canonical URL of the project that each repository names, for the repositories that name one. */
@@ -57,6 +72,15 @@ export interface HostConfig {
   repos: string[];
   /** The repositories whose entry still sets `abbreviation`, which the host ignores. */
   reposWithAbbreviation: string[];
+}
+
+/** The harness that runs the author's agent, with the model and the command that start it. */
+export interface AgentConfig {
+  harness: 'antigravity' | 'claude-code';
+  /** The model for a Claude Code session; the adapter chooses when it is absent. */
+  model?: string | undefined;
+  /** The command that starts the harness; each harness has a default. */
+  command?: string | undefined;
 }
 
 /** Returns the moment from which a refresh at `now` reads closed issues, or undefined when it reads none. */
@@ -96,7 +120,7 @@ export function parseConfig(text: string, path: string): HostConfig {
     const issues = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ');
     throw new StartupError(`Config file is invalid: ${path}. ${issues}.`);
   }
-  const { closedWindowDays, projects, repos } = parsed.data;
+  const { agent, closedWindowDays, projects, repos } = parsed.data;
   const projectOf: Record<string, string> = {};
   for (const entry of repos) {
     const url = entry.project && canonicalizeProjectUrl(entry.project);
@@ -108,6 +132,7 @@ export function parseConfig(text: string, path: string): HostConfig {
     if (canonical !== undefined) projectOptions[canonical] = options;
   }
   return {
+    agent,
     closedWindowDays,
     projectOf,
     projectOptions,

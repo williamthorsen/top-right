@@ -23,14 +23,23 @@ try {
 
 /** Starts the local host: the items endpoint in front of Vite, which serves the page. */
 async function startHost(): Promise<void> {
-  const { configPath, databasePath, labelWriter, loadRepo, repos, statusStrategyFor, store, userId } =
+  const { agent, configPath, databasePath, labelWriter, loadRepo, repos, statusStrategyFor, store, userId } =
     await openHostContext();
 
   const vite = await createViteServer({ configFile: VITE_CONFIG_PATH, server: { middlewareMode: true } });
   const items = createItemsCache({ loadRepo });
   // Start the first read now, so that the first load waits only for what remains of it.
   void startFirstRead(items, resolveFirstLoadRepos((await store.readUserState(userId)).collections, repos));
-  const handleApi = createApiHandler({ configPath, items, labelWriter, repos, statusStrategyFor, store, userId });
+  const handleApi = createApiHandler({
+    agent,
+    configPath,
+    items,
+    labelWriter,
+    repos,
+    statusStrategyFor,
+    store,
+    userId,
+  });
   const port = Number(process.env['PORT'] ?? DEFAULT_PORT);
 
   createServer((req, res) => void handleApi(req, res, () => vite.middlewares(req, res))).listen(

@@ -1,8 +1,11 @@
 import {
   applyScoreWrite,
   clearScoreFields,
+  discardAgentEntries,
   EMPTY_COLLECTION_SETTINGS,
+  type ItemScores,
   keepItemScores,
+  SCORE_FIELDS,
   type StatusOverride,
 } from '@top-right/model';
 import type { Store, UserState } from '@top-right/store';
@@ -58,15 +61,27 @@ export function createMemoryStore(initial: Partial<UserState> = {}): MemoryStore
       else state.scores = Object.fromEntries(Object.entries(state.scores).filter(([key]) => key !== itemKey));
       return Promise.resolve(structuredClone(itemScores));
     },
+    discardAgentScores: (userId, stamp, restoreFields, at) => {
+      const state = stateOf(userId);
+      const changed: Record<string, ItemScores> = {};
+      for (const [itemKey, existing] of Object.entries(state.scores)) {
+        if (SCORE_FIELDS.every((field) => existing[field]?.by !== 'agent' || existing[field].at !== stamp)) continue;
+        const itemScores = discardAgentEntries(existing, stamp, restoreFields, at);
+        if (Object.keys(itemScores).length > 0) state.scores[itemKey] = itemScores;
+        else state.scores = Object.fromEntries(Object.entries(state.scores).filter(([key]) => key !== itemKey));
+        changed[itemKey] = itemScores;
+      }
+      return Promise.resolve(structuredClone(changed));
+    },
     keepScores: (userId, itemKey, at) => {
       const state = stateOf(userId);
       const itemScores = keepItemScores(state.scores[itemKey], at);
       if (Object.keys(itemScores).length > 0) state.scores[itemKey] = itemScores;
       return Promise.resolve(structuredClone(itemScores));
     },
-    writeScores: (userId, itemKey, values, by, at) => {
+    writeScores: (userId, itemKey, values, by, at, reason) => {
       const state = stateOf(userId);
-      const itemScores = applyScoreWrite(state.scores[itemKey], values, by, at);
+      const itemScores = applyScoreWrite(state.scores[itemKey], values, by, at, reason);
       state.scores[itemKey] = itemScores;
       return Promise.resolve(structuredClone(itemScores));
     },

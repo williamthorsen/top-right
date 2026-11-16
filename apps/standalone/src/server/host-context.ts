@@ -17,7 +17,7 @@ import {
 import type { WorkItem } from '@top-right/model';
 import { describeError } from '@williamthorsen/toolbelt.errors';
 
-import { computeClosedSince, formatAbbreviationNotice, readConfig } from './config.ts';
+import { type AgentConfig, computeClosedSince, formatAbbreviationNotice, readConfig } from './config.ts';
 import { resolveDatabasePath } from './database-path.ts';
 import { createGithubRequest } from './github-request.ts';
 import type { LabelWriter } from './label-write.ts';
@@ -29,6 +29,8 @@ import { describeScopeWarnings, fetchTokenScopes } from './token-scopes.ts';
 
 /** What the host and the CLI read and write: the configured repositories, the user, and the user's store. */
 export interface HostContext {
+  /** The agent that the config names, which the author instructs from the page. */
+  agent: AgentConfig | undefined;
   /** The absolute path of the config file that the host read. */
   configPath: string;
   databasePath: string;
@@ -82,6 +84,7 @@ export async function openHostContext(): Promise<HostContext> {
     return projectUrl === undefined ? labelStrategy : projectStrategies.get(projectUrl);
   }
   return {
+    agent: config.agent,
     configPath: CONFIG_PATH,
     databasePath,
     labelWriter: (ref, change) => updateIssueLabels(request, ref.repo, ref.number, change),

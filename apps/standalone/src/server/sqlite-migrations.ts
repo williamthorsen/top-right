@@ -59,4 +59,5 @@ export const MIGRATIONS: readonly string[] = [
     )
   ) STRICT;
   `,
+  'ALTER TABLE scores ADD COLUMN reason TEXT;',
 ];

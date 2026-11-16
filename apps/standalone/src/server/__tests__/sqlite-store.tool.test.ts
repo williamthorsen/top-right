@@ -7,6 +7,7 @@ import { DEFAULT_SCORE_LABEL_MAPPING } from '@top-right/model';
 import { describeStoreContract } from '@top-right/store/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MIGRATIONS } from '../sqlite-migrations.ts';
 import { openSqliteStore } from '../sqlite-store.ts';
 
 describeStoreContract('SqliteStore', () => {
@@ -59,7 +60,7 @@ describe('SqliteStore on a file', () => {
     reopened.close();
 
     using db = new DatabaseSync(file);
-    expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: 4 });
+    expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: MIGRATIONS.length });
   });
 
   it('migrates a version-1 file, dropping its 1 to 5 scores and keeping its other records', async () => {

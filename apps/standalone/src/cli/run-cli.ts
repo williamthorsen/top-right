@@ -1,27 +1,16 @@
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
 
 import { GitHubAdapterError } from '@top-right/adapter-github';
-import {
-  DEFAULT_SCORE_LABEL_MAPPING,
-  formatItemKey,
-  type ResolvedItemScores,
-  resolveItemScores,
-  type WorkItem,
-} from '@top-right/model';
+import { DEFAULT_SCORE_LABEL_MAPPING, type WorkItem } from '@top-right/model';
 import type { Store } from '@top-right/store';
 import { describeError } from '@williamthorsen/toolbelt.errors';
 
+import { submitScoreBatch } from '#src/server/score-batch.ts';
 import { StartupError } from '#src/server/startup-error.ts';
 
 import { listItems, renderItemsText } from './list-items.ts';
 import { planAbbreviationSeed, renderSeedText } from './seed-abbreviations.ts';
-import {
-  omitHeldScores,
-  parseScoreBatch,
-  planScoreChanges,
-  renderChangesText,
-  writeScoreBatch,
-} from './write-scores.ts';
+import { renderChangesText } from './write-scores.ts';
 
 /** The user's store and items, opened for one run of the CLI. */
 export interface CliContext {
@@ -128,9 +117,10 @@ const WRITE_SCORES_HELP = `Write an agent's scores for open issues to the user's
 Usage: top-right write-scores [--dry-run] <file>
 
 Arguments:
-  <file>         A JSON array of { "itemKey": "owner/name#number", "scores": { ... } }, or - to read stdin.
-                 Scores: urgency critical, high, medium, or low; value must-have, should-have,
+  <file>         A JSON array of { "itemKey": "owner/name#number", "scores": { ... }, "reason": "..." }, or - to
+                 read stdin. Scores: urgency critical, high, medium, or low; value must-have, should-have,
                  nice-to-have, or questionable; effort 1, 2, 3, 5, 8, or 13; progress 0-1 in steps of 0.05.
+                 The optional reason, which the chart shows beside the agent's scores, says why they were chosen.
 
 Options:
   -n, --dry-run  Report each change, and write nothing
@@ -275,24 +265,16 @@ async function runWriteScores(args: readonly string[], io: CliIo): Promise<numbe
   const isDryRun = values['dry-run'] === true;
   return withContext(io, async (context) => {
     const items = await loadOpenItems(context);
-    const batch = parseScoreBatch(json, new Set(items.map((item) => formatItemKey(item))));
-    if (batch.kind === 'invalid') {
+    const submission = await submitScoreBatch(context.store, context.userId, items, json, {
+      at: io.now().toISOString(),
+      isDryRun,
+    });
+    if (submission.kind === 'invalid') {
       io.stderr(`top-right write-scores: the batch is refused, and nothing was written:\n`);
-      io.stderr(batch.problems.map((problem) => `  ${problem}\n`).join(''));
+      io.stderr(submission.problems.map((problem) => `  ${problem}\n`).join(''));
       return USAGE_ERROR;
     }
-    const at = io.now().toISOString();
-    const { scores, scoreLabelMapping } = await context.store.readUserState(context.userId);
-    const mapping = scoreLabelMapping ?? DEFAULT_SCORE_LABEL_MAPPING;
-    const resolved = Object.fromEntries(
-      items.map((item): [string, ResolvedItemScores] => {
-        const itemKey = formatItemKey(item);
-        return [itemKey, resolveItemScores(scores[itemKey], item.labels, mapping)];
-      }),
-    );
-    const entries = omitHeldScores(batch.entries, resolved);
-    const changes = planScoreChanges(entries, scores, resolved, at);
-    if (!isDryRun) await writeScoreBatch(context.store, context.userId, entries, at);
+    const { changes } = submission;
     io.stdout(renderChangesText(changes, isDryRun));
     return 0;
   });

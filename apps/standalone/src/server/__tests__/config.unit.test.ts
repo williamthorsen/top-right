@@ -10,12 +10,22 @@ describe(parseConfig, () => {
     const config = parseConfig('{"repos":[{"repo":"w/codeassembly"},{"repo":"w/configs.macos"}]}', PATH);
 
     expect(config).toStrictEqual({
+      agent: undefined,
       closedWindowDays: 30,
       projectOf: {},
       projectOptions: {},
       repos: ['w/codeassembly', 'w/configs.macos'],
       reposWithAbbreviation: [],
     });
+  });
+
+  it('reads the agent that the author configures', () => {
+    const config = parseConfig(
+      JSON.stringify({ repos: [{ repo: 'w/a' }], agent: { harness: 'claude-code', model: 'sonnet' } }),
+      PATH,
+    );
+
+    expect(config.agent).toStrictEqual({ harness: 'claude-code', model: 'sonnet' });
   });
 
   it('reports the repositories whose entry still sets an abbreviation', () => {
@@ -86,6 +96,16 @@ describe(parseConfig, () => {
         projects: { 'https://github.com/users/w/projects/4': { toDo: ['Todo'], inProgress: ['Doing'] } },
       }),
       message: 'no repository names this project',
+    },
+    {
+      case: 'names an agent harness that the host does not run',
+      text: JSON.stringify({ repos: [{ repo: 'w/a' }], agent: { harness: 'codex' } }),
+      message: 'agent.harness',
+    },
+    {
+      case: 'sets a model for the antigravity harness',
+      text: JSON.stringify({ repos: [{ repo: 'w/a' }], agent: { harness: 'antigravity', model: 'gemini' } }),
+      message: 'only the claude-code harness takes a model',
     },
   ])('if the file $case, throws a StartupError that names the file', ({ text, message }) => {
     const parse = () => parseConfig(text, PATH);
