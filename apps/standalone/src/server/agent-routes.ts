@@ -5,7 +5,13 @@ import path from 'node:path';
 
 import { type ItemScores, SCORE_FIELDS, type ScoreField } from '@top-right/model';
 import type { Store } from '@top-right/store';
-import type { RunEvent, RunPromptOptions, SessionUpdate, StopReason } from '@williamthorsen/toolbelt.acp/proposed';
+import {
+  AgentRunError,
+  type RunEvent,
+  type RunPromptOptions,
+  type SessionUpdate,
+  type StopReason,
+} from '@williamthorsen/toolbelt.acp/proposed';
 import { describeError } from '@williamthorsen/toolbelt.errors';
 
 import {
@@ -131,6 +137,15 @@ export function createAgentRoutes(options: AgentRoutesOptions): RouteTable {
 }
 
 // region | Helpers
+/** Returns what the page shows for the run's failure, which leaves out the agent's stderr that the host logs. */
+function describeRunFailure(error: unknown): string {
+  if (!(error instanceof AgentRunError)) return describeError(error);
+  const { command, exitCode, signal } = error;
+  const exitDetail =
+    exitCode === undefined ? (signal === undefined ? '' : ` (killed by ${signal})`) : ` (exited ${exitCode})`;
+  return `The agent \`${command}\` failed${exitDetail}: ${describeError(error.cause)}`;
+}
+
 /** Maps the session update to the event that the page shows, or undefined for an update that it does not show. */
 function describeUpdate(update: SessionUpdate): AgentEvent | undefined {
   switch (update.sessionUpdate) {
@@ -207,7 +222,8 @@ async function streamRun(
     return { type: 'ended', outcome: 'failed', message: 'The agent ended the run without stopping.' };
   } catch (error) {
     if (controller.signal.aborted) return { type: 'ended', outcome: 'cancelled' };
-    return { type: 'ended', outcome: 'failed', message: describeError(error) };
+    console.error(`top-right: the agent run failed: ${describeError(error)}`);
+    return { type: 'ended', outcome: 'failed', message: describeRunFailure(error) };
   } finally {
     await rm(cwd, { recursive: true, force: true });
   }
