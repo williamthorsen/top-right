@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 
 import { McpServer } from '@modelcontextprotocol/server';
-import type { RunEvent, RunPromptOptions } from '@williamthorsen/toolbelt.acp/proposed';
+import { AgentRunError, type RunEvent, type RunPromptOptions } from '@williamthorsen/toolbelt.acp/proposed';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type AgentEvent, agentEventSchema } from '#src/shared/agent-events.ts';
@@ -84,6 +84,7 @@ describe('POST /api/agent/run', () => {
       message: 'The agent stopped: max_tokens.',
     },
   ])('reports $case as failed and discards its suggestions', async ({ finish, message: failure }) => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const store = createMemoryStore();
     const url = await startAgentServer(async function* ({ callTool }) {
       await callTool('suggest_scores', { changes: [SUGGESTION] });
@@ -97,6 +98,40 @@ describe('POST /api/agent/run', () => {
       { type: 'ended', outcome: 'failed', message: failure },
     ]);
     expect(store.state.scores).toStrictEqual({});
+    log.mockRestore();
+  });
+
+  it.each([
+    {
+      case: 'an agent that exited',
+      details: { exitCode: 1 },
+      message: 'The agent `claude-agent-acp` failed (exited 1): API Error: Couldn’t connect through your proxy',
+    },
+    {
+      case: 'an agent that was killed',
+      details: { signal: 'SIGKILL' as const },
+      message:
+        'The agent `claude-agent-acp` failed (killed by SIGKILL): API Error: Couldn’t connect through your proxy',
+    },
+    {
+      case: 'an agent still running',
+      details: {},
+      message: 'The agent `claude-agent-acp` failed: API Error: Couldn’t connect through your proxy',
+    },
+  ])('names the failure of $case without its stderr, which the host logs', async ({ details, message: failure }) => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const url = await startAgentServer(() => {
+      throw new AgentRunError(
+        { command: 'claude-agent-acp', stderrTail: '[DEBUG] session log line\n', ...details },
+        { cause: new Error('API Error: Couldn’t connect through your proxy') },
+      );
+    });
+
+    const events = await runPrompt(url);
+
+    expect(events.at(-1)).toStrictEqual({ type: 'ended', outcome: 'failed', message: failure });
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('[DEBUG] session log line'));
+    log.mockRestore();
   });
 
   it('runs the agent in an empty temporary directory with the instructions and the policy, and removes it', async () => {
