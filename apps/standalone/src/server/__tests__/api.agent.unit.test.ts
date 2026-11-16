@@ -21,7 +21,10 @@ interface AgentTurn {
   options: RunPromptOptions;
 }
 
-afterEach(closeServers);
+afterEach(() => {
+  closeServers();
+  vi.restoreAllMocks();
+});
 
 describe('POST /api/agent/run', () => {
   it('streams the answer of a run that answers in prose', async () => {
@@ -84,7 +87,7 @@ describe('POST /api/agent/run', () => {
       message: 'The agent stopped: max_tokens.',
     },
   ])('reports $case as failed and discards its suggestions', async ({ finish, message: failure }) => {
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     const store = createMemoryStore();
     const url = await startAgentServer(async function* ({ callTool }) {
       await callTool('suggest_scores', { changes: [SUGGESTION] });
@@ -98,7 +101,6 @@ describe('POST /api/agent/run', () => {
       { type: 'ended', outcome: 'failed', message: failure },
     ]);
     expect(store.state.scores).toStrictEqual({});
-    log.mockRestore();
   });
 
   it.each([
@@ -131,7 +133,6 @@ describe('POST /api/agent/run', () => {
 
     expect(events.at(-1)).toStrictEqual({ type: 'ended', outcome: 'failed', message: failure });
     expect(log).toHaveBeenCalledWith(expect.stringContaining('[DEBUG] session log line'));
-    log.mockRestore();
   });
 
   it('runs the agent in an empty temporary directory with the instructions and the policy, and removes it', async () => {
