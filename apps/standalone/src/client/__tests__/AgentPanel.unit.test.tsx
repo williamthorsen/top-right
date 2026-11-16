@@ -40,7 +40,8 @@ describe(AgentPanel, () => {
     const user = userEvent.setup();
     const { conversation } = renderPanel([buildRun({ activity: 'Reading items' })], { isRunning: true });
 
-    expect(screen.getByRole('status')).toHaveTextContent(/Reading items\s*\d+ s/);
+    expect(screen.getByRole('status')).toHaveTextContent(/^Reading items$/);
+    expect(screen.getByText(/^\d+ s$/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Suggest urgency changes' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 

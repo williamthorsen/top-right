@@ -156,9 +156,9 @@ function RunEntry({
     <li className="host-agent-run">
       <p className="host-agent-prompt">{run.prompt}</p>
       {run.outcome === undefined ? (
-        <div className="host-agent-progress" role="status">
+        <div className="host-agent-progress">
           <span aria-hidden="true" className="host-agent-spinner" />
-          <span>{run.activity ?? 'Starting'}</span>
+          <span role="status">{run.activity ?? 'Starting'}</span>
           <Elapsed startedAt={run.startedAt} />
           <button className="host-button" onClick={conversation.cancel} type="button">
             Cancel
