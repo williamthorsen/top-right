@@ -97,7 +97,7 @@ body {
 }
 
 .host-button:focus-visible {
-  outline: 3px solid Highlight;
+  outline: 3px solid CanvasText;
   outline-offset: 2px;
 }
 
@@ -351,7 +351,7 @@ body {
 }
 
 .host-agent-row:focus-visible {
-  outline: 3px solid Highlight;
+  outline: 3px solid CanvasText;
   outline-offset: 2px;
 }
 
@@ -393,7 +393,7 @@ body {
 }
 
 .host-agent-input:focus-visible {
-  outline: 3px solid Highlight;
+  outline: 3px solid CanvasText;
   outline-offset: 1px;
 }
 
