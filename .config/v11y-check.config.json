@@ -6,14 +6,26 @@
       {
         "addedAt": "2026-11-07T20:57:23.350Z",
         "id": "1244623",
-        "path": ".>@williamthorsen/strict-lint>eslint>minimatch",
         "reason": "Added by v11y sync at 2026-11-07 20:57:23 UTC",
         "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249"
+      },
+      {
+        "addedAt": "2026-11-17T20:18:36.700Z",
+        "id": "1247710",
+        "reason": "Added by v11y sync at 2026-11-17 20:18:36 UTC",
+        "url": "https://github.com/advisories/GHSA-fc5q-39xc-vjpf"
       }
     ]
   },
   "prod": {
     "severityThreshold": "low",
-    "allowlist": []
+    "allowlist": [
+      {
+        "addedAt": "2026-11-17T20:18:36.705Z",
+        "id": "1247710",
+        "reason": "Added by v11y sync at 2026-11-17 20:18:36 UTC",
+        "url": "https://github.com/advisories/GHSA-fc5q-39xc-vjpf"
+      }
+    ]
   }
 }
