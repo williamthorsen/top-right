@@ -183,8 +183,8 @@ catalogs:
       specifier: 16.3.3
       version: 16.3.3
     '@testing-library/user-event':
-      specifier: 14.6.10
-      version: 14.6.10
+      specifier: 14.6.12
+      version: 14.6.12
     '@types/node':
       specifier: 26.6.6
       version: 26.6.6
@@ -230,8 +230,8 @@ importers:
         specifier: 5.1.0
         version: 5.1.0(vitest@5.1.0)
       '@williamthorsen/eslint-config-typescript':
-        specifier: 22.1.0
-        version: 22.1.0(@typescript-eslint/utils@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint-plugin-jest-dom@5.10.2(@testing-library/dom@10.4.2)(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-jsx-a11y@6.10.2(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-react-hooks@7.1.1(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-react@7.37.5(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-testing-library@7.16.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(readyup@0.46.3)(typescript@6.0.3)
+        specifier: 23.0.0
+        version: 23.0.0(@typescript-eslint/utils@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint-plugin-jest-dom@5.10.2(@testing-library/dom@10.4.2)(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-jsx-a11y@6.10.2(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-react-hooks@7.1.1(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-react@7.37.5(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-testing-library@7.16.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(readyup@0.47.0)(typescript@6.0.3)
       '@williamthorsen/nmr':
         specifier: 'catalog:'
         version: 2.2.2(typescript@6.0.3)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.0)
@@ -239,20 +239,20 @@ importers:
         specifier: 18.3.0
         version: 18.3.0
       '@williamthorsen/repo-tools':
-        specifier: 0.6.1
-        version: 0.6.1
+        specifier: 0.6.2
+        version: 0.6.2
       '@williamthorsen/strict-lint':
-        specifier: 15.1.0
-        version: 15.1.0(eslint@10.15.0(jiti@2.7.0))
+        specifier: 16.0.0
+        version: 16.0.0(eslint@10.15.0(jiti@2.7.0))
       '@williamthorsen/toolbelt.objects':
-        specifier: 4.4.3
-        version: 4.4.3
+        specifier: 4.4.5
+        version: 4.4.5
       '@williamthorsen/tsconfig':
-        specifier: 0.14.0
-        version: 0.14.0(readyup@0.46.3)
+        specifier: 0.14.1
+        version: 0.14.1(readyup@0.47.0)
       codeassembly:
-        specifier: 0.20.2
-        version: 0.20.2
+        specifier: 0.21.0
+        version: 0.21.0
       eslint:
         specifier: 10.15.0
         version: 10.15.0(jiti@2.7.0)
@@ -281,8 +281,8 @@ importers:
         specifier: 3.10.1
         version: 3.10.1
       readyup:
-        specifier: 0.46.3
-        version: 0.46.3
+        specifier: 0.47.0
+        version: 0.47.0
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -308,8 +308,8 @@ importers:
   apps/standalone:
     dependencies:
       '@agentclientprotocol/claude-agent-acp':
-        specifier: 0.107.0
-        version: 0.107.0(@anthropic-ai/sdk@1.8.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(@modelcontextprotocol/server@2.4.0)
+        specifier: 0.107.2
+        version: 0.107.2(@anthropic-ai/sdk@1.8.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(@modelcontextprotocol/server@2.4.0)
       '@modelcontextprotocol/server':
         specifier: 2.4.0
         version: 2.4.0
@@ -329,11 +329,11 @@ importers:
         specifier: 6.3.0
         version: 6.3.0(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
       '@williamthorsen/toolbelt.acp':
-        specifier: 0.2.0
-        version: 0.2.0(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)
+        specifier: 0.3.1
+        version: 0.3.1(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)
       '@williamthorsen/toolbelt.errors':
-        specifier: 0.11.0
-        version: 0.11.0
+        specifier: 0.11.2
+        version: 0.11.2
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -361,7 +361,7 @@ importers:
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@testing-library/user-event':
         specifier: 'catalog:'
-        version: 14.6.10(@testing-library/dom@10.4.2)
+        version: 14.6.12(@testing-library/dom@10.4.2)
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
@@ -423,7 +423,7 @@ importers:
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@testing-library/user-event':
         specifier: 'catalog:'
-        version: 14.6.10(@testing-library/dom@10.4.2)
+        version: 14.6.12(@testing-library/dom@10.4.2)
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -473,13 +473,13 @@ packages:
   '@adobe/css-tools@4.5.0':
     resolution: {integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==}
 
-  '@agentclientprotocol/claude-agent-acp@0.107.0':
-    resolution: {integrity: sha512-yOEYkKkomupue/lmkjlLy4C8ADlZ8ZZXX1ry3Ka6VTjtWHXowyoQ6+awjrfAc1Xkq3f37GA5fpTz9URyIfcb4g==}
+  '@agentclientprotocol/claude-agent-acp@0.107.2':
+    resolution: {integrity: sha512-7VY+4oeCJL65NRzL8Hmhhel5bYgVmns8Y5v2S0pc6rvNk1xkxOMHAhCOt59o62jf6v1h9uaS4UIqrXfOYvkdlw==}
     engines: {node: '>=22'}
     hasBin: true
 
-  '@agentclientprotocol/sdk@2.6.0':
-    resolution: {integrity: sha512-3FtL6MkAV5F9qxg0FQV8wmBszIm2xuVPoDWOILIFSDQ+Vq3Twdh7Cw6Hk2GOPUbevgrTUpUAqZXQy7Geaj79mw==}
+  '@agentclientprotocol/sdk@2.7.0':
+    resolution: {integrity: sha512-oXdQq0plWv3iOg01zJghNZRSuyWeMYxOgWIaSdwg1BZe2ZAC9LRhNDi023lNYxXq1zVIpQjIp8P6AfsxpvxF6g==}
     peerDependencies:
       '@modelcontextprotocol/server': ^2.4.0
       zod: ^3.25.76 || ^4.0.0
@@ -495,52 +495,52 @@ packages:
     engines: {node: '>=20.19.0'}
     hasBin: true
 
-  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.323':
-    resolution: {integrity: sha512-hWkXHsSMIv+78duw3mDi0bndCpWquGuMrCX6C7G9LzEtpcd+ZvzI5ZE4E6SwqX1bSy8rxhEg+hVJSTk4ABoxpA==}
+  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.325':
+    resolution: {integrity: sha512-0u8bTug2zH+zWE8CMiFrm/ldmH20uA9B/zhXpI7ATHFJnpPMdwTqE56CFM0m3LOwnNum0jpRn7XV1dn6Pf2pqA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.323':
-    resolution: {integrity: sha512-JHtMk+FBRQPvH046dUIda6s6bza8CRQkaAdy96JwV1zqgi3mtlAg5yXFxPA/QNoiHz5Ul225wCZr9lR7gbwkMg==}
+  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.325':
+    resolution: {integrity: sha512-HD3YRFyM5H5QH2usS/WD6gobk3BEp2jq9dKyrkhAVdQIqFMlrcSrRhGA0i3R1IOLxtPAYkmDGepZ62k1kMOW9Q==}
     cpu: [x64]
     os: [darwin]
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.323':
-    resolution: {integrity: sha512-N+ZTBRQj8Ew3/eLCZE7JADceyN6Yi1CncJAdzknF5RL9dckIujv4B7C9neBNOXdo+bGFEysjPcUbVsaRkPguKQ==}
+  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.325':
+    resolution: {integrity: sha512-72y6QNRZC4eMCxne/wNsuwNHsViSkgFKlYMCUVXxmiR9gpIMd3rf++oJMIsSuEAQqzqT7jwCrdtibv6R4bx5PA==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.323':
-    resolution: {integrity: sha512-ONhCJapk9UxpaZ3HY1GTZezMoiQ6Ab7fIubS+dJeXIyj8aQjGQALHQoEl9D1Hrr+q5ppZPOAt0hg69x8aGbTBA==}
+  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.325':
+    resolution: {integrity: sha512-28oVrCEN6M6MJP8Od4SK/scal1QdLbn5Sci+qL8j55l6csHtPeUYF9zdjWLniFKph43pejfZf5te/Vf/bwehkw==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.323':
-    resolution: {integrity: sha512-QMaFszyJraPnZyJTy6K9vr1wVA/4MIjWSFcaByGv/x3Hk/F7smsMnqpuATO6M6bRsev+IVPj0p6rsdpYAdt1yA==}
+  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.325':
+    resolution: {integrity: sha512-BHewYUTd7mDLR5iHTVt6Q28gJKLC5C24b1H3NM0qGt9dxnjVUh1Lza52GzHY2Rb9hAPQymLSXWuVh1OFoFQatA==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.323':
-    resolution: {integrity: sha512-9M0rnLcCa9sJdZoRCPbjyMOv3raoJm39u348t2ozCgE35Y9e/jGgxy+rG2jfRTaCBILDDrR57ClRQVRlpNeLpQ==}
+  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.325':
+    resolution: {integrity: sha512-wXEWbDmNYiorY5EKASYjvQct8zHShUPmAS9N/IAsgPA/cx2vsOFqPQw8jRQKeaW6AmFgx7k/Wf7THalNXbMEkQ==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.323':
-    resolution: {integrity: sha512-FS+eYSMU/x8Hmy98zypoOw9/+jMgtGmBEyYmE+jJUCdb3a4k1pwcx08XGici/hnBR3xiKK65ifxwVg2oNyZocQ==}
+  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.325':
+    resolution: {integrity: sha512-NH3I2o105oKK8lfJ5RlzCp+YTZn3qncwQ1xSzQ4jqn7LUddThIidpFU7B+TKQxh1X9eayAp7EtrBQ36mXflQwQ==}
     cpu: [arm64]
     os: [win32]
 
-  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.323':
-    resolution: {integrity: sha512-mW2h1o0Kt92AKZBr05AwE3izJTAYpWNUurOppPdzH/hditbT1zwc0tAJ3p+G+XMkqUWenJNbpunVG0utfQ2hmA==}
+  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.325':
+    resolution: {integrity: sha512-pjqVL++V/2oMJ6u1HdB608bcTUvzts1e8hX93Q8khasy2JB+R823bnvpQapcOurOWB3+v1X2JXIjXyWcGPJCQQ==}
     cpu: [x64]
     os: [win32]
 
-  '@anthropic-ai/claude-agent-sdk@0.3.323':
-    resolution: {integrity: sha512-GXIczMzzceNWB+bIImK59hWOQoBWZtSw+AESPc/qbAWmmHM8Wrqb5KvTwWZ07CmjyC/KcPC47nOLxxyHlWqKPA==}
+  '@anthropic-ai/claude-agent-sdk@0.3.325':
+    resolution: {integrity: sha512-MhSm2Fhk3DA/hhjdCKXDZWlnykpPWJjX42SogllAHMplY9ZKT+Ltb8QPtQxpe225Imfs4A8IKaNE4biivA+fHg==}
     engines: {node: '>=18.14.0'}
     peerDependencies:
       '@anthropic-ai/sdk': '>=0.93.0'
@@ -969,14 +969,14 @@ packages:
       '@types/react-dom':
         optional: true
 
-  '@testing-library/user-event@14.6.10':
-    resolution: {integrity: sha512-tA4stGNp3mLGOGO+lh87UA56Tz4c8NVGBSkyIF58O+W/bs2Re9BCI9xihnL70+DsThncFznE0skS88SM1D2hyg==}
+  '@testing-library/user-event@14.6.12':
+    resolution: {integrity: sha512-8yQV8v+eToBhsUO4oYrZY7fzhpTEMZx4IDx0/iuER/x0Xuy0NdqQOhsaaUNlvXE03N7vQ+4RCXUieKC0NJty9w==}
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
 
-  '@tybys/wasm-util@0.10.4':
-    resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
+  '@tybys/wasm-util@0.10.5':
+    resolution: {integrity: sha512-dOGOPxlaNV+G046mZzN+9C0dAcQZeSKcXiVaM0TYy/LM4ttTmgSBDxYfovcYI8Em3+eAbiAYpvWLOv8+ZVRJKA==}
 
   '@types/aria-query@5.0.4':
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
@@ -1281,16 +1281,12 @@ packages:
   '@vitest/spy@5.1.0':
     resolution: {integrity: sha512-2DPO5OMHWKrBngC+fCmTQqemNF0gidRhp3lxbBmRhW+M1XJrfgPpqNqWVevXtn2f2ufD5ZaR1B6B641aAlcX5A==}
 
-  '@williamthorsen/change-grammar@0.4.0':
-    resolution: {integrity: sha512-yESinjnw9nAuaisielClADDX6KkktSDGKETApgL/L52AWDISiLAEhNe42gTt43rS6gZSPEdqMCwPtjvOJGgvCA==}
-    engines: {node: '>=24.16.0'}
-
   '@williamthorsen/change-grammar@0.4.1':
     resolution: {integrity: sha512-31WDuWOLI8iZkwp+BnWU7cm5kk1PF9Zqoe3rmZykJbScqSC6tZVzCyipUod/9QmlfGncLYuEbBsLw/RT0fCT6Q==}
     engines: {node: '>=24.16.0'}
 
-  '@williamthorsen/eslint-config-typescript@22.1.0':
-    resolution: {integrity: sha512-LUKbiYdY0Vka1MrxYYWuTttdY//dOH2qZbTqFTwcRyIV2pZcaM7hxg8G7vfXWBRPBgW4XUI47epyzeXIE0CvOw==}
+  '@williamthorsen/eslint-config-typescript@23.0.0':
+    resolution: {integrity: sha512-n+yR73kXU2YOZCRJMcAqxZx+c0cqlTk/9jqYjbWGN+U4HxLFbca5Zpj9a8XJAJeKeFs2sY5sZ/mppK1Bp8m26w==}
     engines: {node: '>=24'}
     peerDependencies:
       '@next/eslint-plugin-next': ^16.3.5
@@ -1322,10 +1318,6 @@ packages:
       readyup:
         optional: true
 
-  '@williamthorsen/nmr-core@0.16.1':
-    resolution: {integrity: sha512-pOh6W+vibevPAPVWNLiAJPHD9chDmJe8yskEbn0b0i/Gtiy4WNAaTNTMYABuGC7VTI2S1dV5r3opbBvgzLLaJQ==}
-    engines: {node: '>=24.16.0'}
-
   '@williamthorsen/nmr-core@0.16.2':
     resolution: {integrity: sha512-fh3bRAiePLh3J+IMFiASQbBWHdVkxGhSZg9JpSdREBlZP1htQCDvOlkr21cP+9XfNZ0V2bqQkTsFM+H+3R720A==}
     engines: {node: '>=24.16.0'}
@@ -1351,50 +1343,42 @@ packages:
     engines: {node: '>=24.16.0'}
     hasBin: true
 
-  '@williamthorsen/repo-tools@0.6.1':
-    resolution: {integrity: sha512-tNN3PTSomNfyGbRlrOMIBjBTS/UCcgZzQCe7Acp6lgsegFTyXof1uOW+828AKQEajnw6y15qwgFMWPwVk/nvrA==}
+  '@williamthorsen/repo-tools@0.6.2':
+    resolution: {integrity: sha512-k1l0HcULheZQ0R+Ehn0pQxzM62GHPQ5T6zVOSrqr/GkvxXS88tKUXwc9K/pMfUKDutOhP6kWIFhS1L7LgQZDVQ==}
     engines: {node: '>=24'}
     hasBin: true
 
-  '@williamthorsen/strict-lint@15.1.0':
-    resolution: {integrity: sha512-HZZCejBvv2KAqGOnyU3vwY7jFW3eDrTL6ssHO8Z1cQYbzL5vEr3e+wVUUa15Ad7bv6wLk0e4M6ZPkXYMFdbf9g==}
+  '@williamthorsen/strict-lint@16.0.0':
+    resolution: {integrity: sha512-4eS3E6VGq0fBXs5805q0eqCv6C6v63JGTC8hhq+IFKmhKlpss4JKGVyvklv3OAtdB0itC+XGzXd4I9ogxmR2ag==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
       eslint: '>=10'
 
-  '@williamthorsen/toolbelt.acp@0.2.0':
-    resolution: {integrity: sha512-+P6+E9GM5TTNpctwEyrRxljSFCIsNIjJ1JA4d3+ZJvPkKNG0tWSDNTcbh5ajiYD/gsVtN3sP14C+OIgsL+KhNw==}
+  '@williamthorsen/toolbelt.acp@0.3.1':
+    resolution: {integrity: sha512-ghDT2fLVfnoGfmy/dkwJiPthHuRoGaEpqyriuTrZJlSGKaglWF1XFBNSlF+FYTQvQ1NLY00flZ4osE5x0ip1xg==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@modelcontextprotocol/server': ^2.4.0
-
-  '@williamthorsen/toolbelt.arrays@6.4.1':
-    resolution: {integrity: sha512-P2Und156n4N3AvfDs44VUOXB24ZbTSfycIhOJcienZw4Q0zzU0fsm99mNpFnbkqoCR6ZV10c7bRV6YpNSlUk1Q==}
-    engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.arrays@6.4.2':
     resolution: {integrity: sha512-PnmYJ8Zoh50qNVe1OvhXg+EnI/m0M+oHe5csCnQCNlerWRRghyeHxFYsWrgz9Xg8UfLcnSjVMc0ear5Ag54THA==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.arrays@6.5.2':
-    resolution: {integrity: sha512-Z6QUsXlMoEX/7CkcbwsZ4a3nB/i+09R5k6aP4/aWkoxl6U0wvE6iQumz7/vv0sKBgs+46rtRDMov7n9G96VKPg==}
+  '@williamthorsen/toolbelt.arrays@6.5.4':
+    resolution: {integrity: sha512-cMr0WcdKu9mu7mwNncP6ryx2bXCpc4MUf4yN7VWuy+WTCc3z62cPrvmrwthfBRMYl/awaB44G9gHVDo5CT4i3w==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.cli@0.10.0':
-    resolution: {integrity: sha512-1zeIGWmME9XiSYmmZSMl3IjISJ/cxKMX03fCKIhAqtkZsb5k9QxBm2HTHRtiSFhZfE6IuJN+OBUIxF7mAX39XQ==}
+  '@williamthorsen/toolbelt.arrays@6.5.5':
+    resolution: {integrity: sha512-wZDKff/El9ZCBYliW35owJbfQG/IgLEzr5QEnSj/tB84EyHIXfWvw5ZIf3Ph8ig0RmHujcpgzKB3cqd5TZn8qw==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.cli@0.8.0':
-    resolution: {integrity: sha512-+zkrTzhlIF8+AkMf/d7NV1dVJL8BZTBMYCR/T9AS42rpEaWASrJ928LmsZpHjZII6qZCNpDLezFNnzvvnJkpvA==}
+  '@williamthorsen/toolbelt.cli@0.11.0':
+    resolution: {integrity: sha512-SIa1vQrKqRDKRfbPHPtIYInT9UnJTIV2R1aqrTnrDDpwBdJlOwMhEhlt//CnSDUWBMWr5ivKP3ix+du7IZuJYw==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.cli@0.8.1':
     resolution: {integrity: sha512-OZ2xRbMrjfVCwVyV/G5wbpHZEHTohWucMYWsggFk89x4a959yXk+0xu1NVn28+IfE5satyWXeQXBiE4wsSNC8Q==}
-    engines: {node: '>=24.0.0'}
-
-  '@williamthorsen/toolbelt.datetime@4.1.1':
-    resolution: {integrity: sha512-sOl1QfsLlVmu2VsTfn2wpTOwQ2QsWFBm05cnJRyTMRHFtmJnJCNc2aLZ6JBpV5f0tCDgthiV4D0iSUFsZqnPsw==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.datetime@4.1.2':
@@ -1405,20 +1389,16 @@ packages:
     resolution: {integrity: sha512-rc4SFRGXOfSsDb4XllkJahREhaI2LP1QRPB0CEY3avOySYxF+17aQbjCl0H9MGzH2gB94lMWr5g88lydW5Vt5w==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.errors@0.11.0':
-    resolution: {integrity: sha512-rn4XRiTcjcnTzjbaag8AbxcYp1rXsj7+0sAGpCu9UzBWpdrUbeKViaXTwp3bt9qaRIAquGn5ooruN/7o5a49Ew==}
+  '@williamthorsen/toolbelt.errors@0.11.1':
+    resolution: {integrity: sha512-NhtNX5WsDj4Wf9CPFIvXAWACQdgGQtTF4d0mPXKa5BBjN+cIkXlCKykRa77Xhulv2SMbI/y+SuxmIBYCUfij3w==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.errors@0.9.0':
-    resolution: {integrity: sha512-wRPBT6fexJ/meXel9jVVRGgvYojQwrC5sq6/fJ55X96Dw3eoxTQVsAdvOuK9Fh46flivyHss5mudJz+FaJnxFQ==}
+  '@williamthorsen/toolbelt.errors@0.11.2':
+    resolution: {integrity: sha512-YI8a9YnAtu8x8ONZfUrJ1PPnaQqcm0zsZVPvQe72C6BHieQLCfbOoghr8oTTIlDQbAfYUZHGchXBAptB4kmpuQ==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.errors@0.9.1':
     resolution: {integrity: sha512-LxWnTFhxBlM97ZJZ9uCIGP7jdtPxluKjJDAp8CkSCccVMVKY+V5zF2UsXqHwC98w/epoQDX3UZHKpd17u9+v3A==}
-    engines: {node: '>=24.0.0'}
-
-  '@williamthorsen/toolbelt.filesystem@0.10.0':
-    resolution: {integrity: sha512-xkJr9kYVxQd8OANLpjGEDhYrc+OLzUneUOHVDzb1JLVWbGQAte9NwS2HpC7F4MorkAVaaTw0O/5k1pW3pmcOxw==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.filesystem@0.10.1':
@@ -1429,52 +1409,60 @@ packages:
     resolution: {integrity: sha512-qKY8fb0RjrcHnFYTxjpAupTIbnTKMi5QkRPMDv5ATsX7JsvgFxpZReeLF1nCElNeUo6S2wsdocRHKCx1wORvaA==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.guards@4.2.0':
-    resolution: {integrity: sha512-1+B/L2UpCGohBv7PluO5CAUm5OiSjr9qx9D8LCLfKR6cKNhE+cdecECxH1eTa37nXU1MkbzPUKzJLHumLZqSVw==}
+  '@williamthorsen/toolbelt.filesystem@0.11.2':
+    resolution: {integrity: sha512-VdymaaMBnBssLcWiTAaXjBGJyQ6dRqOOGS0Vv58z0n3REQ88vMbZY6LFqswErLwRNwrzpr/hBvW+gM8Mbb20Mw==}
+    engines: {node: '>=24.0.0'}
+
+  '@williamthorsen/toolbelt.filesystem@0.11.3':
+    resolution: {integrity: sha512-6XrWNSti8dvN1ibczOZ8/Pl9mPbc9NBwIYDSgPXPhIR3bnJ9lKiy+Pzk41QeWZlDBtNZyofWRtlBwCGr159rPg==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.guards@4.2.1':
     resolution: {integrity: sha512-Q30HjPOmMSbOOh/RCeagpyxn+OSf4k5hVAlT8qWPAdSAgDzR1iat8IP2OK/5sXTpN5713Wf5GR2zA9XjW2cgag==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.guards@4.2.3':
-    resolution: {integrity: sha512-zHeVHlmuh32etSr/yTZYMsxcgEQe2lIBbxpJBOxmGt2UdTAgFxOalnsx+aqf+KcxsgEoCRBXHNA5o+P+4WGZDg==}
+  '@williamthorsen/toolbelt.guards@4.2.4':
+    resolution: {integrity: sha512-vVLwtWVx/jov+886jPv7OobF7h2Wdqu4cpfxh1crQZxYIsgaPPC4Ajo6kxv4murTGOFFH9GnWOCGe0KLmZV91Q==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.numbers@7.3.1':
-    resolution: {integrity: sha512-Ez1idA57YcYQM8iWrzT4VYbIGBbg9mGsl9321Pmiv4vLAdqrl0udtW+r5KzEhMRfHxpjRM5nLkPyfTOF97ATJQ==}
+  '@williamthorsen/toolbelt.guards@4.2.5':
+    resolution: {integrity: sha512-UxR/BDaaYmRmwQu4qMvRle2gEfdRk7oc6K8hwcsF5Pa5/2+HuheIpsLrX5fW5s+g8zitCnrZ+WNj/td9YHKKVQ==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.numbers@7.3.2':
     resolution: {integrity: sha512-dnKYZ8jEOC9q9aAsr39bs3i+o6A2wW8O3s9s91JJ/P8Breao/dO79uzqeNE+M09fh6LWwOrYSFP3qW6XgD0teg==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.numbers@8.0.2':
-    resolution: {integrity: sha512-KVVUP1d44d4RJ4LlF2YHgbVb0qGTv5HNKc9TRVvvK27smpHQnNDK8/axmRQ/qAU9cx3JyzA1kITCebdAQUEOTQ==}
+  '@williamthorsen/toolbelt.numbers@8.1.1':
+    resolution: {integrity: sha512-6X/MfDjdkIC970jqDZAh8lpq+GcoYJfhIrRy9Qom3wyw3xGMKwRVj+Ej6dDrQGsdwWD3t+u5DhzOmP5wXV+GFw==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.objects@4.4.0':
-    resolution: {integrity: sha512-5YZQasGgCAPEDNKO9G8UhKCpq+bdU1h5iKi/Ic6BPWiBSXeRxWnx8KKZ0fpow1I50fdhuOE40h0+v1DfZGCRKw==}
+  '@williamthorsen/toolbelt.numbers@8.1.2':
+    resolution: {integrity: sha512-294B4edhQZ2pzjUGLZXi4QBS8syEBrCp+PzhDiLM7+vRus9mcq29AqfR4pisTAi0zz6hsa6ptx0/ZmYM7kW4Fg==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.objects@4.4.1':
     resolution: {integrity: sha512-2+80LsqvdhMrVl3XIj7jrdBVCvxnBG9Ymz8o6rPPllIUo+QYL8BrwM1mFpOx71XK7bEef3OVCYUWHI9ZkrEs8A==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.objects@4.4.3':
-    resolution: {integrity: sha512-JW+u6Hn/7FyyvBl9wA0oS3hsVAuEpvffgmC37gRyA4Evdf1UFcOBs0JBNX5Q+uju93pMBHUuxWqIXCdiqfjYoQ==}
+  '@williamthorsen/toolbelt.objects@4.4.4':
+    resolution: {integrity: sha512-3wiA/67Y4kfb0SqdSSN4tK5L+S7JjJRHuWUM2eCEB+E6nrrAwKSgGLzs6X9MAO3KgWQFTPw4uNgVfNtx01HGuQ==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.packaging@0.7.0':
-    resolution: {integrity: sha512-sQtD63+5g94Uw+fisbVeQWqR3KDRCA1l7eHwjGD+HoOlUu5jJynr53uJ8AMJd9PSu+86/drszT5EGihHVyXOOQ==}
+  '@williamthorsen/toolbelt.objects@4.4.5':
+    resolution: {integrity: sha512-nCS1LWFWP/dTpGpqSlvLfz076b9j8wUd7X84SJCli+NsvAr0F3zbkK3gPaoeOG7PA+8G25sd/3J33Zi4QUM8FQ==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.packaging@0.7.1':
     resolution: {integrity: sha512-nHCDZu620rVqXVpj/TSDyUHjiQlMGC+AgWXQmVUASDXfNT61iGfdRHqyFmWmmB/H6BJO9O+lIWABSjmrZkd+mQ==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.packaging@0.8.0':
-    resolution: {integrity: sha512-21DMdQZn//uCV6BSuC+jWQblHYLyWGB0wo9uRvUBziro/VUtmS6RkkhnItOa5VcW+J5l4dqpxMIdTiOFcDBMCA==}
+  '@williamthorsen/toolbelt.packaging@0.9.1':
+    resolution: {integrity: sha512-74/RfW2nanVC8oMhW7owjduA7ZNoDD3nxK8kFtvWcfjpa0hOKfpn4Xl1NjXFA+xmywC0y8oAtd4IQ8kc/4vwXA==}
+    engines: {node: '>=24.0.0'}
+
+  '@williamthorsen/toolbelt.packaging@0.9.2':
+    resolution: {integrity: sha512-qscXhUuQ52hjSbPhnW1yGm+nTceqwM1xM0is5gJdyUCxvQqJyseCypT5aF84myEJZ0Fsey5eR7bxp1camaXveA==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.sets@3.1.0':
@@ -1485,28 +1473,28 @@ packages:
     resolution: {integrity: sha512-Ps9Iju2uchjka1OoSQreYY+eGXa7luS6HmbOKXeuAli4HSmLFb2cpfQEaKu149cgUPKivlV1FREeys6VOdVXWg==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.strings@8.2.1':
-    resolution: {integrity: sha512-VrAIZJSy1uc0gai3ljtv/d1Hz2jze1y7OGHQXVhkxnZYNMgP/fwB/7rWtOd6/IlvDD/WWglXU/oxxGnHZ6f9LQ==}
+  '@williamthorsen/toolbelt.strings@10.0.0':
+    resolution: {integrity: sha512-YXmC4tcNdKwiFp1UxY3kb3IE/aPpciwdTX3B38ugG/AfgDYepa5//o4cM7XL5wraJKxyJQDHBQOzu2lm+CYWZg==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.strings@8.2.2':
     resolution: {integrity: sha512-/Cf213JsdRzL1+0WI6DprJ8GBDo2m/PR9k3swBVIa5cIh0ZaHNuNqMyj45eZvc7p2+sm8sk3dIYnG7RlJfxE1Q==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.strings@9.0.0':
-    resolution: {integrity: sha512-RdcRY39fBTg73YYx2OP3unyX+bq8F/tV/RT57rnpa/jNlWdsjfVGvdtvbCNOFy/Jd97UixPAEbgDx1V6x9J4fw==}
+  '@williamthorsen/toolbelt.strings@9.0.2':
+    resolution: {integrity: sha512-DT8AndpZsQIKv0y72DVxM83qCyM020xHRKD5XnHqad1wJkvBBcR1z+ItVBP+xj5vCAEjxXue6bjCAvwXT27iog==}
     engines: {node: '>=24.0.0'}
 
   '@williamthorsen/toolbelt.terminal@0.3.0':
     resolution: {integrity: sha512-ks9fVSnUW9B6JR+sa126jRK/tWD+aMPhXEYc4Uyqe77Xz1ZDRa53qlqjUZDIW985eE4Kz+vfthQveNa9zV3l3Q==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/toolbelt.terminal@0.3.1':
-    resolution: {integrity: sha512-yIGy3Uk0Q4p7KVWnZJtyCLifK/DZ2/GTsvUKwaVilWdU6ti8XGanizyZWJKasR+h0gI87W4jKp5keRAhySSolw==}
+  '@williamthorsen/toolbelt.terminal@0.3.2':
+    resolution: {integrity: sha512-o1KKmDqNFT7eMXbOy6oQlOAky7+0f6YIC1gKKQKAk6LzGGGE1p5x1uanLH6hSENGeIxZhHkUDMTkdQbv/9wCmQ==}
     engines: {node: '>=24.0.0'}
 
-  '@williamthorsen/tsconfig@0.14.0':
-    resolution: {integrity: sha512-V/jyagDp9Rp7vvctyjBc7Nxvbg+nPTjOMYCS7yDo+j5KVKlUYU1Ax/dyKDa8baWgOlTDZye8iQpdsCE1notvPg==}
+  '@williamthorsen/tsconfig@0.14.1':
+    resolution: {integrity: sha512-BR1xvJEQG61Ar4pPv3fTIxPVbIuzmDZ0HwIcIOwVPgdVUkbUdIJMZCJfVTr2fvRWvPvaRmEuIVul4cSfnPTDyA==}
     engines: {node: '>=24'}
     peerDependencies:
       readyup: '>=0.33.0'
@@ -1728,8 +1716,8 @@ packages:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
 
-  codeassembly@0.20.2:
-    resolution: {integrity: sha512-pgzzQFx4wP4P0av8UAfGGdWeAoGppI7DHCGNJUJAtgqyIkIv53VryF/sVXpkhr6dGlkmxoc+I76p8EtbIA6C1A==}
+  codeassembly@0.21.0:
+    resolution: {integrity: sha512-1Unr5jNUbXWUx3I/nKgrbVK3LbbDBDOZWkUV2Nhb3OUyORLJsnbWEYsA0gkiS1YiFggPdK0tBbWgofQ0xC/k4A==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -1895,8 +1883,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  electron-to-chromium@1.5.485:
-    resolution: {integrity: sha512-m3uadzR0Z+sR19HGWgfxoZcKv9hE/edVM9OZ+FJ4wNRyfuFtkwZJIDoehEty5sisYVwmge8lKV1tenWOyClVgw==}
+  electron-to-chromium@1.5.486:
+    resolution: {integrity: sha512-rpybw4Ac4ak/An6G1Me2+61xzwobowDGyuJe71QHHOVpkZv4fPVobsLl7WH6zHSKusAMpaHxGKTpOvpy7+r3dQ==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -1945,6 +1933,9 @@ packages:
 
   es-module-lexer@3.0.4:
     resolution: {integrity: sha512-BldNY5mwkVu+cQ5Ymn3e6hB9Sx8XHx4ZevWbiUyZbfKxJxYO27Hf0wfzkxIaD5CAJMaGl3YspKELj0ff/7nCMA==}
+
+  es-module-lexer@3.0.5:
+    resolution: {integrity: sha512-RNq2lKJw53c7z9QRHeiKeA6Ez0oikOqiBGdmxQhKDxEiOX1g5QJR4IoFVwicn8uCZcRWNrXC3NZaJihgK7aEbg==}
 
   es-object-atoms@1.1.2:
     resolution: {integrity: sha512-HWcBoN6NileqtSydK2FqHbS/LoDd2pqrnQHLyJzBj4kOp/ky2MWMN694xOfkK8/SnUsW2DH7EfyVlydKCsm1Zw==}
@@ -3177,8 +3168,8 @@ packages:
     resolution: {integrity: sha512-7KA6+N9IGat52d83dvxnApAWN+MtVb1MiVuMR/cf1O4kYsJG+g/Aav0AHcHKsb6StinayfPLne0+fMX2sOzAKg==}
     engines: {node: '>=6'}
 
-  readyup@0.46.3:
-    resolution: {integrity: sha512-ETUttdKdkK0Az+u0LZKID/U2iRITaA7Rs+14nSVFARzFWpMlByxgceokM3WCAcAHO96N+xaT8ZFWug9JoBUg0w==}
+  readyup@0.47.0:
+    resolution: {integrity: sha512-Rbr5lbxYy02c+NxquChrXnf50ags9DjR64ZiJ00VnWBoO32AyS+IVqtgfXYkem0+U8SQYYClQsStgg7z/zBvpQ==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -3393,6 +3384,10 @@ packages:
     resolution: {integrity: sha512-ZbmZM0JCihQN91dWnxoipT2KOEyHqEyfRXUyjuRhW8b/xnqPDoq4gWEVApTVa9db2wN8mmoikgFBbjh71+cGeQ==}
     engines: {node: '>=20'}
 
+  string-width@9.0.0:
+    resolution: {integrity: sha512-2MOboAIRIszVGZVPA2Zqwj0ujd0o+xAZ5y2ft4OcD4kuVQ4phZxq0Sv7YTY8yaDA2CSMXch1EWTkJw+tTJZTzA==}
+    engines: {node: '>=22'}
+
   string.prototype.includes@2.0.1:
     resolution: {integrity: sha512-o7+c9bW6zpAdJHTtujeePODAhkuicdAryFsfVKwA+wGw89wJ4GTY484WTucM9hLtDEOpOvI+aHnzqnC5lHp4Rg==}
     engines: {node: '>= 0.4'}
@@ -3473,11 +3468,11 @@ packages:
     resolution: {integrity: sha512-LgO3D9yZJjApUiuUfl9iFAwrtaX4+lok3wJIqttGoKCHlWUqHqbQpnxCf82L8FjgKsh4iGo78hqJwgL8F6To2A==}
     engines: {node: '>=14.0.0'}
 
-  tldts-core@7.5.2:
-    resolution: {integrity: sha512-8W1topazDwhMKbm2I83IPa57Ow5VUxFgLbXv42+vSILnv8FY5OHvdEY/tS6WoWeMbxkHZQhra5cmeFHriKptSQ==}
+  tldts-core@7.5.4:
+    resolution: {integrity: sha512-9+4zWtKEDZ3V3FoZ1B97rv+5z5oqp7yeXGVze3CxgQ+CJro9do9DCPD00wxstYZDXDMXsurkBerFfiB6GYtPbA==}
 
-  tldts@7.5.2:
-    resolution: {integrity: sha512-p+JwEdxIWQx033pMvW9ULBbyC1Eg6JtWo2Mo0jbC8TVSjp2QrHFE+WKs8JpMGc3ECMsmBpU2RH/25NgX3k1ulg==}
+  tldts@7.5.4:
+    resolution: {integrity: sha512-Rn2ABgjHZrA+jzqom5zhxA0hLohzYrIgfCPyhpTUxqsUrcsBYuab49LseR9waB9Jr8/MxdodvMHA91oRiGLO3Q==}
     hasBin: true
 
   toidentifier@1.0.1:
@@ -3797,10 +3792,10 @@ snapshots:
 
   '@adobe/css-tools@4.5.0': {}
 
-  '@agentclientprotocol/claude-agent-acp@0.107.0(@anthropic-ai/sdk@1.8.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(@modelcontextprotocol/server@2.4.0)':
+  '@agentclientprotocol/claude-agent-acp@0.107.2(@anthropic-ai/sdk@1.8.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(@modelcontextprotocol/server@2.4.0)':
     dependencies:
-      '@agentclientprotocol/sdk': 2.6.0(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)
-      '@anthropic-ai/claude-agent-sdk': 0.3.323(@anthropic-ai/sdk@1.8.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(zod@4.6.7)
+      '@agentclientprotocol/sdk': 2.7.0(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)
+      '@anthropic-ai/claude-agent-sdk': 0.3.325(@anthropic-ai/sdk@1.8.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(zod@4.6.7)
       diff: 9.0.0
       zod: 4.6.7
     transitivePeerDependencies:
@@ -3808,7 +3803,7 @@ snapshots:
       - '@modelcontextprotocol/sdk'
       - '@modelcontextprotocol/server'
 
-  '@agentclientprotocol/sdk@2.6.0(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)':
+  '@agentclientprotocol/sdk@2.7.0(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)':
     dependencies:
       zod: 4.6.7
     optionalDependencies:
@@ -3823,44 +3818,44 @@ snapshots:
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
 
-  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.323':
+  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.325':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.323':
+  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.325':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.323':
+  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.325':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.323':
+  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.325':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.323':
+  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.325':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.323':
+  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.325':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.323':
+  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.325':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.323':
+  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.325':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk@0.3.323(@anthropic-ai/sdk@1.8.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(zod@4.6.7)':
+  '@anthropic-ai/claude-agent-sdk@0.3.325(@anthropic-ai/sdk@1.8.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(zod@4.6.7)':
     dependencies:
       '@anthropic-ai/sdk': 1.8.0(zod@4.6.7)
       '@modelcontextprotocol/sdk': 1.32.2(zod@4.6.7)
       zod: 4.6.7
     optionalDependencies:
-      '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.323
-      '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.323
-      '@anthropic-ai/claude-agent-sdk-linux-arm64': 0.3.323
-      '@anthropic-ai/claude-agent-sdk-linux-arm64-musl': 0.3.323
-      '@anthropic-ai/claude-agent-sdk-linux-x64': 0.3.323
-      '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.323
-      '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.323
-      '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.323
+      '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.325
+      '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.325
+      '@anthropic-ai/claude-agent-sdk-linux-arm64': 0.3.325
+      '@anthropic-ai/claude-agent-sdk-linux-arm64-musl': 0.3.325
+      '@anthropic-ai/claude-agent-sdk-linux-x64': 0.3.325
+      '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.325
+      '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.325
+      '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.325
 
   '@anthropic-ai/sdk@1.8.0(zod@4.6.7)':
     dependencies:
@@ -4145,7 +4140,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 2.0.0-beta.2
       '@emnapi/runtime': 2.0.0-beta.2
-      '@tybys/wasm-util': 0.10.4
+      '@tybys/wasm-util': 0.10.5
     optional: true
 
   '@opentelemetry/api@1.10.0': {}
@@ -4268,11 +4263,11 @@ snapshots:
       '@types/react': 19.3.0
       '@types/react-dom': 19.3.0(@types/react@19.3.0)
 
-  '@testing-library/user-event@14.6.10(@testing-library/dom@10.4.2)':
+  '@testing-library/user-event@14.6.12(@testing-library/dom@10.4.2)':
     dependencies:
       '@testing-library/dom': 10.4.2
 
-  '@tybys/wasm-util@0.10.4':
+  '@tybys/wasm-util@0.10.5':
     dependencies:
       tslib: 2.9.1
     optional: true
@@ -4529,11 +4524,9 @@ snapshots:
 
   '@vitest/spy@5.1.0': {}
 
-  '@williamthorsen/change-grammar@0.4.0': {}
-
   '@williamthorsen/change-grammar@0.4.1': {}
 
-  '@williamthorsen/eslint-config-typescript@22.1.0(@typescript-eslint/utils@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint-plugin-jest-dom@5.10.2(@testing-library/dom@10.4.2)(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-jsx-a11y@6.10.2(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-react-hooks@7.1.1(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-react@7.37.5(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-testing-library@7.16.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(readyup@0.46.3)(typescript@6.0.3)':
+  '@williamthorsen/eslint-config-typescript@23.0.0(@typescript-eslint/utils@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint-plugin-jest-dom@5.10.2(@testing-library/dom@10.4.2)(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-jsx-a11y@6.10.2(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-react-hooks@7.1.1(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-react@7.37.5(eslint@10.15.0(jiti@2.7.0)))(eslint-plugin-testing-library@7.16.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(readyup@0.47.0)(typescript@6.0.3)':
     dependencies:
       '@eslint-community/eslint-plugin-eslint-comments': 4.8.1(eslint@10.15.0(jiti@2.7.0))
       '@eslint/js': 10.0.1(eslint@10.15.0(jiti@2.7.0))
@@ -4548,33 +4541,20 @@ snapshots:
       eslint-plugin-unicorn: 79.0.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3)
       eslint-plugin-yml: 3.10.0(eslint@10.15.0(jiti@2.7.0))
       globals: 17.14.0
-      jsonc-eslint-parser: 3.3.0
       typescript: 6.0.3
       typescript-eslint: 8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3)
-      yaml-eslint-parser: 2.1.0
     optionalDependencies:
       eslint-plugin-jest-dom: 5.10.2(@testing-library/dom@10.4.2)(eslint@10.15.0(jiti@2.7.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@10.15.0(jiti@2.7.0))
       eslint-plugin-react: 7.37.5(eslint@10.15.0(jiti@2.7.0))
       eslint-plugin-react-hooks: 7.1.1(eslint@10.15.0(jiti@2.7.0))
       eslint-plugin-testing-library: 7.16.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3)
-      readyup: 0.46.3
+      readyup: 0.47.0
     transitivePeerDependencies:
       - '@eslint/json'
       - eslint-import-resolver-node
       - supports-color
       - ts-declaration-location
-
-  '@williamthorsen/nmr-core@0.16.1':
-    dependencies:
-      '@williamthorsen/toolbelt.cli': 0.8.0
-      '@williamthorsen/toolbelt.datetime': 4.1.1
-      '@williamthorsen/toolbelt.errors': 0.9.0
-      '@williamthorsen/toolbelt.filesystem': 0.10.0
-      '@williamthorsen/toolbelt.packaging': 0.7.0
-      '@williamthorsen/toolbelt.terminal': 0.3.0
-      diff: 9.0.0
-      yaml: 2.9.1
 
   '@williamthorsen/nmr-core@0.16.2':
     dependencies:
@@ -4612,61 +4592,53 @@ snapshots:
       yaml: 2.9.1
       zod: 4.6.7
 
-  '@williamthorsen/repo-tools@0.6.1':
+  '@williamthorsen/repo-tools@0.6.2':
     dependencies:
-      '@williamthorsen/toolbelt.cli': 0.10.0
-      '@williamthorsen/toolbelt.errors': 0.10.1
+      '@williamthorsen/toolbelt.cli': 0.11.0
+      '@williamthorsen/toolbelt.errors': 0.11.1
       yaml: 2.9.1
 
-  '@williamthorsen/strict-lint@15.1.0(eslint@10.15.0(jiti@2.7.0))':
+  '@williamthorsen/strict-lint@16.0.0(eslint@10.15.0(jiti@2.7.0))':
     dependencies:
-      '@williamthorsen/toolbelt.errors': 0.10.1
-      '@williamthorsen/toolbelt.filesystem': 0.11.0
-      '@williamthorsen/toolbelt.packaging': 0.8.0
+      '@williamthorsen/toolbelt.errors': 0.11.2
+      '@williamthorsen/toolbelt.filesystem': 0.11.3
+      '@williamthorsen/toolbelt.packaging': 0.9.2
+      '@williamthorsen/toolbelt.strings': 10.0.0
       eslint: 10.15.0(jiti@2.7.0)
 
-  '@williamthorsen/toolbelt.acp@0.2.0(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)':
+  '@williamthorsen/toolbelt.acp@0.3.1(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)':
     dependencies:
-      '@agentclientprotocol/sdk': 2.6.0(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)
+      '@agentclientprotocol/sdk': 2.7.0(@modelcontextprotocol/server@2.4.0)(zod@4.6.7)
       '@modelcontextprotocol/server': 2.4.0
-      '@williamthorsen/toolbelt.errors': 0.11.0
-      '@williamthorsen/toolbelt.guards': 4.2.3
+      '@williamthorsen/toolbelt.errors': 0.11.2
+      '@williamthorsen/toolbelt.guards': 4.2.5
     transitivePeerDependencies:
       - zod
-
-  '@williamthorsen/toolbelt.arrays@6.4.1':
-    dependencies:
-      '@williamthorsen/toolbelt.guards': 4.2.0
-      '@williamthorsen/toolbelt.numbers': 7.3.1
 
   '@williamthorsen/toolbelt.arrays@6.4.2':
     dependencies:
       '@williamthorsen/toolbelt.guards': 4.2.1
       '@williamthorsen/toolbelt.numbers': 7.3.2
 
-  '@williamthorsen/toolbelt.arrays@6.5.2':
+  '@williamthorsen/toolbelt.arrays@6.5.4':
     dependencies:
-      '@williamthorsen/toolbelt.guards': 4.2.3
-      '@williamthorsen/toolbelt.numbers': 8.0.2
+      '@williamthorsen/toolbelt.guards': 4.2.4
+      '@williamthorsen/toolbelt.numbers': 8.1.1
 
-  '@williamthorsen/toolbelt.cli@0.10.0':
+  '@williamthorsen/toolbelt.arrays@6.5.5':
     dependencies:
-      '@williamthorsen/toolbelt.errors': 0.10.1
-      '@williamthorsen/toolbelt.strings': 9.0.0
+      '@williamthorsen/toolbelt.guards': 4.2.5
+      '@williamthorsen/toolbelt.numbers': 8.1.2
 
-  '@williamthorsen/toolbelt.cli@0.8.0':
+  '@williamthorsen/toolbelt.cli@0.11.0':
     dependencies:
-      '@williamthorsen/toolbelt.errors': 0.9.0
-      '@williamthorsen/toolbelt.strings': 8.2.1
+      '@williamthorsen/toolbelt.errors': 0.11.1
+      '@williamthorsen/toolbelt.strings': 9.0.2
 
   '@williamthorsen/toolbelt.cli@0.8.1':
     dependencies:
       '@williamthorsen/toolbelt.errors': 0.9.1
       '@williamthorsen/toolbelt.strings': 8.2.2
-
-  '@williamthorsen/toolbelt.datetime@4.1.1':
-    dependencies:
-      '@williamthorsen/toolbelt.numbers': 7.3.1
 
   '@williamthorsen/toolbelt.datetime@4.1.2':
     dependencies:
@@ -4674,15 +4646,11 @@ snapshots:
 
   '@williamthorsen/toolbelt.errors@0.10.1': {}
 
-  '@williamthorsen/toolbelt.errors@0.11.0': {}
+  '@williamthorsen/toolbelt.errors@0.11.1': {}
 
-  '@williamthorsen/toolbelt.errors@0.9.0': {}
+  '@williamthorsen/toolbelt.errors@0.11.2': {}
 
   '@williamthorsen/toolbelt.errors@0.9.1': {}
-
-  '@williamthorsen/toolbelt.filesystem@0.10.0':
-    dependencies:
-      '@williamthorsen/toolbelt.errors': 0.9.0
 
   '@williamthorsen/toolbelt.filesystem@0.10.1':
     dependencies:
@@ -4692,48 +4660,56 @@ snapshots:
     dependencies:
       '@williamthorsen/toolbelt.errors': 0.10.1
 
-  '@williamthorsen/toolbelt.guards@4.2.0': {}
+  '@williamthorsen/toolbelt.filesystem@0.11.2':
+    dependencies:
+      '@williamthorsen/toolbelt.errors': 0.11.1
+
+  '@williamthorsen/toolbelt.filesystem@0.11.3':
+    dependencies:
+      '@williamthorsen/toolbelt.errors': 0.11.2
 
   '@williamthorsen/toolbelt.guards@4.2.1': {}
 
-  '@williamthorsen/toolbelt.guards@4.2.3': {}
+  '@williamthorsen/toolbelt.guards@4.2.4': {}
 
-  '@williamthorsen/toolbelt.numbers@7.3.1': {}
+  '@williamthorsen/toolbelt.guards@4.2.5': {}
 
   '@williamthorsen/toolbelt.numbers@7.3.2': {}
 
-  '@williamthorsen/toolbelt.numbers@8.0.2': {}
+  '@williamthorsen/toolbelt.numbers@8.1.1': {}
 
-  '@williamthorsen/toolbelt.objects@4.4.0': {}
+  '@williamthorsen/toolbelt.numbers@8.1.2': {}
 
   '@williamthorsen/toolbelt.objects@4.4.1': {}
 
-  '@williamthorsen/toolbelt.objects@4.4.3': {}
+  '@williamthorsen/toolbelt.objects@4.4.4': {}
 
-  '@williamthorsen/toolbelt.packaging@0.7.0':
-    dependencies:
-      '@williamthorsen/toolbelt.filesystem': 0.10.0
-      '@williamthorsen/toolbelt.objects': 4.4.0
+  '@williamthorsen/toolbelt.objects@4.4.5': {}
 
   '@williamthorsen/toolbelt.packaging@0.7.1':
     dependencies:
       '@williamthorsen/toolbelt.filesystem': 0.10.1
       '@williamthorsen/toolbelt.objects': 4.4.1
 
-  '@williamthorsen/toolbelt.packaging@0.8.0':
+  '@williamthorsen/toolbelt.packaging@0.9.1':
     dependencies:
-      '@williamthorsen/toolbelt.filesystem': 0.11.0
-      '@williamthorsen/toolbelt.objects': 4.4.3
+      '@williamthorsen/toolbelt.filesystem': 0.11.2
+      '@williamthorsen/toolbelt.objects': 4.4.4
+
+  '@williamthorsen/toolbelt.packaging@0.9.2':
+    dependencies:
+      '@williamthorsen/toolbelt.filesystem': 0.11.3
+      '@williamthorsen/toolbelt.objects': 4.4.5
 
   '@williamthorsen/toolbelt.sets@3.1.0': {}
 
   '@williamthorsen/toolbelt.sets@3.1.1': {}
 
-  '@williamthorsen/toolbelt.strings@8.2.1':
+  '@williamthorsen/toolbelt.strings@10.0.0':
     dependencies:
-      '@williamthorsen/toolbelt.arrays': 6.4.1
-      '@williamthorsen/toolbelt.numbers': 7.3.1
-      '@williamthorsen/toolbelt.sets': 3.1.0
+      '@williamthorsen/toolbelt.arrays': 6.5.5
+      '@williamthorsen/toolbelt.numbers': 8.1.2
+      '@williamthorsen/toolbelt.sets': 3.1.1
 
   '@williamthorsen/toolbelt.strings@8.2.2':
     dependencies:
@@ -4741,10 +4717,10 @@ snapshots:
       '@williamthorsen/toolbelt.numbers': 7.3.2
       '@williamthorsen/toolbelt.sets': 3.1.0
 
-  '@williamthorsen/toolbelt.strings@9.0.0':
+  '@williamthorsen/toolbelt.strings@9.0.2':
     dependencies:
-      '@williamthorsen/toolbelt.arrays': 6.5.2
-      '@williamthorsen/toolbelt.numbers': 8.0.2
+      '@williamthorsen/toolbelt.arrays': 6.5.4
+      '@williamthorsen/toolbelt.numbers': 8.1.1
       '@williamthorsen/toolbelt.sets': 3.1.1
 
   '@williamthorsen/toolbelt.terminal@0.3.0':
@@ -4754,16 +4730,16 @@ snapshots:
       string-width: 8.3.0
       wrap-ansi: 10.0.2
 
-  '@williamthorsen/toolbelt.terminal@0.3.1':
+  '@williamthorsen/toolbelt.terminal@0.3.2':
     dependencies:
       cli-truncate: 6.2.0
       slice-ansi: 10.0.1
-      string-width: 8.3.0
+      string-width: 9.0.0
       wrap-ansi: 10.0.2
 
-  '@williamthorsen/tsconfig@0.14.0(readyup@0.46.3)':
+  '@williamthorsen/tsconfig@0.14.1(readyup@0.47.0)':
     optionalDependencies:
-      readyup: 0.46.3
+      readyup: 0.47.0
 
   accepts@2.0.0:
     dependencies:
@@ -4946,7 +4922,7 @@ snapshots:
     dependencies:
       baseline-browser-mapping: 2.11.37
       caniuse-lite: 1.0.30001826
-      electron-to-chromium: 1.5.485
+      electron-to-chromium: 1.5.486
       node-releases: 2.0.64
       update-browserslist-db: 1.3.4(browserslist@4.29.5)
 
@@ -5009,12 +4985,12 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
 
-  codeassembly@0.20.2:
+  codeassembly@0.21.0:
     dependencies:
-      '@williamthorsen/change-grammar': 0.4.0
-      '@williamthorsen/nmr-core': 0.16.1
-      '@williamthorsen/toolbelt.errors': 0.9.1
-      '@williamthorsen/toolbelt.terminal': 0.3.0
+      '@williamthorsen/change-grammar': 0.4.1
+      '@williamthorsen/nmr-core': 0.16.2
+      '@williamthorsen/toolbelt.errors': 0.11.1
+      '@williamthorsen/toolbelt.terminal': 0.3.2
       yaml: 2.9.1
       zod: 4.6.7
 
@@ -5150,7 +5126,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  electron-to-chromium@1.5.485: {}
+  electron-to-chromium@1.5.486: {}
 
   emoji-regex@8.0.0: {}
 
@@ -5258,6 +5234,8 @@ snapshots:
 
   es-module-lexer@3.0.4: {}
 
+  es-module-lexer@3.0.5: {}
+
   es-object-atoms@1.1.2:
     dependencies:
       es-errors: 1.3.0
@@ -5327,7 +5305,7 @@ snapshots:
       cjs-module-lexer: 2.3.0
       comment-parser: 1.4.9
       debug: 4.4.3
-      es-module-lexer: 3.0.4
+      es-module-lexer: 3.0.5
       eslint: 10.15.0(jiti@2.7.0)
       eslint-import-context: 0.1.9(unrs-resolver@1.13.0)
       is-glob: 4.0.3
@@ -6623,12 +6601,12 @@ snapshots:
 
   readline-transform@1.0.0: {}
 
-  readyup@0.46.3:
+  readyup@0.47.0:
     dependencies:
-      '@williamthorsen/toolbelt.errors': 0.10.1
-      '@williamthorsen/toolbelt.packaging': 0.8.0
-      '@williamthorsen/toolbelt.strings': 9.0.0
-      '@williamthorsen/toolbelt.terminal': 0.3.1
+      '@williamthorsen/toolbelt.errors': 0.11.1
+      '@williamthorsen/toolbelt.packaging': 0.9.1
+      '@williamthorsen/toolbelt.strings': 9.0.2
+      '@williamthorsen/toolbelt.terminal': 0.3.2
       ansi-styles: 7.0.0
       es-module-lexer: 3.0.4
       jiti: 2.7.0
@@ -6915,6 +6893,11 @@ snapshots:
       get-east-asian-width: 1.7.0
       strip-ansi: 7.2.0
 
+  string-width@9.0.0:
+    dependencies:
+      get-east-asian-width: 1.7.0
+      strip-ansi: 7.2.0
+
   string.prototype.includes@2.0.1:
     dependencies:
       call-bind: 1.0.9
@@ -7026,17 +7009,17 @@ snapshots:
 
   tinyrainbow@3.2.0: {}
 
-  tldts-core@7.5.2: {}
+  tldts-core@7.5.4: {}
 
-  tldts@7.5.2:
+  tldts@7.5.4:
     dependencies:
-      tldts-core: 7.5.2
+      tldts-core: 7.5.4
 
   toidentifier@1.0.1: {}
 
   tough-cookie@6.1.0:
     dependencies:
-      tldts: 7.5.2
+      tldts: 7.5.4
 
   tr46@7.0.0:
     dependencies:
