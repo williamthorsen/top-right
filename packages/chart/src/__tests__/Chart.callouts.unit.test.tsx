@@ -1,7 +1,8 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import type { ItemScores } from '@top-right/model';
+import type { ItemScores, WorkItem } from '@top-right/model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { CALLOUT_PITCH } from '../callout-layout.ts';
 import { Chart } from '../Chart.tsx';
 import { MARGIN_LEFT, MARGIN_TOP, measureFrame } from '../Grid.tsx';
 import { GRID_SIZE, MIN_CELL_SIZE } from '../layout.ts';
@@ -14,12 +15,13 @@ import { CALLOUT_DWELL } from '../useCellHover.ts';
 const FRAME = measureFrame(MIN_CELL_SIZE);
 const MOUSE = { pointerId: 1, pointerType: 'mouse' };
 
-/** Two items share a cell, one sits alone in another, and one is unscored. */
+/** Two items share a cell, one sits alone in another, and two are unscored. */
 const ITEMS = [
   buildItem({ number: 1, title: 'First issue' }),
   buildItem({ number: 2, title: 'Second issue' }),
   buildItem({ number: 3, title: 'Third issue' }),
   buildItem({ number: 4, title: 'Fourth issue' }),
+  buildItem({ number: 5, title: 'Fifth issue' }),
 ];
 const SCORES: Record<string, ItemScores> = {
   [`${REPO}#1`]: place(2, 2),
@@ -114,7 +116,7 @@ describe('Chart cell callouts', () => {
     }
   });
 
-  it('shows nothing while a button is held, for a touch pointer, or over a gutter', () => {
+  it('shows nothing while a button is held or for a touch pointer', () => {
     renderCalloutHost();
 
     fireEvent.pointerMove(getSvg(), { ...MOUSE, buttons: 1, ...cornerOf(2, 2) });
@@ -122,10 +124,6 @@ describe('Chart cell callouts', () => {
     expect(listCallouts()).toStrictEqual([]);
 
     fireEvent.pointerMove(getSvg(), { ...MOUSE, pointerType: 'touch', ...cornerOf(2, 2) });
-    elapse(CALLOUT_DWELL);
-    expect(listCallouts()).toStrictEqual([]);
-
-    hoverCorner(0, 0);
     elapse(CALLOUT_DWELL);
     expect(listCallouts()).toStrictEqual([]);
   });
@@ -151,6 +149,74 @@ describe('Chart cell callouts', () => {
     expect(getCircle(1)).toHaveAttribute('data-fade', 'strong');
     expect(getCircle(3)).toHaveAttribute('data-fade', 'strong');
   });
+
+  describe('of a gutter cell', () => {
+    it("shows a callout per item in the list's order once the pointer rests between rows, and fades the other cells", () => {
+      renderCalloutHost();
+
+      hoverCorner(0, 0);
+
+      expect(listCallouts()).toStrictEqual([]);
+      elapse(CALLOUT_DWELL);
+      expect(listCallouts()).toStrictEqual(['T.4Fourth issue', 'T.5Fifth issue']);
+      expect(getCircle(1)).toHaveAttribute('data-fade', 'soft');
+      expect(getGutterRow(4)).not.toHaveAttribute('data-fade');
+      // eslint-disable-next-line testing-library/no-node-access -- the leaders are aria-hidden and have no role to query.
+      expect(document.querySelectorAll('.tr-callout-leaders line')).toHaveLength(0);
+    });
+
+    it('shows the callouts when the pointer rests on a row, and keeps them through a move onto another row', () => {
+      renderCalloutHost();
+
+      fireEvent.pointerMove(getGutterButton(4), { ...MOUSE, ...cornerOf(0, 0, 12) });
+      elapse(CALLOUT_DWELL);
+      expect(listCallouts()).toHaveLength(2);
+
+      fireEvent.pointerMove(getGutterButton(5), { ...MOUSE, ...cornerOf(0, 0, 36) });
+      expect(listCallouts()).toHaveLength(2);
+    });
+
+    it('lists every item of a list taller than the cell, up to the room available, with a last row for the rest', () => {
+      const count = 40;
+      const items = Array.from({ length: count }, (_, index) =>
+        buildItem({ number: index + 1, title: `Issue ${index + 1}` }),
+      );
+      renderCalloutHost(items, {});
+
+      hoverCorner(0, 0);
+      elapse(CALLOUT_DWELL);
+
+      const callouts = listCallouts();
+      const capacity = Math.floor((MIN_CELL_SIZE * GRID_SIZE) / CALLOUT_PITCH);
+      expect(callouts).toHaveLength(capacity);
+      expect(callouts.at(-2)).toBe(`T.${capacity - 1}Issue ${capacity - 1}`);
+      expect(callouts.at(-1)).toBe(`+${count - capacity + 1} more`);
+    });
+
+    it("removes the callouts on a press of a row, which selects the row's item", () => {
+      const { onSelectedKeyChange } = renderCalloutHost();
+      hoverCorner(0, 0);
+      elapse(CALLOUT_DWELL);
+
+      fireEvent.pointerDown(getGutterButton(4), { ...MOUSE, button: 0, buttons: 1, ...cornerOf(0, 0, 12) });
+      expect(listCallouts()).toStrictEqual([]);
+      fireEvent.click(getGutterButton(4));
+
+      expect(onSelectedKeyChange).toHaveBeenCalledWith(`${REPO}#4`, { push: true });
+    });
+
+    it('keeps the column in its own hidden layer, apart from the list', () => {
+      renderCalloutHost();
+
+      hoverCorner(0, 0);
+      elapse(CALLOUT_DWELL);
+
+      // eslint-disable-next-line testing-library/no-node-access -- the layer is aria-hidden and has no role to query.
+      const layer = document.querySelector('.tr-callout-layer');
+      expect(layer).toHaveAttribute('aria-hidden', 'true');
+      expect(layer).not.toContainElement(screen.getByRole('list', { name: 'Unscored items' }));
+    });
+  });
 });
 
 // region | Helpers
@@ -172,12 +238,14 @@ function getCircle(number: number): HTMLElement {
   return screen.getByRole('button', { name: new RegExp(String.raw`^T\.${number}:`) });
 }
 
+function getGutterButton(number: number): HTMLElement {
+  const list = screen.getByRole('list', { name: 'Unscored items' });
+  return within(list).getByRole('button', { name: new RegExp(String.raw`^T\.${number}:`) });
+}
+
 /** Returns the gutter row of the item, which carries the fade rather than its button. */
 function getGutterRow(number: number): HTMLElement | null {
-  const list = screen.getByRole('list', { name: 'Unscored items' });
-  return within(list)
-    .getByRole('button', { name: new RegExp(String.raw`^T\.${number}:`) })
-    .closest('li');
+  return getGutterButton(number).closest('li');
 }
 
 function getScroll(): HTMLElement {
@@ -201,14 +269,17 @@ function listCallouts(): string[] {
 }
 
 /** Renders the chart with a host spy for selection, and gives the SVG a 1× box at the viewport's origin. */
-function renderCalloutHost(): { onSelectedKeyChange: ReturnType<typeof vi.fn> } {
+function renderCalloutHost(
+  items: readonly WorkItem[] = ITEMS,
+  scores: Record<string, ItemScores> = SCORES,
+): { onSelectedKeyChange: ReturnType<typeof vi.fn> } {
   const onSelectedKeyChange = vi.fn();
   render(
     <Chart
       abbreviations={{}}
-      items={ITEMS}
+      items={items}
       onSelectedKeyChange={onSelectedKeyChange}
-      scores={SCORES}
+      scores={scores}
       selectedKey={undefined}
     />,
   );

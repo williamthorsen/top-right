@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CELL_PADDING,
+  findCellAt,
   findCellLevels,
   findScoredCellAt,
   FLOOR_RADIUS,
@@ -32,6 +33,27 @@ describe(findCellLevels, () => {
     { u: 5, v: 2 },
   ])('returns undefined for the cell at $u, $v', ({ u, v }) => {
     expect(findCellLevels(u, v)).toBeUndefined();
+  });
+});
+
+describe(findCellAt, () => {
+  it.each([
+    { case: 'the unscored-urgency column', x: MIN_CELL_SIZE * 0.5, y: MIN_CELL_SIZE * 2.5, cell: { u: 0, v: 2 } },
+    { case: 'the unscored-value row', x: MIN_CELL_SIZE * 2.5, y: MIN_CELL_SIZE * 4.5, cell: { u: 2, v: 0 } },
+    { case: 'the corner cell', x: MIN_CELL_SIZE * 0.5, y: MIN_CELL_SIZE * 4.5, cell: { u: 0, v: 0 } },
+    { case: 'a scored cell', x: MIN_CELL_SIZE * 2.5, y: MIN_CELL_SIZE * 0.5, cell: { u: 2, v: 4 } },
+    { case: 'the left edge of a gutter', x: 0, y: 0, cell: { u: 0, v: 4 } },
+  ])('returns the cell that contains a point in $case', ({ x, y, cell }) => {
+    expect(findCellAt(x, y, MIN_CELL_SIZE)).toStrictEqual(cell);
+  });
+
+  it.each([
+    { case: 'left of the matrix', x: -1, y: MIN_CELL_SIZE * 2.5 },
+    { case: 'above the matrix', x: MIN_CELL_SIZE * 2.5, y: -1 },
+    { case: 'on the far right edge', x: MIN_CELL_SIZE * GRID_SIZE, y: MIN_CELL_SIZE * 2.5 },
+    { case: 'on the far bottom edge', x: MIN_CELL_SIZE * 2.5, y: MIN_CELL_SIZE * GRID_SIZE },
+  ])('returns undefined for a point $case', ({ x, y }) => {
+    expect(findCellAt(x, y, MIN_CELL_SIZE)).toBeUndefined();
   });
 });
 

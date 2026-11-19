@@ -1,7 +1,7 @@
 import { type RefObject, useEffect, useEffectEvent, useState } from 'react';
 
 import { toMatrixPoint } from './Grid.tsx';
-import { findScoredCellAt } from './layout.ts';
+import { findCellAt } from './layout.ts';
 
 /** How long, in milliseconds, the pointer rests in a cell before the cell's callouts show. */
 export const CALLOUT_DWELL = 200;
@@ -14,23 +14,23 @@ export interface CellHoverOptions {
   cellSize: number;
 }
 
-/** A scored cell, by its urgency column and value row. */
+/** A matrix cell, by its urgency column and value row, either of which is 0 in a gutter. */
 export interface HoveredCell {
   u: number;
   v: number;
 }
 
 /**
- * Returns the scored cell on whose empty spot a mouse or pen has rested for `CALLOUT_DWELL`: Each move restarts the wait
- * until the cell shows, and a later move within the cell keeps it. A circle, a gutter, a press, or the pointer's leaving
- * clears it at once.
+ * Returns the cell on which a mouse or pen has rested for `CALLOUT_DWELL`, on an empty spot of a scored cell or
+ * anywhere in a gutter cell, its rows included: Each move restarts the wait until the cell shows, and a later move
+ * within the cell keeps it. A circle, a ghost, a press, or the pointer's leaving clears it at once.
  */
 export function useCellHover({ scrollRef, svgRef, cellSize }: CellHoverOptions): HoveredCell | undefined {
   const [hovered, setHovered] = useState<HoveredCell>();
-  const findCellAt = useEffectEvent((event: PointerEvent): HoveredCell | undefined => {
+  const findHoveredCell = useEffectEvent((event: PointerEvent): HoveredCell | undefined => {
     if (event.target instanceof Element && event.target.closest('.tr-node')) return undefined;
     const point = toMatrixPoint(svgRef.current, event.clientX, event.clientY, cellSize);
-    return point && findScoredCellAt(point.x, point.y, cellSize);
+    return point && findCellAt(point.x, point.y, cellSize);
   });
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function useCellHover({ scrollRef, svgRef, cellSize }: CellHoverOptions):
 
     function handlePointerMove(event: PointerEvent): void {
       if (event.pointerType === 'touch') return;
-      const cell = event.buttons === 0 ? findCellAt(event) : undefined;
+      const cell = event.buttons === 0 ? findHoveredCell(event) : undefined;
       if (cell?.u !== pending?.u || cell?.v !== pending?.v) clear();
       else if (isShown) return;
       pending = cell;

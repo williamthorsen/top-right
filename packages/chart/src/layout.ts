@@ -77,14 +77,23 @@ export interface CellLayout {
 }
 
 /**
- * Returns the scored cell that contains a point in matrix units, or undefined for a point in a gutter or off the matrix.
- * A point on a shared edge belongs to the cell to its right or below it.
+ * Returns the cell, gutters included, that contains a point in matrix units, or undefined for a point off the matrix. A
+ * point on a shared edge belongs to the cell to its right or below it.
  */
-export function findScoredCellAt(x: number, y: number, cellSize: number): { u: number; v: number } | undefined {
+export function findCellAt(x: number, y: number, cellSize: number): { u: number; v: number } | undefined {
   const u = Math.floor(x / cellSize);
   const v = GRID_SIZE - 1 - Math.floor(y / cellSize);
-  if (u < 1 || u >= GRID_SIZE || v < 1 || v >= GRID_SIZE) return undefined;
+  if (u < 0 || u >= GRID_SIZE || v < 0 || v >= GRID_SIZE) return undefined;
   return { u, v };
+}
+
+/**
+ * Returns the scored cell that contains a point in matrix units, or undefined for a point in a gutter or off the
+ * matrix.
+ */
+export function findScoredCellAt(x: number, y: number, cellSize: number): { u: number; v: number } | undefined {
+  const cell = findCellAt(x, y, cellSize);
+  return cell && cell.u > 0 && cell.v > 0 ? cell : undefined;
 }
 
 /** Returns the levels of the scored cell at column `u` and row `v`, or undefined for a gutter or off the matrix. */

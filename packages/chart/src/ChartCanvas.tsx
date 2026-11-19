@@ -25,7 +25,7 @@ export interface ChartCanvasProps {
   ends: ReadonlyMap<string, EdgeEnd>;
   /** The props of the scored cells, which the gutter cells share. */
   scoredCells: ScoredCellsProps;
-  /** The hovered cell's callouts, when a pointer rests on an empty spot of a scored cell. */
+  /** The hovered cell's callouts, when a pointer rests on a scored cell's empty spot or anywhere in a gutter cell. */
   callouts?: CellCallouts | undefined;
   /** The pulse that locates a selection made outside the matrix. */
   pulse?: Pulse | undefined;

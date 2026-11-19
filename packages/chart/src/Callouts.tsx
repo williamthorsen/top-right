@@ -3,21 +3,21 @@ import type { ReactElement } from 'react';
 
 import type { CellCallouts } from './callout-layout.ts';
 
-/** The leader lines that join a cell's callouts to their circles, drawn in the matrix's units. */
+/** The leader lines that join a scored cell's callouts to their circles, drawn in the matrix's units. */
 export function CalloutLeaders({ callouts }: { callouts: CellCallouts }): ReactElement {
   const { layout } = callouts;
   return (
     <g className="tr-callout-leaders">
-      {layout.rows.map((row) => (
-        <line key={row.id} x1={row.from.x} x2={layout.x} y1={row.from.y} y2={row.y} />
-      ))}
+      {layout.rows.map((row) =>
+        row.from ? <line key={row.id} x1={row.from.x} x2={layout.x} y1={row.from.y} y2={row.y} /> : null,
+      )}
     </g>
   );
 }
 
 /**
- * The callout column of a hovered cell: one line per circle with its id label and title, cut to the column's width, and
- * a last line that counts the circles without one. It is a pointer aid that each circle's accessible name duplicates.
+ * The callout column of a hovered cell: one line per item with its id label and title, cut to the column's width, and a
+ * last line that counts the items without one. It is a pointer aid that each item's accessible name duplicates.
  */
 export function Callouts({
   callouts,
