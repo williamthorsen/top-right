@@ -39,8 +39,14 @@ export interface ScoredCircleProps {
 export const HIT_RADIUS = 12;
 /** The dots of an unsized item's border, which the CSS spaces evenly through the border's `pathLength`. */
 export const UNSIZED_DOT_COUNT = 10;
-/** How far outside the circle the blocked ring sits: inside the selection ring, hugging the border. */
-const BLOCKED_GAP = 1.5;
+/** The stroke width of the border, the blocked ring, and the hover ring, which `chart.css` sets to match. */
+const BORDER_WIDTH = 1.5;
+/** The stroke width of each of the selection's two rings, which `chart.css` sets to match. */
+const SELECTION_WIDTH = BORDER_WIDTH + 0.5;
+/** The stroke width of the keyboard focus ring, which `chart.css` sets to match. */
+const FOCUS_WIDTH = 3;
+/** How far outside the circle the blocked ring's centre sits, hugging the border. */
+export const BLOCKED_GAP = 0.6 * BORDER_WIDTH;
 /** The thinnest wedge that an in-progress pie draws, so that a nearly finished item still reads as in progress. */
 const MIN_WEDGE = Math.PI / 6;
 
@@ -67,6 +73,7 @@ export function ScoredCircle({
   onSelect,
 }: ScoredCircleProps): ReactElement {
   const { id, r, isUnsized } = circle;
+  const rings = measureRings(r, isBlocked, isSelected);
 
   function selectOnKey(event: KeyboardEvent<SVGGElement>): void {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -102,11 +109,39 @@ export function ScoredCircle({
       <circle className="tr-node-main" r={r} />
       {status === 'in-progress' ? <Pie r={r} remaining={scopeMode === 'remaining' ? 1 : 1 - progress} /> : null}
       <circle className="tr-node-border" pathLength={isUnsized ? UNSIZED_DOT_COUNT : undefined} r={r} />
-      {isBlocked ? <circle className="tr-node-blocked" r={r + BLOCKED_GAP} /> : null}
-      <circle className="tr-node-selected" r={r + 3} />
-      <circle className="tr-node-focus" r={r + 5.5} />
+      {isBlocked ? <circle className="tr-node-blocked" r={rings.blocked} /> : null}
+      <circle className="tr-node-hover" r={rings.hover} />
+      <circle className="tr-node-gap" r={rings.gap} />
+      <circle className="tr-node-selected" r={rings.selected} />
+      <circle className="tr-node-focus" r={rings.focus} />
     </g>
   );
+}
+
+/** The radii of a circle's rings, outward from its border. */
+export interface RingRadii {
+  blocked: number;
+  hover: number;
+  gap: number;
+  selected: number;
+  focus: number;
+}
+
+/**
+ * Places a circle's rings outward from its border without overlap: the blocked ring, then the hover ring or the
+ * selection's surface-coloured gap and ink ring, then the focus ring just outside whichever of them shows.
+ */
+export function measureRings(r: number, isBlocked: boolean, isSelected: boolean): RingRadii {
+  const blocked = r + BLOCKED_GAP;
+  const edge = isBlocked ? blocked + BORDER_WIDTH / 2 : r + BORDER_WIDTH / 2;
+  const outermost = isSelected ? edge + 2 * SELECTION_WIDTH : edge + BORDER_WIDTH;
+  return {
+    blocked,
+    hover: edge + BORDER_WIDTH / 2,
+    gap: edge + SELECTION_WIDTH / 2,
+    selected: edge + 1.5 * SELECTION_WIDTH,
+    focus: outermost + FOCUS_WIDTH / 2,
+  };
 }
 
 // region | Helpers

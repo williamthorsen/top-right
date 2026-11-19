@@ -59,7 +59,7 @@ describe(Chart, () => {
         'tr-node-hit',
         'tr-node-main',
         'tr-node-border',
-        'tr-node-selected',
+        'tr-node-hover',
         'tr-node-focus',
       ]);
     });
