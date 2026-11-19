@@ -1188,16 +1188,20 @@
   border-radius: 8px;
 }
 
+/* Reserve the Close button's height in every mode, so that the content below holds still when a preview becomes a
+   selection. */
 .tr-pane-head {
+  --tr-pane-close-height: 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-height: var(--tr-pane-close-height);
   margin: 0 0 6px;
 }
 
 .tr-pane-close {
-  min-height: 32px;
+  min-height: var(--tr-pane-close-height);
   padding: 0 10px;
   border: 1px solid var(--tr-control-line);
   border-radius: 7px;

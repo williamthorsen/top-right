@@ -66,6 +66,15 @@ describe(DetailPane, () => {
     });
   });
 
+  it('offers Close for a selection, and no Close for a preview', () => {
+    const { rerenderPane } = renderPane({ mode: 'selected' });
+
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    rerenderPane({ mode: 'preview' });
+
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+  });
+
   it('reports a chosen score with the item key and the changed field only', async () => {
     const user = userEvent.setup();
     const { onScoresChange } = renderPane();
