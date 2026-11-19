@@ -3,7 +3,7 @@ import { type RefObject, useEffect, useEffectEvent } from 'react';
 import { scrollIntoChartView } from './chart-scroll.ts';
 
 /** How long a smooth scroll may run before the selection counts as settled, for a browser that fires no `scrollend`. */
-const SETTLE_TIMEOUT = 700;
+const SETTLE_TIMEOUT = 1000;
 
 /**
  * Scrolls the selected item's circle or gutter row into the chart's view each time the selection changes, then calls

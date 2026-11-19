@@ -205,10 +205,13 @@ describe('Chart emphasis', () => {
       renderChart(ITEMS, {}, SCORES);
 
       fireEvent.click(getTableTitle('Issue 2'));
+      act(() => {
+        vi.advanceTimersByTime(999);
+      });
       expect(animations).toHaveLength(0);
 
       act(() => {
-        vi.advanceTimersByTime(700);
+        vi.advanceTimersByTime(1);
       });
       expect(animations).toHaveLength(1);
     });
