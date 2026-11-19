@@ -10,6 +10,7 @@ import { Fragment, type ReactElement, type ReactNode } from 'react';
 
 import { nameCircle } from './item-label.ts';
 import type { CellLayout, ScopeMode } from './layout.ts';
+import { PulsingCircle } from './PulsingCircle.tsx';
 import { type Fade, ScoredCircle } from './ScoredCircle.tsx';
 import type { DragHandlers } from './useItemDrag.ts';
 
@@ -95,4 +96,41 @@ export function ScoredCells({
       )}
     </>
   );
+}
+
+/** The pulsing copy of the scored circle of `pulseKey`, or nothing when that item has no circle in a scored cell. */
+export function CirclePulseCopy({
+  pulseKey,
+  onEnd,
+  cells,
+  itemsByKey,
+  scores,
+  overrides,
+  scopeMode,
+  blockedKeys,
+  workTypeMapping,
+}: Pick<
+  ScoredCellsProps,
+  'cells' | 'itemsByKey' | 'scores' | 'overrides' | 'scopeMode' | 'blockedKeys' | 'workTypeMapping'
+> & { pulseKey: string; onEnd: () => void }): ReactElement | null {
+  const item = itemsByKey.get(pulseKey);
+  for (const cell of cells) {
+    const circle = cell.isGutter ? undefined : cell.circles.find((candidate) => candidate.id === pulseKey);
+    if (!item || !circle) continue;
+    return (
+      <PulsingCircle
+        isBlocked={blockedKeys.has(pulseKey)}
+        isUnsized={circle.isUnsized}
+        onEnd={onEnd}
+        progress={scores[pulseKey]?.progress?.score ?? 0}
+        r={circle.r}
+        scopeMode={scopeMode}
+        status={deriveStatus(item, overrides[pulseKey])}
+        workType={classifyWorkType(item.labels, workTypeMapping)}
+        x={cell.x + circle.cx}
+        y={cell.y + circle.cy}
+      />
+    );
+  }
+  return null;
 }

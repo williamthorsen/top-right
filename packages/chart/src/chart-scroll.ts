@@ -3,9 +3,10 @@
  * that brings the element into each one's view, honoring its scroll margin. It never scrolls the page: On a narrow
  * screen the page scrolls past the chart, and a selection made below the chart must stay in view. Boxes are measured
  * in viewport pixels, since the zoom scales the gutter lists by a transform that layout sizes and scroll offsets do
- * not include.
+ * not include. Returns the containers that it scrolled.
  */
-export function scrollIntoChartView(element: Element, chart: Element, behavior: ScrollBehavior): void {
+export function scrollIntoChartView(element: Element, chart: Element, behavior: ScrollBehavior): Element[] {
+  const scrolled: Element[] = [];
   const style = getComputedStyle(element);
   const rect = element.getBoundingClientRect();
   const scale = measureScale(element, rect);
@@ -18,6 +19,7 @@ export function scrollIntoChartView(element: Element, chart: Element, behavior: 
   const list = element.closest('.tr-gutter-list');
   if (list && chart.contains(list)) {
     const delta = scrollBoxIntoView(list, box, behavior);
+    if (delta.top !== 0 || delta.left !== 0) scrolled.push(list);
     // The chart then brings the element in where the list's scroll leaves it.
     box = {
       top: box.top - delta.top,
@@ -26,7 +28,9 @@ export function scrollIntoChartView(element: Element, chart: Element, behavior: 
       right: box.right - delta.left,
     };
   }
-  scrollBoxIntoView(chart, box, behavior);
+  const delta = scrollBoxIntoView(chart, box, behavior);
+  if (delta.top !== 0 || delta.left !== 0) scrolled.push(chart);
+  return scrolled;
 }
 
 /**

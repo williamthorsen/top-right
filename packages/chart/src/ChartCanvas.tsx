@@ -7,9 +7,10 @@ import type { EdgeEnd } from './edge-path.ts';
 import { Edges, type WeightedEdge } from './Edges.tsx';
 import { Grid, MARGIN_LEFT, MARGIN_TOP, measureFrame } from './Grid.tsx';
 import { GutterCell } from './GutterCell.tsx';
-import { ScoredCells, type ScoredCellsProps } from './ScoredCells.tsx';
+import { CirclePulseCopy, ScoredCells, type ScoredCellsProps } from './ScoredCells.tsx';
 import { Trail, type TrailProps } from './Trail.tsx';
 import type { ItemDrag } from './useItemDrag.ts';
+import type { Pulse } from './usePulse.ts';
 
 export interface ChartCanvasProps {
   scrollRef: RefObject<HTMLDivElement | null>;
@@ -26,6 +27,8 @@ export interface ChartCanvasProps {
   scoredCells: ScoredCellsProps;
   /** The hovered cell's callouts, when a pointer rests on an empty spot of a scored cell. */
   callouts?: CellCallouts | undefined;
+  /** The pulse that locates a selection made outside the matrix. */
+  pulse?: Pulse | undefined;
 }
 
 /** Where the matrix's origin sits in the SVG, past the axis margins. */
@@ -47,6 +50,7 @@ export function ChartCanvas({
   ends,
   scoredCells,
   callouts,
+  pulse,
 }: ChartCanvasProps): ReactElement {
   const frame = measureFrame(cellSize);
   const { cells, ghostOwner, ghosts } = scoredCells;
@@ -124,6 +128,20 @@ export function ChartCanvas({
         <svg aria-hidden="true" className="tr-chart-overlay" viewBox={`0 0 ${frame.width} ${frame.height}`}>
           <g transform={MATRIX_TRANSFORM}>
             {callouts ? <CalloutLeaders callouts={callouts} /> : null}
+            {pulse?.circle ? (
+              <CirclePulseCopy
+                blockedKeys={scoredCells.blockedKeys}
+                cells={scoredCells.cells}
+                itemsByKey={scoredCells.itemsByKey}
+                key={pulse.circle.id}
+                onEnd={pulse.end}
+                overrides={scoredCells.overrides}
+                pulseKey={pulse.circle.key}
+                scopeMode={scoredCells.scopeMode}
+                scores={scoredCells.scores}
+                workTypeMapping={scoredCells.workTypeMapping}
+              />
+            ) : null}
             <DragProxy drag={drag} />
           </g>
         </svg>

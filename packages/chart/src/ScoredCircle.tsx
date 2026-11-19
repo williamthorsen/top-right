@@ -73,7 +73,6 @@ export function ScoredCircle({
   onSelect,
 }: ScoredCircleProps): ReactElement {
   const { id, r, isUnsized } = circle;
-  const rings = measureRings(r, isBlocked, isSelected);
 
   function selectOnKey(event: KeyboardEvent<SVGGElement>): void {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -106,6 +105,46 @@ export function ScoredCircle({
     >
       <title>{name}</title>
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
+      <CircleBody
+        isBlocked={isBlocked}
+        isSelected={isSelected}
+        isUnsized={isUnsized}
+        progress={progress}
+        r={r}
+        scopeMode={scopeMode}
+        status={status}
+      />
+    </g>
+  );
+}
+
+/** What a circle's visible parts depend on. */
+export interface CircleBodyProps {
+  r: number;
+  isUnsized: boolean;
+  status: StatusCategory;
+  progress: number;
+  scopeMode: ScopeMode;
+  isBlocked: boolean;
+  isSelected: boolean;
+}
+
+/**
+ * A circle's visible parts, centred on the origin: its fill, its pie, its border, and its rings, which the CSS shows by
+ * the state of the enclosing `.tr-node`.
+ */
+export function CircleBody({
+  r,
+  isUnsized,
+  status,
+  progress,
+  scopeMode,
+  isBlocked,
+  isSelected,
+}: CircleBodyProps): ReactElement {
+  const rings = measureRings(r, isBlocked, isSelected);
+  return (
+    <>
       <circle className="tr-node-main" r={r} />
       {status === 'in-progress' ? <Pie r={r} remaining={scopeMode === 'remaining' ? 1 : 1 - progress} /> : null}
       <circle className="tr-node-border" pathLength={isUnsized ? UNSIZED_DOT_COUNT : undefined} r={r} />
@@ -114,7 +153,7 @@ export function ScoredCircle({
       <circle className="tr-node-gap" r={rings.gap} />
       <circle className="tr-node-selected" r={rings.selected} />
       <circle className="tr-node-focus" r={rings.focus} />
-    </g>
+    </>
   );
 }
 
@@ -133,8 +172,8 @@ export interface RingRadii {
  */
 export function measureRings(r: number, isBlocked: boolean, isSelected: boolean): RingRadii {
   const blocked = r + BLOCKED_GAP;
-  const edge = isBlocked ? blocked + BORDER_WIDTH / 2 : r + BORDER_WIDTH / 2;
-  const outermost = isSelected ? edge + 2 * SELECTION_WIDTH : edge + BORDER_WIDTH;
+  const edge = (isBlocked ? blocked : r) + BORDER_WIDTH / 2;
+  const outermost = edge + (isSelected ? 2 * SELECTION_WIDTH : BORDER_WIDTH);
   return {
     blocked,
     hover: edge + BORDER_WIDTH / 2,

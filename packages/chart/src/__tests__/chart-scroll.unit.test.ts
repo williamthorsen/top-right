@@ -9,8 +9,9 @@ describe(scrollIntoChartView, () => {
     (scale) => {
       const { chart, list, row } = buildChart(scale, { rowIndex: 15, scrollMargin: 24 });
 
-      scrollIntoChartView(row, chart, 'instant');
+      const scrolled = scrollIntoChartView(row, chart, 'instant');
 
+      expect(scrolled).toStrictEqual([list]);
       // The row ends at 10 + 16 × 24 = 394 in the list, and its margin at 418, which a scroll of 318 brings to the
       // list's bottom.
       expect(list.scrollBy).toHaveBeenCalledExactlyOnceWith({ top: 318, left: 0, behavior: 'instant' });
@@ -21,8 +22,9 @@ describe(scrollIntoChartView, () => {
   it('leaves a row that is already in view where it is', () => {
     const { chart, list, row } = buildChart(2, { rowIndex: 1, scrollMargin: 24 });
 
-    scrollIntoChartView(row, chart, 'smooth');
+    const scrolled = scrollIntoChartView(row, chart, 'smooth');
 
+    expect(scrolled).toStrictEqual([]);
     expect(list.scrollBy).not.toHaveBeenCalled();
     expect(chart.scrollBy).not.toHaveBeenCalled();
   });
