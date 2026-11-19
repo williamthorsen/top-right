@@ -391,6 +391,11 @@
   scrollbar-width: thin;
 }
 
+/* A row that the selection scrolls into view stops clear of the scroll shadow's band. */
+.tr-gutter-list[data-overflow='true'] .tr-item {
+  scroll-margin-block: 24px;
+}
+
 .tr-item {
   display: flex;
   align-items: center;

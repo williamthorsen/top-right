@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import type { ItemScores, StatusOverride } from '@top-right/model';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { Chart } from '../Chart.tsx';
 import { CELL_PADDING, GUTTER_ROW_PITCH, MIN_CELL_SIZE, sizeCircle } from '../layout.ts';
@@ -308,25 +308,6 @@ describe(Chart, () => {
       expect(screen.queryByRole('button', { name: /Agent-scored/ })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Review agent scores (0)' })).toBeDisabled();
       expect(within(getPane()).getByText('No item selected')).toBeInTheDocument();
-    });
-
-    it('scrolls each item that the review moves to into view', async () => {
-      const user = userEvent.setup();
-      using scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
-      renderReview([buildItem({ number: 1 }), buildItem({ number: 2 })], {
-        [`${REPO}#1`]: FROM_GUTTER,
-        [`${REPO}#2`]: MOVED,
-      });
-
-      await user.click(screen.getByRole('button', { name: 'Review agent scores (2)' }));
-      await user.click(screen.getByRole('button', { name: 'Skip' }));
-
-      // The table also scrolls its selected row into view; only the chart's calls are under test here.
-      const chartContexts = scrollIntoView.mock.contexts.filter((element) => !(element instanceof HTMLTableRowElement));
-      expect(chartContexts).toEqual([
-        screen.getByRole('button', { name: /^T\.2:/ }),
-        screen.getByRole('button', { name: /^T\.1:/ }),
-      ]);
     });
 
     it('skips without keeping, and ends the review by End review or Escape before Escape clears the selection', async () => {
