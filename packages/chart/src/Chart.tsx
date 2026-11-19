@@ -228,7 +228,15 @@ export function Chart({
   }
 
   const board = { itemsByKey, overrides, scopeMode, scores, shownRepos, visibleKeys };
-  const focusState = { graph, focusKey: previewKey ?? selectedKey, showAllEdges, chainView, review, callouts };
+  const focusState = {
+    graph,
+    focusKey: previewKey ?? selectedKey,
+    highlightedKey,
+    showAllEdges,
+    chainView,
+    review,
+    callouts,
+  };
   const { edges, ends, ghosts, ghostOwner, fadeOf } = buildFocusView(focusState, cells, board, cellSize);
   const ghostElements = (
     <Ghosts

@@ -23,6 +23,8 @@ export interface FocusState {
   graph: RelationGraph;
   /** The previewed or selected item. */
   focusKey: string | undefined;
+  /** The item of the hovered table row or relation row. */
+  highlightedKey: string | undefined;
   showAllEdges: boolean;
   chainView: ChainView;
   review: Review;
@@ -31,7 +33,7 @@ export interface FocusState {
 
 /** Lays out the edges and ghosts of the focused item, and returns the fade that governs each item. */
 export function buildFocusView(
-  { graph, focusKey, showAllEdges, chainView, review, callouts }: FocusState,
+  { graph, focusKey, highlightedKey, showAllEdges, chainView, review, callouts }: FocusState,
   cells: readonly CellLayout[],
   board: GhostBoard,
   cellSize: number,
@@ -41,11 +43,12 @@ export function buildFocusView(
   const { ends, ghosts, ghostOwner } = layoutGhosts(cells, edges, focusKey, board, cellSize);
   const focusRelated = findShownRelated(focus.related, focusKey, board.visibleKeys, ghosts);
   // A running review's fade governs, then the chain's, so that the queue or the chain stays legible under hover; then a
-  // hovered cell's, so that its callouts read over the rest.
+  // hovered cell's, so that its callouts read over the rest; then a hovered row's, so that its item can be found.
   function fadeOf(key: string): Fade | undefined {
     if (review.kind !== undefined) return review.isFaded(key) ? 'strong' : undefined;
     if (chainView.isShown) return chainView.isFaded(key) ? 'strong' : undefined;
     if (callouts) return callouts.cell.ids.includes(key) ? undefined : 'soft';
+    if (highlightedKey !== undefined) return key === highlightedKey ? undefined : 'soft';
     return focusRelated === undefined || focusRelated.has(key) ? undefined : 'soft';
   }
   return { edges, ends, ghosts, ghostOwner, fadeOf };
