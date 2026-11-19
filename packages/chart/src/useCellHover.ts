@@ -21,9 +21,9 @@ export interface HoveredCell {
 }
 
 /**
- * Returns the cell on which a mouse or pen has rested for `CALLOUT_DWELL`, on an empty spot of a scored cell or anywhere
- * in a gutter cell, its rows included: Each move restarts the wait until the cell shows, and a later move within the cell
- * keeps it. A circle, a ghost, a press, or the pointer's leaving clears it at once.
+ * Returns the cell on which a mouse or pen has rested for `CALLOUT_DWELL`, on an empty spot of a scored cell or
+ * anywhere in a gutter cell, its rows included: Each move restarts the wait until the cell shows, and a later move
+ * within the cell keeps it. A circle, a ghost, a press, or the pointer's leaving clears it at once.
  */
 export function useCellHover({ scrollRef, svgRef, cellSize }: CellHoverOptions): HoveredCell | undefined {
   const [hovered, setHovered] = useState<HoveredCell>();

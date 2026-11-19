@@ -87,7 +87,10 @@ export function findCellAt(x: number, y: number, cellSize: number): { u: number;
   return { u, v };
 }
 
-/** Returns the scored cell that contains a point in matrix units, or undefined for a point in a gutter or off the matrix. */
+/**
+ * Returns the scored cell that contains a point in matrix units, or undefined for a point in a gutter or off the
+ * matrix.
+ */
 export function findScoredCellAt(x: number, y: number, cellSize: number): { u: number; v: number } | undefined {
   const cell = findCellAt(x, y, cellSize);
   return cell && cell.u > 0 && cell.v > 0 ? cell : undefined;

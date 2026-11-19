@@ -50,9 +50,9 @@ export function findCellCallouts(
 /**
  * Lays out a cell's callouts as one column beside the cell, on the side with at least two cells of room, clamped to the
  * matrix's bottom edge, with a last row that counts the items for which the matrix's height has no room. A scored cell
- * has one row per circle from top to bottom, each with a leader; a gutter cell has one row per item in its list's order,
- * without leaders, because its rows move as the list scrolls. The column reaches past the frame's edge by `spareWidth`,
- * the chart area's spare room on each side of the frame.
+ * has one row per circle from top to bottom, each with a leader; a gutter cell has one row per item in its list's
+ * order, without leaders, because its rows move as the list scrolls. The column reaches past the frame's edge by
+ * `spareWidth`, the chart area's spare room on each side of the frame.
  */
 export function layoutCallouts(cell: CellLayout, cellSize: number, spareWidth = 0): CalloutLayout {
   const matrixSize = cellSize * GRID_SIZE;
