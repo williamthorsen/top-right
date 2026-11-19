@@ -1,14 +1,14 @@
 import { type RefObject, useEffect } from 'react';
 
-/**
- * Scrolls the selected item's circle or gutter row into view each time the selection changes, which scrolls both the
- * gutter cell's list and the chart's scroll container, and leaves a mark that is already in view where it is.
- */
+import { scrollIntoChartView } from './chart-scroll.ts';
+
+/** Scrolls the selected item's circle or gutter row into the chart's view each time the selection changes. */
 export function useSelectionScroll(scrollRef: RefObject<HTMLElement | null>, selectedKey: string | undefined): void {
   useEffect(() => {
-    if (selectedKey === undefined) return;
-    const element = scrollRef.current?.querySelector(`[data-item-key="${CSS.escape(selectedKey)}"]`);
-    element?.scrollIntoView({ behavior: chooseScrollBehavior(), block: 'nearest', inline: 'nearest' });
+    const chart = scrollRef.current;
+    if (selectedKey === undefined || !chart) return;
+    const element = chart.querySelector(`[data-item-key="${CSS.escape(selectedKey)}"]`);
+    if (element) scrollIntoChartView(element, chart, chooseScrollBehavior());
   }, [selectedKey]);
 }
 
