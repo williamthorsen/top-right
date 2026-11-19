@@ -100,6 +100,28 @@ describe('Chart emphasis', () => {
     expect(getCircle(2)).toHaveAttribute('data-fade', 'soft');
   });
 
+  it('fades nothing while a relation row of an item that the board does not show is hovered', async () => {
+    const user = userEvent.setup();
+    const items = [
+      buildItem({
+        number: 1,
+        relations: [
+          {
+            kind: 'blocked-by',
+            ref: { repo: REPO, number: 9, title: 'Issue 9', url: 'https://example.test/9', state: 'open' },
+          },
+        ],
+      }),
+      buildItem({ number: 2 }),
+    ];
+    renderChart(items, {}, { [`${REPO}#1`]: place(2, 2), [`${REPO}#2`]: place(4, 4) });
+    await user.click(getCircle(1));
+
+    await user.hover(within(getPane()).getByRole('link', { name: /Issue 9/ }));
+
+    expect(getCircle(2)).not.toHaveAttribute('data-fade');
+  });
+
   describe('when the selection changes', () => {
     let animations: StubAnimation[] = [];
     let prefersReducedMotion = false;

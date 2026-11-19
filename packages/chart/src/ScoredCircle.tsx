@@ -40,7 +40,7 @@ export const HIT_RADIUS = 12;
 /** The dots of an unsized item's border, which the CSS spaces evenly through the border's `pathLength`. */
 export const UNSIZED_DOT_COUNT = 10;
 /** The stroke width of the border, the blocked ring, and the hover ring, which `chart.css` sets to match. */
-const BORDER_WIDTH = 1.5;
+export const BORDER_WIDTH = 1.5;
 /** The stroke width of each of the selection's two rings, which `chart.css` sets to match. */
 const SELECTION_WIDTH = BORDER_WIDTH + 0.5;
 /** The stroke width of the keyboard focus ring, which `chart.css` sets to match. */
