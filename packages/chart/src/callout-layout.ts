@@ -38,23 +38,25 @@ export function findCellCallouts(
   cells: readonly CellLayout[],
   hovered: { u: number; v: number } | undefined,
   cellSize: number,
+  spareWidth = 0,
 ): CellCallouts | undefined {
   const cell = cells.find(
     (each) => !each.isGutter && each.circles.length > 0 && each.u === hovered?.u && each.v === hovered.v,
   );
-  return cell && { cell, layout: layoutCallouts(cell, cellSize) };
+  return cell && { cell, layout: layoutCallouts(cell, cellSize, spareWidth) };
 }
 
 /**
  * Lays out a scored cell's callouts as one column beside the cell, on the side with at least two cells of room: one row
  * per circle from top to bottom, clamped to the matrix's bottom edge, with a last row that counts the circles for which
- * the matrix's height has no room.
+ * the matrix's height has no room. The column reaches past the frame's edge by `spareWidth`, the chart area's spare
+ * room on each side of the frame.
  */
-export function layoutCallouts(cell: CellLayout, cellSize: number): CalloutLayout {
+export function layoutCallouts(cell: CellLayout, cellSize: number, spareWidth = 0): CalloutLayout {
   const matrixSize = cellSize * GRID_SIZE;
   const side = cell.u <= 2 ? 'right' : 'left';
   const x = side === 'right' ? cell.x + cellSize + CALLOUT_GAP : cell.x - CALLOUT_GAP;
-  const width = side === 'right' ? matrixSize + MARGIN_RIGHT - x : x + MARGIN_LEFT;
+  const width = side === 'right' ? matrixSize + MARGIN_RIGHT + spareWidth - x : x + MARGIN_LEFT + spareWidth;
 
   const circles = cell.circles.toSorted((a, b) => a.cy - b.cy || a.cx - b.cx);
   const capacity = Math.floor(matrixSize / CALLOUT_PITCH);

@@ -1,4 +1,4 @@
-import { AXIS_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP } from './Grid.tsx';
+import { AXIS_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, measureFrame } from './Grid.tsx';
 import { GRID_SIZE, MIN_CELL_SIZE } from './layout.ts';
 
 export type ZoomDirection = 'in' | 'out';
@@ -31,6 +31,15 @@ export function formatScale(scale: number): string {
 /** Returns whether `scale` is at the end of the range in `direction`, where a step would not change it. */
 export function isAtEnd(scale: number, direction: ZoomDirection): boolean {
   return direction === 'in' ? scale >= MAX_STEP : scale <= MIN_STEP;
+}
+
+/**
+ * Returns the width, in chart units, that an area at `magnification` leaves on each side of the centred frame, or 0
+ * when the frame is as wide as the area or wider.
+ */
+export function measureSpareWidth(areaWidth: number, cellSize: number, magnification: number): number {
+  if (areaWidth <= 0 || magnification <= 0) return 0;
+  return Math.max(0, (areaWidth / magnification - measureFrame(cellSize).width) / 2);
 }
 
 /** Returns the nearest step strictly beyond `scale` in `direction`, or `scale` itself at an end of the range. */
