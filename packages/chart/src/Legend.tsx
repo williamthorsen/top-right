@@ -9,7 +9,7 @@ import { type CSSProperties, type ReactElement, type ToggleEvent, useId, useRef,
 
 import { CircleIcon } from './CircleIcon.tsx';
 import { FLOOR_RADIUS, RADIUS_PER_POINT } from './layout.ts';
-import { UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
+import { BLOCKED_GAP, UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
 import { STATUS_NAMES } from './status-names.ts';
 
 const LEGEND_TYPES: readonly WorkType[] = [...MAPPED_WORK_TYPES, 'none'];
@@ -193,7 +193,7 @@ function BlockedSwatch() {
       <g className="tr-node" data-status="to-do" transform={`translate(${SWATCH_SIZE / 2} ${SWATCH_SIZE / 2})`}>
         <circle className="tr-node-main" r={r} />
         <circle className="tr-node-border" r={r} />
-        <circle className="tr-node-blocked" r={r + 1.5} />
+        <circle className="tr-node-blocked" r={r + BLOCKED_GAP} />
       </g>
     </svg>
   );

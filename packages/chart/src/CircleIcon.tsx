@@ -1,11 +1,9 @@
 import type { ReactElement } from 'react';
 
 import { RADIUS_PER_POINT } from './layout.ts';
-import { UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
+import { BLOCKED_GAP, BORDER_WIDTH, UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
 
-const STROKE_WIDTH = 2.5;
-const BLOCKED_GAP = 1.5;
-const SIZE = 2 * (RADIUS_PER_POINT + BLOCKED_GAP) + STROKE_WIDTH;
+const SIZE = 2 * (RADIUS_PER_POINT + BLOCKED_GAP) + BORDER_WIDTH;
 
 /**
  * A one-point item circle, drawn inline, with the done fill, the dotted border of an unsized item, and the blocked ring

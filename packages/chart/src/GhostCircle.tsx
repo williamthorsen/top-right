@@ -2,7 +2,7 @@ import type { WorkType } from '@top-right/model';
 import type { KeyboardEvent, ReactElement } from 'react';
 
 import type { GhostPlacement } from './layout.ts';
-import { type Fade, HIT_RADIUS, UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
+import { type Fade, HIT_RADIUS, measureRings, UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
 
 export interface GhostCircleProps {
   ghost: GhostPlacement;
@@ -17,6 +17,7 @@ export interface GhostCircleProps {
 /** A hidden done item at the end of a shown edge, drawn as a done circle, which reveals that item when activated. */
 export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCircleProps): ReactElement {
   const { id, x, y, r, isUnsized } = ghost;
+  const rings = measureRings(r, false, false);
 
   function revealOnKey(event: KeyboardEvent<SVGGElement>): void {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -43,8 +44,8 @@ export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCirc
       <circle className="tr-node-hit" r={Math.max(r, HIT_RADIUS)} />
       <circle className="tr-node-main" r={r} />
       <circle className="tr-node-border" pathLength={isUnsized ? UNSIZED_DOT_COUNT : undefined} r={r} />
-      <circle className="tr-node-selected" r={r + 3} />
-      <circle className="tr-node-focus" r={r + 5.5} />
+      <circle className="tr-node-hover" r={rings.hover} />
+      <circle className="tr-node-focus" r={rings.focus} />
     </g>
   );
 }

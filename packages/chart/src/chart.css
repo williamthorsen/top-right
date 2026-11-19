@@ -411,9 +411,15 @@
   cursor: pointer;
 }
 
+/* A gutter row's pulse grows it from its left edge, which keeps it within its column. */
+.tr-item {
+  transform-origin: left center;
+}
+
 .tr-item:hover,
 .tr-item[data-highlighted='true'] {
   background: var(--tr-surface-2);
+  box-shadow: inset 0 0 0 1.5px var(--tr-ink);
 }
 
 .tr-item[aria-pressed='true'] {
@@ -430,7 +436,7 @@
 .tr-circle {
   flex: none;
   fill: var(--tr-todo);
-  stroke-width: 2.5;
+  stroke-width: 1.5;
 }
 
 .tr-circle-done {
@@ -485,10 +491,11 @@
   fill: var(--tr-inprog);
 }
 
+/* The stroke widths of a circle and its rings match the constants that `measureRings` in ScoredCircle.tsx places by. */
 .tr-node-border {
   fill: none;
   stroke: var(--tr-cat-none);
-  stroke-width: 2.5;
+  stroke-width: 1.5;
 }
 
 .tr-node[data-work-type='feature'] .tr-node-border {
@@ -514,28 +521,32 @@
   stroke-linecap: round;
 }
 
+.tr-node-hover,
+.tr-node-gap,
 .tr-node-selected,
 .tr-node-focus {
   display: none;
   fill: none;
 }
 
-.tr-node:hover .tr-node-selected {
-  display: block;
-  stroke: var(--tr-axis);
-  stroke-width: 1.5;
-}
-
-.tr-node[aria-pressed='true'] .tr-node-selected {
+/* A selected circle shows the selection's rings in place of the hover ring, since the selection outranks a hover. */
+.tr-node:is(:hover, [data-highlighted='true']):not([aria-pressed='true']) .tr-node-hover {
   display: block;
   stroke: var(--tr-ink);
-  stroke-width: 2.5;
+  stroke-width: 1.5;
 }
 
-.tr-node[data-highlighted='true'] .tr-node-selected {
+/* The surface-coloured gap parts the ink ring from the border, the blocked ring, and neighbouring circles. */
+.tr-node:is([aria-pressed='true'], .tr-pulse) .tr-node-gap {
   display: block;
-  stroke: var(--tr-axis);
-  stroke-width: 1.5;
+  stroke: var(--tr-surface);
+  stroke-width: 2;
+}
+
+.tr-node:is([aria-pressed='true'], .tr-pulse) .tr-node-selected {
+  display: block;
+  stroke: var(--tr-ink);
+  stroke-width: 2;
 }
 
 /* The blocked ring is dashed, so that it reads apart from the solid selection ring without colour. */
@@ -543,8 +554,14 @@
 .tr-circle-blocked {
   fill: none;
   stroke: var(--tr-block);
-  stroke-width: 2.5;
+  stroke-width: 1.5;
   stroke-dasharray: 3 2;
+}
+
+/* The pulse scales the copy of a selected circle about its centre, which its rings' symmetric box shares. */
+.tr-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .tr-node:focus-visible .tr-node-focus {

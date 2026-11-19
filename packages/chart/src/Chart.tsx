@@ -37,6 +37,7 @@ import { useChainView } from './useChainView.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
 import { usePan } from './usePan.ts';
+import { usePulse } from './usePulse.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
 import { useSelectionScroll } from './useSelectionScroll.ts';
@@ -191,7 +192,8 @@ export function Chart({
     onScoresChange,
     onScoresClear,
   });
-  useSelectionScroll(scrollRef, selectedKey);
+  const pulse = usePulse(selectedKey);
+  useSelectionScroll(scrollRef, selectedKey, pulse.settle);
   const chainView = useChainView(visibleItems, review);
   if (isRevealing && review.kind !== undefined) review.end();
   const { drag, dragHandlersFor, selectItem, isHoldingPress } = useItemDrag({
@@ -204,7 +206,7 @@ export function Chart({
       const levels = findCellLevels(cell.u, cell.v);
       if (levels) review.changeScores(key, levels);
     },
-    onSelect: selection.push,
+    onSelect: pulse.fromMatrix(selection.push),
   });
   usePan({ scrollRef, isHoldingPress });
   const callouts = findCellCallouts(cells, useCellHover({ scrollRef, svgRef, cellSize }), cellSize, zoom.spareWidth);
@@ -228,7 +230,7 @@ export function Chart({
   }
 
   const board = { itemsByKey, overrides, scopeMode, scores, shownRepos, visibleKeys };
-  const focusState = { graph, focusKey: previewKey ?? selectedKey, showAllEdges, chainView, review, callouts };
+  const focusState = { graph, focusKey: shownKey, highlightedKey, showAllEdges, chainView, review, callouts };
   const { edges, ends, ghosts, ghostOwner, fadeOf } = buildFocusView(focusState, cells, board, cellSize);
   const ghostElements = (
     <Ghosts
@@ -236,7 +238,7 @@ export function Chart({
       ghosts={ghosts}
       itemsByKey={itemsByKey}
       labelOf={labelOf}
-      onReveal={selectShown}
+      onReveal={pulse.fromMatrix(selectShown)}
       workTypeMapping={workTypeMapping}
     />
   );
@@ -267,6 +269,7 @@ export function Chart({
               <ChartCanvas
                 callouts={callouts}
                 cellSize={cellSize}
+                pulse={pulse}
                 drag={drag}
                 edges={edges}
                 ends={ends}
