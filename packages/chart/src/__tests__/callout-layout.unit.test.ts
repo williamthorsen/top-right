@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CALLOUT_GAP, CALLOUT_PITCH, layoutCallouts } from '../callout-layout.ts';
+import { CALLOUT_GAP, CALLOUT_PITCH, findCellCallouts, layoutCallouts } from '../callout-layout.ts';
 import { MARGIN_LEFT, MARGIN_RIGHT } from '../Grid.tsx';
 import { type CellLayout, GRID_SIZE, layoutCells, MIN_CELL_SIZE } from '../layout.ts';
 
@@ -86,10 +86,65 @@ describe(layoutCallouts, () => {
   it('counts nothing when every circle fits', () => {
     expect(layoutCallouts(buildCell(1, 2, CAPACITY), MIN_CELL_SIZE).overflow).toBe(0);
   });
+
+  describe('for a gutter cell', () => {
+    it("lists the items in the list's order, without leaders", () => {
+      const cell = buildCell(0, 2, 3);
+      const { rows } = layoutCallouts(cell, MIN_CELL_SIZE);
+
+      expect(rows.map((row) => row.id)).toStrictEqual(cell.ids);
+      expect(rows.some((row) => row.from !== undefined)).toBe(false);
+    });
+
+    it.each([
+      { u: 0, v: 2, side: 'right' },
+      { u: 0, v: 0, side: 'right' },
+      { u: 2, v: 0, side: 'right' },
+      { u: 3, v: 0, side: 'left' },
+      { u: 4, v: 0, side: 'left' },
+    ])('puts the column of the gutter cell at $u, $v on the $side', ({ u, v, side }) => {
+      expect(layoutCallouts(buildCell(u, v, 1), MIN_CELL_SIZE).side).toBe(side);
+    });
+
+    it('shifts the column of the bottom gutter row up so that its last row ends at the matrix bottom', () => {
+      const callouts = layoutCallouts(buildCell(0, 0, 10), MIN_CELL_SIZE);
+
+      expect(callouts.top + callouts.rows.length * CALLOUT_PITCH).toBe(MATRIX_SIZE);
+    });
+
+    it('counts the items that do not fit in a last row', () => {
+      const callouts = layoutCallouts(buildCell(0, 0, CAPACITY + 5), MIN_CELL_SIZE);
+
+      expect(callouts.rows).toHaveLength(CAPACITY - 1);
+      expect(callouts.overflow).toBe(6);
+      expect(callouts.top).toBeGreaterThanOrEqual(0);
+    });
+  });
+});
+
+describe(findCellCallouts, () => {
+  it('returns the callouts of a hovered gutter cell', () => {
+    const cell = buildCell(0, 3, 2);
+
+    expect(findCellCallouts([cell], { u: 0, v: 3 }, MIN_CELL_SIZE)?.cell).toBe(cell);
+  });
+
+  it('returns the callouts of a hovered scored cell', () => {
+    const cell = buildCell(2, 3, 2);
+
+    expect(findCellCallouts([cell], { u: 2, v: 3 }, MIN_CELL_SIZE)?.cell).toBe(cell);
+  });
+
+  it.each([
+    { case: 'a cell that holds no item', hovered: { u: 0, v: 2 } },
+    { case: 'no hovered cell', hovered: undefined },
+  ])('returns undefined for $case', ({ hovered }) => {
+    expect(findCellCallouts([buildCell(0, 3, 2)], hovered, MIN_CELL_SIZE)).toBeUndefined();
+  });
 });
 
 // region | Helpers
-/** Returns the laid-out scored cell at column `u` and row `v` holding `count` unsized circles. */
+/** Returns the laid-out cell at column `u` and row `v` holding `count` unsized items. */
 function buildCell(u: number, v: number, count: number): CellLayout {
   const placements = Array.from({ length: count }, (_, index) => ({ id: `item-${index}`, u, v }));
   const [cell] = layoutCells(placements, MIN_CELL_SIZE);

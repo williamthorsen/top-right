@@ -114,7 +114,7 @@ describe('Chart cell callouts', () => {
     }
   });
 
-  it('shows nothing while a button is held, for a touch pointer, or over a gutter', () => {
+  it('shows nothing while a button is held or for a touch pointer', () => {
     renderCalloutHost();
 
     fireEvent.pointerMove(getSvg(), { ...MOUSE, buttons: 1, ...cornerOf(2, 2) });
@@ -122,10 +122,6 @@ describe('Chart cell callouts', () => {
     expect(listCallouts()).toStrictEqual([]);
 
     fireEvent.pointerMove(getSvg(), { ...MOUSE, pointerType: 'touch', ...cornerOf(2, 2) });
-    elapse(CALLOUT_DWELL);
-    expect(listCallouts()).toStrictEqual([]);
-
-    hoverCorner(0, 0);
     elapse(CALLOUT_DWELL);
     expect(listCallouts()).toStrictEqual([]);
   });
