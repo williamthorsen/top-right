@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
-import { fitCellSize, isAtEnd, NATURAL_SCALE, stepZoom, type ZoomDirection } from './zoom.ts';
+import { fitCellSize, isAtEnd, measureSpareWidth, NATURAL_SCALE, stepZoom, type ZoomDirection } from './zoom.ts';
 
 export interface ZoomOptions {
   /** The scroll container whose content the zoom scales. */
@@ -19,6 +19,8 @@ export interface ZoomState {
   magnification: number;
   /** The size of a cell in chart units: the largest that fits the container at the magnification, never below the minimum. */
   cellSize: number;
+  /** The width, in chart units, that the container leaves on each side of the centred frame. */
+  spareWidth: number;
   /** Steps the magnification, keeping the centre of the visible area in place. */
   step: (direction: ZoomDirection) => void;
   /** Chooses a magnification, keeping the centre of the visible area in place. */
@@ -221,9 +223,11 @@ export function useZoom({
     };
   }, [scrollRef]);
 
+  const cellSize = fitCellSize(area.width, area.height, magnification);
   return {
     magnification,
-    cellSize: fitCellSize(area.width, area.height, magnification),
+    cellSize,
+    spareWidth: measureSpareWidth(area.width, cellSize, magnification),
     step: (direction) => step(direction),
     choose: (next) => request(next),
   };

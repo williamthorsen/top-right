@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { measureFrame } from '../Grid.tsx';
 import { MIN_CELL_SIZE } from '../layout.ts';
-import { fitCellSize, formatScale, isAtEnd, stepZoom } from '../zoom.ts';
+import { fitCellSize, formatScale, isAtEnd, measureSpareWidth, stepZoom } from '../zoom.ts';
 
 /** The chart's size in chart units at the smallest cell. */
 const FRAME = measureFrame(MIN_CELL_SIZE);
@@ -51,6 +51,25 @@ describe(fitCellSize, () => {
 
   it('returns the minimum for an area without size', () => {
     expect(fitCellSize(0, 0, 1)).toBe(MIN_CELL_SIZE);
+  });
+});
+
+describe(measureSpareWidth, () => {
+  it('returns half of the width that the area leaves beyond the frame', () => {
+    expect(measureSpareWidth(FRAME.width + 300, MIN_CELL_SIZE, 1)).toBe(150);
+  });
+
+  it('measures the area in chart units at the magnification', () => {
+    expect(measureSpareWidth((FRAME.width + 300) * 2, MIN_CELL_SIZE, 2)).toBe(150);
+  });
+
+  it('returns 0 when the frame fills or overflows the area', () => {
+    expect(measureSpareWidth(FRAME.width, MIN_CELL_SIZE, 1)).toBe(0);
+    expect(measureSpareWidth(FRAME.width / 2, MIN_CELL_SIZE, 1)).toBe(0);
+  });
+
+  it('returns 0 for an area without size', () => {
+    expect(measureSpareWidth(0, MIN_CELL_SIZE, 1)).toBe(0);
   });
 });
 
