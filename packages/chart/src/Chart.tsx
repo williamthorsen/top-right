@@ -206,7 +206,7 @@ export function Chart({
     onSelect: selection.push,
   });
   usePan({ scrollRef, isHoldingPress });
-  const callouts = findCellCallouts(cells, useCellHover({ scrollRef, svgRef, cellSize }), cellSize);
+  const callouts = findCellCallouts(cells, useCellHover({ scrollRef, svgRef, cellSize }), cellSize, zoom.spareWidth);
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 

@@ -34,6 +34,14 @@ describe(layoutCallouts, () => {
     expect(callouts.x - callouts.width).toBe(-MARGIN_LEFT);
   });
 
+  it('extends a column on either side into the spare room beyond the frame edge', () => {
+    const right = layoutCallouts(buildCell(2, 3, 1), MIN_CELL_SIZE, 120);
+    const left = layoutCallouts(buildCell(3, 3, 1), MIN_CELL_SIZE, 120);
+
+    expect(right.x + right.width).toBe(MATRIX_SIZE + MARGIN_RIGHT + 120);
+    expect(left.x - left.width).toBe(-MARGIN_LEFT - 120);
+  });
+
   it('orders the rows by circle from top to bottom and starts the column at the cell top', () => {
     const cell = buildCell(1, 4, 6);
     const callouts = layoutCallouts(cell, MIN_CELL_SIZE);

@@ -7,6 +7,7 @@ import { MARGIN_LEFT, MARGIN_TOP, measureFrame } from '../Grid.tsx';
 import { GRID_SIZE, MIN_CELL_SIZE } from '../layout.ts';
 import { buildItem, place, REPO } from '../test-utils/chart-fixtures.tsx';
 import { getPane } from '../test-utils/chart-queries.ts';
+import { reportResize } from '../test-utils/resize-observer.ts';
 import { CALLOUT_DWELL } from '../useCellHover.ts';
 
 /** The chart's size in chart units at the smallest cell, which the mocked SVG box draws at 1×. */
@@ -48,6 +49,25 @@ describe('Chart cell callouts', () => {
     expect(getCircle(1)).not.toHaveAttribute('data-fade');
     expect(getCircle(3)).toHaveAttribute('data-fade', 'soft');
     expect(getGutterRow(4)).toHaveAttribute('data-fade', 'soft');
+  });
+
+  it('extends the column into the chart area beside a matrix narrower than the area', () => {
+    renderCalloutHost();
+    const scroll = getScroll();
+    Object.defineProperties(scroll, {
+      clientWidth: { configurable: true, value: FRAME.width + 200 },
+      clientHeight: { configurable: true, value: FRAME.height },
+    });
+    act(() => reportResize(scroll));
+
+    hoverCorner(2, 2);
+    elapse(CALLOUT_DWELL);
+
+    // eslint-disable-next-line testing-library/no-node-access -- the column is aria-hidden and has no role to query.
+    const column = document.querySelector<HTMLElement>('.tr-callouts');
+    expect(Number.parseFloat(column?.style.left ?? '') + Number.parseFloat(column?.style.width ?? '')).toBe(
+      FRAME.width + 100,
+    );
   });
 
   it('waits for the pointer to rest, restarting the wait on each move within the cell', () => {
