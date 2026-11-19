@@ -7,16 +7,7 @@ import {
   type Scores,
   type WorkItem,
 } from '@top-right/model';
-import {
-  type Dispatch,
-  type RefObject,
-  type SetStateAction,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 export interface ReviewOptions {
   items: readonly WorkItem[];
@@ -30,8 +21,6 @@ export interface ReviewOptions {
   onKeep: ((itemKey: string) => void) | undefined;
   onScoresChange: ((itemKey: string, scores: Scores) => void) | undefined;
   onScoresClear: ((itemKey: string, fields: readonly ScoreField[]) => void) | undefined;
-  /** The chart's scroll container, within which the review brings each item that it moves to into view. */
-  scrollRef: RefObject<HTMLElement | null>;
 }
 
 /** The review queues and the running review, with the actions that step through it and the chart's key handling. */
@@ -71,7 +60,6 @@ export function useReview({
   onKeep,
   onScoresChange,
   onScoresClear,
-  scrollRef,
 }: ReviewOptions): Review {
   const [kind, setKind] = useState<ReviewQueueKind>();
   const queues = useMemo(
@@ -86,13 +74,6 @@ export function useReview({
   const pendingAdvance = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => () => clearTimeout(pendingAdvance.current), []);
-
-  // Bring each item that the review moves to into view, since the chart scrolls on a narrow screen.
-  useEffect(() => {
-    if (kind === undefined || selectedKey === undefined) return;
-    const element = scrollRef.current?.querySelector(`[data-item-key="${CSS.escape(selectedKey)}"]`);
-    element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [kind, selectedKey]);
 
   /** Returns the queue item after `key`, or, when `key` leaves the queue, the one that takes its place. */
   function findNext(key: string | undefined, isLeaving: boolean): string | undefined {

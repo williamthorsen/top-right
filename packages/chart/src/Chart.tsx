@@ -39,6 +39,7 @@ import { useItemFilter } from './useItemFilter.ts';
 import { usePan } from './usePan.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
+import { useSelectionScroll } from './useSelectionScroll.ts';
 import { useShownReposReport } from './useShownReposReport.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
 import { useZoom } from './useZoom.ts';
@@ -189,8 +190,8 @@ export function Chart({
     onKeep,
     onScoresChange,
     onScoresClear,
-    scrollRef,
   });
+  useSelectionScroll(scrollRef, selectedKey);
   const chainView = useChainView(visibleItems, review);
   if (isRevealing && review.kind !== undefined) review.end();
   const { drag, dragHandlersFor, selectItem, isHoldingPress } = useItemDrag({
