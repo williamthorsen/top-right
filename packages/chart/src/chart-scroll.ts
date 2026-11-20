@@ -1,4 +1,14 @@
 /**
+ * Returns how far to scroll along one axis so that the span from `start` to `end` lies within the view, which is
+ * zero when it already does; a span longer than the view aligns its start with the view's.
+ */
+export function findNearestScrollDelta(start: number, end: number, viewStart: number, viewEnd: number): number {
+  if (start >= viewStart && end <= viewEnd) return 0;
+  if (end - start > viewEnd - viewStart || start < viewStart) return start - viewStart;
+  return end - viewEnd;
+}
+
+/**
  * Scrolls the element's gutter list, when it is in one, and then the chart's scroll container by the least movement
  * that brings the element into each one's view, honoring its scroll margin. It never scrolls the page: On a narrow
  * screen the page scrolls past the chart, and a selection made below the chart must stay in view. Boxes are measured
@@ -7,15 +17,7 @@
  */
 export function scrollIntoChartView(element: Element, chart: Element, behavior: ScrollBehavior): Element[] {
   const scrolled: Element[] = [];
-  const style = getComputedStyle(element);
-  const rect = element.getBoundingClientRect();
-  const scale = measureScale(element, rect);
-  let box = {
-    top: rect.top - (Number.parseFloat(style.scrollMarginTop) || 0) * scale.y,
-    bottom: rect.bottom + (Number.parseFloat(style.scrollMarginBottom) || 0) * scale.y,
-    left: rect.left - (Number.parseFloat(style.scrollMarginLeft) || 0) * scale.x,
-    right: rect.right + (Number.parseFloat(style.scrollMarginRight) || 0) * scale.x,
-  };
+  let box = measureScrollBox(element);
   const list = element.closest('.tr-gutter-list');
   if (list && chart.contains(list)) {
     const delta = scrollBoxIntoView(list, box, behavior);
@@ -34,16 +36,22 @@ export function scrollIntoChartView(element: Element, chart: Element, behavior: 
 }
 
 /**
- * Returns how far to scroll along one axis so that the span from `start` to `end` lies within the view, which is
- * zero when it already does; a span longer than the view aligns its start with the view's.
+ * Scrolls the container alone by the least movement that brings the element into its view, honoring its scroll margin,
+ * so that neither the container's ancestors nor the page move.
  */
-export function findNearestScrollDelta(start: number, end: number, viewStart: number, viewEnd: number): number {
-  if (start >= viewStart && end <= viewEnd) return 0;
-  if (end - start > viewEnd - viewStart || start < viewStart) return start - viewStart;
-  return end - viewEnd;
+export function scrollIntoContainerView(element: Element, container: Element, behavior: ScrollBehavior): void {
+  scrollBoxIntoView(container, measureScrollBox(element), behavior);
 }
 
 // region | Helpers
+
+/** A box in viewport pixels. */
+interface ScrollBox {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
 
 /** Returns the value bounded by `min` and `max`, where `min` wins when the two cross. */
 function clamp(value: number, min: number, max: number): number {
@@ -61,13 +69,26 @@ function measureScale(element: Element, rect: DOMRect): { x: number; y: number }
   };
 }
 
+/** Returns the element's box widened by its scroll margin, in viewport pixels. */
+function measureScrollBox(element: Element): ScrollBox {
+  const style = getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+  const scale = measureScale(element, rect);
+  return {
+    top: rect.top - (Number.parseFloat(style.scrollMarginTop) || 0) * scale.y,
+    bottom: rect.bottom + (Number.parseFloat(style.scrollMarginBottom) || 0) * scale.y,
+    left: rect.left - (Number.parseFloat(style.scrollMarginLeft) || 0) * scale.x,
+    right: rect.right + (Number.parseFloat(style.scrollMarginRight) || 0) * scale.x,
+  };
+}
+
 /**
  * Scrolls the container so that the box, in viewport pixels, lies within its scrollport as far as its scroll range
  * allows, and returns the delta that it scrolls by, in viewport pixels.
  */
 function scrollBoxIntoView(
   container: Element,
-  box: { top: number; bottom: number; left: number; right: number },
+  box: ScrollBox,
   behavior: ScrollBehavior,
 ): { top: number; left: number } {
   const rect = container.getBoundingClientRect();

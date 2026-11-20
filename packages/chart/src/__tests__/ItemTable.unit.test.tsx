@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ItemTable } from '../ItemTable.tsx';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
@@ -34,6 +34,23 @@ describe(ItemTable, () => {
     await user.click(within(getRow('Issue 1')).getByRole('link'));
 
     expect(getRow('Issue 1')).not.toHaveAttribute('aria-current');
+  });
+
+  it("scrolls the table's pane alone to the row of the circle that is selected on the chart", async () => {
+    const user = userEvent.setup();
+    renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: place(3, 3) });
+    // jsdom lays nothing out, so the pane and the row report a row 100px below the pane's 100px view.
+    // eslint-disable-next-line testing-library/no-node-access -- the pane has no role to query.
+    const pane = document.querySelector<HTMLElement>('.tr-table-pane');
+    if (!pane) throw new Error('No table pane');
+    stubBox(pane, { top: 0, height: 100, scrollHeight: 1000 });
+    stubBox(getRow('Issue 1'), { top: 200, height: 24 });
+    const scrollBy = vi.fn();
+    Object.defineProperty(pane, 'scrollBy', { value: scrollBy });
+
+    await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+
+    expect(scrollBy).toHaveBeenCalledExactlyOnceWith({ top: 124, left: 0, behavior: 'instant' });
   });
 
   it('shows urgency and value by their level names', () => {
@@ -105,5 +122,21 @@ function listTitles(): string[] {
     .getAllByRole('row')
     .slice(1)
     .map((row) => within(row).getByRole('button').textContent);
+}
+/** Makes the element report a 100px-wide box at `top`, and a view that is its own height. */
+function stubBox(
+  element: HTMLElement,
+  { top, height, scrollHeight = height }: { top: number; height: number; scrollHeight?: number },
+): void {
+  element.getBoundingClientRect = () => new DOMRect(0, top, 100, height);
+  const values = {
+    offsetWidth: 100,
+    offsetHeight: height,
+    clientWidth: 100,
+    clientHeight: height,
+    scrollWidth: 100,
+    scrollHeight,
+  };
+  for (const [name, value] of Object.entries(values)) Object.defineProperty(element, name, { value });
 }
 // endregion | Helpers

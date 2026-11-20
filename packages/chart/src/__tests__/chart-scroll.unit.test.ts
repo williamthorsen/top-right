@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { findNearestScrollDelta, scrollIntoChartView } from '../chart-scroll.ts';
+import { findNearestScrollDelta, scrollIntoChartView, scrollIntoContainerView } from '../chart-scroll.ts';
 
 describe(scrollIntoChartView, () => {
   // A 100 × 100 list of 24px rows below 10px of padding, scaled by the zoom, in a chart that does not scroll.
@@ -27,6 +27,25 @@ describe(scrollIntoChartView, () => {
     expect(scrolled).toStrictEqual([]);
     expect(list.scrollBy).not.toHaveBeenCalled();
     expect(chart.scrollBy).not.toHaveBeenCalled();
+  });
+});
+
+describe(scrollIntoContainerView, () => {
+  it('scrolls the container alone, so that row 15 ends clear of its margin', () => {
+    const { chart, list, row } = buildChart(1, { rowIndex: 15, scrollMargin: 24 });
+
+    scrollIntoContainerView(row, list, 'instant');
+
+    expect(list.scrollBy).toHaveBeenCalledExactlyOnceWith({ top: 318, left: 0, behavior: 'instant' });
+    expect(chart.scrollBy).not.toHaveBeenCalled();
+  });
+
+  it('leaves a row that is already in view where it is', () => {
+    const { list, row } = buildChart(1, { rowIndex: 1, scrollMargin: 24 });
+
+    scrollIntoContainerView(row, list, 'instant');
+
+    expect(list.scrollBy).not.toHaveBeenCalled();
   });
 });
 
