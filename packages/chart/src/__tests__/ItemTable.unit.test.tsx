@@ -53,6 +53,23 @@ describe(ItemTable, () => {
     expect(scrollBy).toHaveBeenCalledExactlyOnceWith({ top: 124, left: 0, behavior: 'instant' });
   });
 
+  it("keeps the pane's sideways scroll when it scrolls a row that is wider than the pane into view", async () => {
+    const user = userEvent.setup();
+    renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: place(3, 3) });
+    // The pane shows 100px of a 300px table from 150px in, so the row starts 150px left of the view.
+    // eslint-disable-next-line testing-library/no-node-access -- the pane has no role to query.
+    const pane = document.querySelector<HTMLElement>('.tr-table-pane');
+    if (!pane) throw new Error('No table pane');
+    stubBox(pane, { top: 0, height: 100, scrollHeight: 1000, scrollWidth: 300, scrollLeft: 150 });
+    stubBox(getRow('Issue 1'), { top: 200, height: 24, left: -150, width: 300 });
+    const scrollBy = vi.fn();
+    Object.defineProperty(pane, 'scrollBy', { value: scrollBy });
+
+    await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+
+    expect(scrollBy).toHaveBeenCalledExactlyOnceWith({ top: 124, left: 0, behavior: 'instant' });
+  });
+
   it('shows urgency and value by their level names', () => {
     renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: place(3, 4) });
 
@@ -123,19 +140,36 @@ function listTitles(): string[] {
     .slice(1)
     .map((row) => within(row).getByRole('button').textContent);
 }
-/** Makes the element report a 100px-wide box at `top`, and a view that is its own height. */
+/** Makes the element report a box, 100px wide unless stated, and a view that is its own size. */
 function stubBox(
   element: HTMLElement,
-  { top, height, scrollHeight = height }: { top: number; height: number; scrollHeight?: number },
+  {
+    top,
+    height,
+    left = 0,
+    width = 100,
+    scrollHeight = height,
+    scrollWidth = width,
+    scrollLeft = 0,
+  }: {
+    top: number;
+    height: number;
+    left?: number;
+    width?: number;
+    scrollHeight?: number;
+    scrollWidth?: number;
+    scrollLeft?: number;
+  },
 ): void {
-  element.getBoundingClientRect = () => new DOMRect(0, top, 100, height);
+  element.getBoundingClientRect = () => new DOMRect(left, top, width, height);
   const values = {
-    offsetWidth: 100,
+    offsetWidth: width,
     offsetHeight: height,
-    clientWidth: 100,
+    clientWidth: width,
     clientHeight: height,
-    scrollWidth: 100,
+    scrollWidth,
     scrollHeight,
+    scrollLeft,
   };
   for (const [name, value] of Object.entries(values)) Object.defineProperty(element, name, { value });
 }

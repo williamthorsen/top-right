@@ -8,6 +8,9 @@ export function findNearestScrollDelta(start: number, end: number, viewStart: nu
   return end - viewEnd;
 }
 
+/** The axes along which a container scrolls an element into view. */
+export type ScrollAxes = 'both' | 'vertical';
+
 /**
  * Scrolls the element's gutter list, when it is in one, and then the chart's scroll container by the least movement
  * that brings the element into each one's view, honoring its scroll margin. It never scrolls the page: On a narrow
@@ -37,10 +40,16 @@ export function scrollIntoChartView(element: Element, chart: Element, behavior: 
 
 /**
  * Scrolls the container alone by the least movement that brings the element into its view, honoring its scroll margin,
- * so that neither the container's ancestors nor the page move.
+ * so that neither the container's ancestors nor the page move. Under `vertical`, the container keeps its horizontal
+ * offset, which an element wider than the view would otherwise reset to its start.
  */
-export function scrollIntoContainerView(element: Element, container: Element, behavior: ScrollBehavior): void {
-  scrollBoxIntoView(container, measureScrollBox(element), behavior);
+export function scrollIntoContainerView(
+  element: Element,
+  container: Element,
+  behavior: ScrollBehavior,
+  axes: ScrollAxes = 'both',
+): void {
+  scrollBoxIntoView(container, measureScrollBox(element), behavior, axes);
 }
 
 // region | Helpers
@@ -94,12 +103,13 @@ function measureScrollBox(element: Element): ScrollBox {
 
 /**
  * Scrolls the container so that the box, in viewport pixels, lies within its scrollport as far as its scroll range
- * allows, and returns the delta that it scrolls by, in viewport pixels.
+ * allows along the axes, and returns the delta that it scrolls by, in viewport pixels.
  */
 function scrollBoxIntoView(
   container: Element,
   box: ScrollBox,
   behavior: ScrollBehavior,
+  axes: ScrollAxes = 'both',
 ): { top: number; left: number } {
   const rect = container.getBoundingClientRect();
   const scale = measureScale(container, rect);
@@ -110,11 +120,14 @@ function scrollBoxIntoView(
     -container.scrollTop,
     container.scrollHeight - container.clientHeight - container.scrollTop,
   );
-  const left = clamp(
-    findNearestScrollDelta(box.left, box.right, viewLeft, viewLeft + container.clientWidth * scale.x) / scale.x,
-    -container.scrollLeft,
-    container.scrollWidth - container.clientWidth - container.scrollLeft,
-  );
+  const left =
+    axes === 'vertical'
+      ? 0
+      : clamp(
+          findNearestScrollDelta(box.left, box.right, viewLeft, viewLeft + container.clientWidth * scale.x) / scale.x,
+          -container.scrollLeft,
+          container.scrollWidth - container.clientWidth - container.scrollLeft,
+        );
   if (top !== 0 || left !== 0) container.scrollBy({ top, left, behavior });
   return { top: top * scale.y, left: left * scale.x };
 }

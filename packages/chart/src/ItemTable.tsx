@@ -69,11 +69,12 @@ export function ItemTable({
           typeNameOf: (item) => WORK_TYPE_NAMES[typeOf(item)],
         });
 
-  // Bring the selected row into view within the table's pane, whichever view selected it.
+  // Bring the selected row into view within the table's pane, whichever view selected it. Scroll vertically only, since
+  // the row spans the table's width and would otherwise reset a pane that the user scrolled sideways.
   useEffect(() => {
     const row = selectedRowRef.current;
     const pane = row?.closest('.tr-table-pane');
-    if (row && pane) scrollIntoContainerView(row, pane, 'instant');
+    if (row && pane) scrollIntoContainerView(row, pane, 'instant', 'vertical');
   }, [selectedKey]);
 
   /** Sorts by the column ascending, or toggles the direction when it is already the sorted column. */
