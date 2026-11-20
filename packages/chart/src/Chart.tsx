@@ -17,13 +17,14 @@ import {
 } from '@top-right/model';
 import { type ReactElement, useMemo, useRef, useState } from 'react';
 
-import { findCellCallouts } from './callout-layout.ts';
 import { ChartCanvas } from './ChartCanvas.tsx';
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
+import { focusItem } from './Edges.tsx';
 import { buildFocusView } from './focus-view.ts';
 import { Ghosts } from './Ghosts.tsx';
+import { arrangeHoverAids } from './hover-aids.ts';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
 import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
@@ -31,9 +32,11 @@ import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
 import { resolveScores } from './resolve-scores.ts';
+import { TITLE_LANE_WIDTH } from './title-lane.ts';
 import { listTrails } from './Trail.tsx';
 import { useCellHover } from './useCellHover.ts';
 import { useChainView } from './useChainView.ts';
+import { useHostSetting } from './useHostSetting.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
 import { usePan } from './usePan.ts';
@@ -93,6 +96,20 @@ export interface ChartProps {
   /** Reports a magnification that the author chose, which makes the magnification the host's to hold. */
   onMagnificationChange?: (magnification: number) => void;
   /**
+   * Whether the titles lane shows every scored item's title beside the matrix, read only while `onShowTitlesChange` is
+   * passed; off when undefined.
+   */
+  showTitles?: boolean | undefined;
+  /** Reports a change of the Titles switch, which makes its state the host's to hold. */
+  onShowTitlesChange?: (showTitles: boolean) => void;
+  /**
+   * Whether every row of the titles lane has a leader to its circle, read only while `onShowLinesChange` is passed; on
+   * when undefined.
+   */
+  showLines?: boolean | undefined;
+  /** Reports a change of the Lines switch, which makes its state the host's to hold. */
+  onShowLinesChange?: (showLines: boolean) => void;
+  /**
    * Reports the repositories that the filter shows, on mount and whenever they change, so that the host can read the
    * ones that it has not read; undefined stands for every repository.
    */
@@ -127,11 +144,17 @@ export function Chart({
   onSelectedKeyChange,
   magnification,
   onMagnificationChange,
+  showTitles: hostShowTitles,
+  onShowTitlesChange,
+  showLines: hostShowLines,
+  onShowLinesChange,
   onShownReposChange,
 }: ChartProps): ReactElement {
   const selection = useSelection({ selectedKey: hostSelectedKey, onSelectedKeyChange });
   const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
+  const [showTitles, setShowTitles] = useHostSetting(hostShowTitles, onShowTitlesChange, false);
+  const [showLines, setShowLines] = useHostSetting(hostShowLines, onShowLinesChange, true);
   const [scopeMode, setScopeMode] = useState<ScopeMode>('original');
   const [highlightedKey, setHighlightedKey] = useState<string>();
   const [highlightOwner, setHighlightOwner] = useState<string>();
@@ -166,6 +189,7 @@ export function Chart({
     keyRootRef: rootRef,
     magnification,
     onMagnificationChange,
+    reservedWidth: showTitles ? TITLE_LANE_WIDTH : 0,
   });
   const { cellSize } = zoom;
   const scale = zoom.magnification;
@@ -209,7 +233,24 @@ export function Chart({
     onSelect: pulse.fromMatrix(selection.push),
   });
   usePan({ scrollRef, isHoldingPress });
-  const callouts = findCellCallouts(cells, useCellHover({ scrollRef, svgRef, cellSize }), cellSize, zoom.spareWidth);
+  const relatedKeys = useMemo(() => focusItem(graph, selectedKey, false).related, [graph, selectedKey]);
+  const { hoveredCallouts, callouts, titleLayout } = arrangeHoverAids({
+    cells,
+    cellSize,
+    spareWidth: zoom.spareWidth,
+    hoveredCell: useCellHover({ scrollRef, svgRef, cellSize }),
+    showTitles,
+    selectedKey,
+    relatedKeys,
+  });
+  const titleLane = titleLayout && {
+    layout: titleLayout,
+    showsAllLeaders: showLines,
+    selectedKey,
+    hoveredKey: previewKey ?? highlightedKey,
+    onHighlight: setHighlightedKey,
+    onSelect: pulse.fromMatrix(selection.push),
+  };
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 
@@ -230,7 +271,15 @@ export function Chart({
   }
 
   const board = { itemsByKey, overrides, scopeMode, scores, shownRepos, visibleKeys };
-  const focusState = { graph, focusKey: shownKey, highlightedKey, showAllEdges, chainView, review, callouts };
+  const focusState = {
+    graph,
+    focusKey: shownKey,
+    highlightedKey,
+    showAllEdges,
+    chainView,
+    review,
+    callouts: hoveredCallouts,
+  };
   const { edges, ends, ghosts, ghostOwner, fadeOf } = buildFocusView(focusState, cells, board, cellSize);
   const ghostElements = (
     <Ghosts
@@ -262,6 +311,13 @@ export function Chart({
             review={chainView.review}
             scopeMode={scopeMode}
             showAllEdges={showAllEdges}
+            titles={{
+              isShown: showTitles,
+              onShownChange: setShowTitles,
+              hasLines: showLines,
+              onLinesChange: setShowLines,
+              hasRoom: titleLayout !== undefined,
+            }}
             zoom={zoom}
           />
           <div className="tr-split" ref={splitRef}>
@@ -269,6 +325,7 @@ export function Chart({
               <ChartCanvas
                 callouts={callouts}
                 cellSize={cellSize}
+                titleLane={titleLane}
                 pulse={pulse}
                 drag={drag}
                 edges={edges}

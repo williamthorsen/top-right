@@ -44,6 +44,11 @@ describe(fitCellSize, () => {
     expect(fitCellSize((FRAME.width + 5 * 40) * 2, (FRAME.height + 5 * 40) * 2, 2)).toBe(MIN_CELL_SIZE + 40);
   });
 
+  it('leaves the reserved width beside the matrix, never sizing a cell below the minimum for it', () => {
+    expect(fitCellSize(FRAME.width + 280 + 5 * 40, FRAME.height * 3, 1, 280)).toBe(MIN_CELL_SIZE + 40);
+    expect(fitCellSize(FRAME.width + 100, FRAME.height * 3, 1, 280)).toBe(MIN_CELL_SIZE);
+  });
+
   it('never sizes a cell below the minimum', () => {
     expect(fitCellSize(FRAME.width / 2, FRAME.height / 2, 1)).toBe(MIN_CELL_SIZE);
     expect(fitCellSize(FRAME.width * 1.5, FRAME.height * 1.5, 2)).toBe(MIN_CELL_SIZE);
