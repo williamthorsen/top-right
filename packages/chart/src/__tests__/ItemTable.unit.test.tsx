@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ItemTable } from '../ItemTable.tsx';
 import { buildItem, place, renderChart, REPO } from '../test-utils/chart-fixtures.tsx';
@@ -34,6 +34,40 @@ describe(ItemTable, () => {
     await user.click(within(getRow('Issue 1')).getByRole('link'));
 
     expect(getRow('Issue 1')).not.toHaveAttribute('aria-current');
+  });
+
+  it("scrolls the table's pane alone to the row of the circle that is selected on the chart", async () => {
+    const user = userEvent.setup();
+    renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: place(3, 3) });
+    // jsdom lays nothing out, so the pane and the row report a row 100px below the pane's 100px view.
+    // eslint-disable-next-line testing-library/no-node-access -- the pane has no role to query.
+    const pane = document.querySelector<HTMLElement>('.tr-table-pane');
+    if (!pane) throw new Error('No table pane');
+    stubBox(pane, { top: 0, height: 100, scrollHeight: 1000 });
+    stubBox(getRow('Issue 1'), { top: 200, height: 24 });
+    const scrollBy = vi.fn();
+    Object.defineProperty(pane, 'scrollBy', { value: scrollBy });
+
+    await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+
+    expect(scrollBy).toHaveBeenCalledExactlyOnceWith({ top: 124, left: 0, behavior: 'instant' });
+  });
+
+  it("keeps the pane's sideways scroll when it scrolls a row that is wider than the pane into view", async () => {
+    const user = userEvent.setup();
+    renderChart([buildItem({ number: 1 })], {}, { [`${REPO}#1`]: place(3, 3) });
+    // The pane shows 100px of a 300px table from 150px in, so the row starts 150px left of the view.
+    // eslint-disable-next-line testing-library/no-node-access -- the pane has no role to query.
+    const pane = document.querySelector<HTMLElement>('.tr-table-pane');
+    if (!pane) throw new Error('No table pane');
+    stubBox(pane, { top: 0, height: 100, scrollHeight: 1000, scrollWidth: 300, scrollLeft: 150 });
+    stubBox(getRow('Issue 1'), { top: 200, height: 24, left: -150, width: 300 });
+    const scrollBy = vi.fn();
+    Object.defineProperty(pane, 'scrollBy', { value: scrollBy });
+
+    await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+
+    expect(scrollBy).toHaveBeenCalledExactlyOnceWith({ top: 124, left: 0, behavior: 'instant' });
   });
 
   it('shows urgency and value by their level names', () => {
@@ -105,5 +139,38 @@ function listTitles(): string[] {
     .getAllByRole('row')
     .slice(1)
     .map((row) => within(row).getByRole('button').textContent);
+}
+/** Makes the element report a box, 100px wide unless stated, and a view that is its own size. */
+function stubBox(
+  element: HTMLElement,
+  {
+    top,
+    height,
+    left = 0,
+    width = 100,
+    scrollHeight = height,
+    scrollWidth = width,
+    scrollLeft = 0,
+  }: {
+    top: number;
+    height: number;
+    left?: number;
+    width?: number;
+    scrollHeight?: number;
+    scrollWidth?: number;
+    scrollLeft?: number;
+  },
+): void {
+  element.getBoundingClientRect = () => new DOMRect(left, top, width, height);
+  const values = {
+    offsetWidth: width,
+    offsetHeight: height,
+    clientWidth: width,
+    clientHeight: height,
+    scrollWidth,
+    scrollHeight,
+    scrollLeft,
+  };
+  for (const [name, value] of Object.entries(values)) Object.defineProperty(element, name, { value });
 }
 // endregion | Helpers

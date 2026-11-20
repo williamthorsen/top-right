@@ -8,9 +8,6 @@ import '@testing-library/jest-dom/vitest';
  * the DOM, the stubbed globals, storage, and the URL after each test.
  */
 export function setUpAppEnvironment(): void {
-  // jsdom does not implement scrolling, which the chart's table calls on each selection.
-  Element.prototype.scrollIntoView = () => {};
-
   // jsdom does not implement `ResizeObserver`, to which the chart's zoom subscribes; these tests do not resize the chart.
   // The stub is installed per test because `afterEach` unstubs every global.
   beforeEach(() => {

@@ -51,6 +51,7 @@
   background: var(--tr-bg);
   color: var(--tr-ink);
   font: 14px/1.45 var(--tr-font);
+  box-sizing: border-box;
   flex: 1 1 auto;
   height: 100%;
   min-height: 0;
