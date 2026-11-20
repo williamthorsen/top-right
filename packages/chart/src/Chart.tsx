@@ -21,10 +21,8 @@ import { ChartCanvas } from './ChartCanvas.tsx';
 import { ChartStrip } from './ChartStrip.tsx';
 import { choosePaneMode, DetailPane } from './DetailPane.tsx';
 import { Divider } from './Divider.tsx';
-import { focusItem } from './Edges.tsx';
 import { buildFocusView } from './focus-view.ts';
 import { Ghosts } from './Ghosts.tsx';
-import { arrangeHoverAids } from './hover-aids.ts';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
 import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
@@ -34,9 +32,7 @@ import type { ChartRefresh } from './RefreshControl.tsx';
 import { resolveScores } from './resolve-scores.ts';
 import { TITLE_LANE_WIDTH } from './title-lane.ts';
 import { listTrails } from './Trail.tsx';
-import { useCellHover } from './useCellHover.ts';
 import { useChainView } from './useChainView.ts';
-import { useHeldCell } from './useHeldCell.ts';
 import { useHostSetting } from './useHostSetting.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
@@ -46,6 +42,7 @@ import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
 import { useSelectionScroll } from './useSelectionScroll.ts';
 import { useShownReposReport } from './useShownReposReport.ts';
+import { useTitleLane } from './useTitleLane.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
 import { useZoom } from './useZoom.ts';
 
@@ -234,33 +231,20 @@ export function Chart({
     onSelect: pulse.fromMatrix(selection.push),
   });
   usePan({ scrollRef, isHoldingPress });
-  const relatedKeys = useMemo(() => focusItem(graph, selectedKey, false).related, [graph, selectedKey]);
-  const hoveredCell = useCellHover({ scrollRef, svgRef, cellSize });
-  const [isOverLane, setIsOverLane] = useState(false);
-  const circledCell = cells.find(
-    (cell) => !cell.isGutter && cell.circles.length > 0 && cell.u === hoveredCell?.u && cell.v === hoveredCell.v,
-  );
-  const { hoveredCallouts, callouts, titleLayout } = arrangeHoverAids({
+  const { hoveredCallouts, callouts, titleLane } = useTitleLane({
+    scrollRef,
+    svgRef,
     cells,
     cellSize,
     spareWidth: zoom.spareWidth,
-    hoveredCell,
-    narrowingCell: useHeldCell(circledCell, isOverLane),
+    graph,
     showTitles,
-    selectedKey,
-    relatedKeys,
-  });
-  // A lane that unmounts under the pointer reports no pointer-leave, so its hold ends with it.
-  if (isOverLane && !titleLayout) setIsOverLane(false);
-  const titleLane = titleLayout && {
-    layout: titleLayout,
-    showsAllLeaders: showLines,
+    showLines,
     selectedKey,
     hoveredKey: previewKey ?? highlightedKey,
     onHighlight: setHighlightedKey,
     onSelect: pulse.fromMatrix(selection.push),
-    onPointerOverChange: setIsOverLane,
-  };
+  });
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 
@@ -326,7 +310,7 @@ export function Chart({
               onShownChange: setShowTitles,
               hasLines: showLines,
               onLinesChange: setShowLines,
-              hasRoom: titleLayout !== undefined,
+              hasRoom: titleLane !== undefined,
             }}
             zoom={zoom}
           />
