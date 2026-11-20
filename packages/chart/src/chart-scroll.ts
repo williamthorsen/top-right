@@ -59,13 +59,23 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
+ * Returns how many viewport pixels one layout pixel spans along one axis. A layout size is rounded to a whole pixel, so
+ * a difference of less than a pixel is rounding rather than scaling, which would otherwise grow with the distance
+ * scrolled.
+ */
+function measureAxisScale(viewportSize: number, layoutSize: number): number {
+  if (layoutSize <= 0 || Math.abs(viewportSize - layoutSize) < 1) return 1;
+  return viewportSize / layoutSize;
+}
+
+/**
  * Returns how many viewport pixels one of the element's layout pixels spans on each axis, or 1 where it cannot tell.
  */
 function measureScale(element: Element, rect: DOMRect): { x: number; y: number } {
   if (!(element instanceof HTMLElement)) return { x: 1, y: 1 };
   return {
-    x: element.offsetWidth > 0 ? rect.width / element.offsetWidth : 1,
-    y: element.offsetHeight > 0 ? rect.height / element.offsetHeight : 1,
+    x: measureAxisScale(rect.width, element.offsetWidth),
+    y: measureAxisScale(rect.height, element.offsetHeight),
   };
 }
 

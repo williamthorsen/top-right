@@ -40,6 +40,26 @@ describe(scrollIntoContainerView, () => {
     expect(chart.scrollBy).not.toHaveBeenCalled();
   });
 
+  it("scrolls by the full distance when the container's height is fractional", () => {
+    const pane = document.createElement('div');
+    const row = document.createElement('div');
+    pane.append(row);
+    document.body.append(pane);
+    // The browser rounds the pane's 206.5px layout height to 206 in `offsetHeight`, which is not a scale.
+    stubGeometry(pane, {
+      rect: { top: 0, left: 0, width: 400, height: 206.5 },
+      offset: { width: 400, height: 206 },
+      client: { width: 400, height: 204 },
+      scroll: { width: 400, height: 20_000 },
+    });
+    stubGeometry(row, { rect: { top: 2630, left: 0, width: 400, height: 74 }, offset: { width: 400, height: 74 } });
+
+    scrollIntoContainerView(row, pane, 'instant');
+
+    // The row ends at 2704, which a scroll of 2500 brings to the pane's 204px view.
+    expect(pane.scrollBy).toHaveBeenCalledExactlyOnceWith({ top: 2500, left: 0, behavior: 'instant' });
+  });
+
   it('leaves a row that is already in view where it is', () => {
     const { list, row } = buildChart(1, { rowIndex: 1, scrollMargin: 24 });
 
