@@ -335,7 +335,7 @@
   stroke-width: 1;
 }
 
-/* Like the callout layer, in chart units; only its item rows take the pointer. */
+/* Like the callout layer, in chart units; only the lane takes the pointer. */
 .tr-title-lane-layer {
   position: absolute;
   top: 0;
@@ -345,11 +345,13 @@
   transform-origin: 0 0;
 }
 
+/* The whole lane takes the pointer, so that a move onto it keeps the cell to which it narrows. */
 .tr-title-lane {
   position: absolute;
   margin: 0;
   padding: 0;
   list-style: none;
+  pointer-events: auto;
 }
 
 /* `CALLOUT_PITCH` in callout-layout.ts matches each row's height. */

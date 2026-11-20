@@ -36,6 +36,7 @@ import { TITLE_LANE_WIDTH } from './title-lane.ts';
 import { listTrails } from './Trail.tsx';
 import { useCellHover } from './useCellHover.ts';
 import { useChainView } from './useChainView.ts';
+import { useHeldCell } from './useHeldCell.ts';
 import { useHostSetting } from './useHostSetting.ts';
 import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
@@ -234,11 +235,17 @@ export function Chart({
   });
   usePan({ scrollRef, isHoldingPress });
   const relatedKeys = useMemo(() => focusItem(graph, selectedKey, false).related, [graph, selectedKey]);
+  const hoveredCell = useCellHover({ scrollRef, svgRef, cellSize });
+  const [isOverLane, setIsOverLane] = useState(false);
+  const circledCell = cells.find(
+    (cell) => !cell.isGutter && cell.circles.length > 0 && cell.u === hoveredCell?.u && cell.v === hoveredCell.v,
+  );
   const { hoveredCallouts, callouts, titleLayout } = arrangeHoverAids({
     cells,
     cellSize,
     spareWidth: zoom.spareWidth,
-    hoveredCell: useCellHover({ scrollRef, svgRef, cellSize }),
+    hoveredCell,
+    narrowingCell: useHeldCell(circledCell, isOverLane),
     showTitles,
     selectedKey,
     relatedKeys,
@@ -250,6 +257,7 @@ export function Chart({
     hoveredKey: previewKey ?? highlightedKey,
     onHighlight: setHighlightedKey,
     onSelect: pulse.fromMatrix(selection.push),
+    onPointerOverChange: setIsOverLane,
   };
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);

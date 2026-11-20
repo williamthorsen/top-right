@@ -8,6 +8,7 @@ import { GRID_SIZE, MIN_CELL_SIZE } from '../layout.ts';
 import { buildItem, place, REPO } from '../test-utils/chart-fixtures.tsx';
 import { reportResize } from '../test-utils/resize-observer.ts';
 import { CALLOUT_DWELL } from '../useCellHover.ts';
+import { NARROW_HOLD } from '../useHeldCell.ts';
 
 /** The chart's size in chart units at the smallest cell, which the mocked SVG box draws at 1×. */
 const FRAME = measureFrame(MIN_CELL_SIZE);
@@ -106,11 +107,19 @@ describe('Chart titles lane', () => {
     expect(listLane()).toStrictEqual(['Medium urgency · Nice to have', 'T.1First issue', 'T.2Second issue']);
     expect(listCallouts()).toStrictEqual([]);
 
-    fireEvent.pointerMove(getRow('First issue'), MOUSE);
-    elapse(CALLOUT_DWELL);
+    // Cross another cell on the way to the lane, which ends the cell's hover.
+    hoverCorner(4, 2);
+    elapse(NARROW_HOLD - 50);
     expect(listLane()).toHaveLength(3);
 
+    fireEvent.pointerEnter(getLane(), MOUSE);
+    fireEvent.pointerMove(getRow('First issue'), MOUSE);
+    elapse(NARROW_HOLD);
+    expect(listLane()).toHaveLength(3);
+
+    fireEvent.pointerLeave(getLane(), MOUSE);
     fireEvent.pointerLeave(getScroll(), MOUSE);
+    elapse(NARROW_HOLD);
     expect(listLane()).toHaveLength(5);
   });
 
@@ -188,6 +197,14 @@ function elapse(milliseconds: number): void {
 
 function getCircle(number: number): HTMLElement {
   return screen.getByRole('button', { name: new RegExp(String.raw`^T\.${number}:`) });
+}
+
+/** Returns the titles lane, which is hidden from the accessibility tree. */
+function getLane(): HTMLElement {
+  // eslint-disable-next-line testing-library/no-node-access -- the lane is aria-hidden and has no role to query.
+  const lane = document.querySelector<HTMLElement>('.tr-title-lane');
+  if (!lane) throw new Error('The chart shows no titles lane');
+  return lane;
 }
 
 /** Returns a lane row's button, which is hidden from the accessibility tree. */

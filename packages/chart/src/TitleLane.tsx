@@ -14,6 +14,8 @@ export interface TitleLaneView {
   hoveredKey: string | undefined;
   onHighlight: (key: string | undefined) => void;
   onSelect: (key: string) => void;
+  /** Reports whether the pointer is over the lane, which holds the cell to which the lane narrows. */
+  onPointerOverChange: (isOver: boolean) => void;
 }
 
 /**
@@ -33,9 +35,14 @@ export function TitleLane({
   /** Where the matrix's origin sits in the layer. */
   origin: { x: number; y: number };
 }): ReactElement {
-  const { layout, selectedKey, hoveredKey, onHighlight, onSelect } = view;
+  const { layout, selectedKey, hoveredKey, onHighlight, onSelect, onPointerOverChange } = view;
   return (
-    <ol className="tr-title-lane" style={{ left: origin.x + layout.x, top: origin.y, width: layout.width }}>
+    <ol
+      className="tr-title-lane"
+      onPointerEnter={() => onPointerOverChange(true)}
+      onPointerLeave={() => onPointerOverChange(false)}
+      style={{ left: origin.x + layout.x, top: origin.y, width: layout.width, height: layout.height }}
+    >
       {layout.rows.map((row) => {
         const style = { top: row.y - CALLOUT_PITCH / 2 };
         if (row.kind === 'heading') {

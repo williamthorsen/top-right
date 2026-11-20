@@ -29,6 +29,7 @@ export type TitleRow =
 export interface TitleLaneLayout {
   x: number;
   width: number;
+  height: number;
   rows: TitleRow[];
 }
 
@@ -98,7 +99,7 @@ export function layoutTitleLane(options: TitleLaneOptions): TitleLaneLayout | un
     if (count > 0) addRow({ kind: 'more', key: `more-${u}`, count });
   }
 
-  return { x: matrixSize + MARGIN_RIGHT + CALLOUT_GAP, width, rows };
+  return { x: matrixSize + MARGIN_RIGHT + CALLOUT_GAP, width, height: matrixSize, rows };
 }
 
 // region | Helpers
