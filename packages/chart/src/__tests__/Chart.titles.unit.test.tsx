@@ -97,6 +97,31 @@ describe('Chart titles lane', () => {
     expect(listLeaders()).toStrictEqual([]);
   });
 
+  it('draws the leader of a hovered circle with Lines off', () => {
+    renderTitlesHost();
+    fireEvent.click(getSwitch('Titles'));
+    fireEvent.click(getSwitch('Lines'));
+
+    fireEvent.pointerEnter(getCircle(3), MOUSE);
+
+    expect(listLeaders()).toStrictEqual(['hovered']);
+  });
+
+  it('releases the hold of a lane that hides under the pointer', () => {
+    renderTitlesHost();
+    fireEvent.click(getSwitch('Titles'));
+    hoverCorner(2, 2);
+    elapse(CALLOUT_DWELL);
+    hoverCorner(4, 2);
+    fireEvent.pointerEnter(getLane(), MOUSE);
+
+    resizeArea(NARROW);
+    elapse(NARROW_HOLD);
+    resizeArea(WIDE);
+
+    expect(listLane()).toHaveLength(5);
+  });
+
   it('narrows the lane to a rested cell in place of its callouts until the pointer leaves both', () => {
     renderTitlesHost();
     fireEvent.click(getSwitch('Titles'));
@@ -254,15 +279,20 @@ function listLeaders(): string[] {
   );
 }
 
-/** Renders the chart in a chart area `areaWidth` wide, and gives the SVG a 1× box at the viewport's origin. */
-function renderTitlesHost(areaWidth = WIDE): void {
-  render(<Chart abbreviations={{}} items={ITEMS} scores={SCORES} />);
+/** Resizes the chart area to `areaWidth` at the frame's height. */
+function resizeArea(areaWidth: number): void {
   const scroll = getScroll();
   Object.defineProperties(scroll, {
     clientWidth: { configurable: true, value: areaWidth },
     clientHeight: { configurable: true, value: FRAME.height },
   });
   act(() => reportResize(scroll));
+}
+
+/** Renders the chart in a chart area `areaWidth` wide, and gives the SVG a 1× box at the viewport's origin. */
+function renderTitlesHost(areaWidth = WIDE): void {
+  render(<Chart abbreviations={{}} items={ITEMS} scores={SCORES} />);
+  resizeArea(areaWidth);
   getSvg().getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: FRAME.width, height: FRAME.height });
 }
 // endregion | Helpers

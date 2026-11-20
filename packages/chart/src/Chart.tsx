@@ -250,6 +250,8 @@ export function Chart({
     selectedKey,
     relatedKeys,
   });
+  // A lane that unmounts under the pointer reports no pointer-leave, so its hold ends with it.
+  if (isOverLane && !titleLayout) setIsOverLane(false);
   const titleLane = titleLayout && {
     layout: titleLayout,
     showsAllLeaders: showLines,
