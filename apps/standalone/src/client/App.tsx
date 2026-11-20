@@ -27,6 +27,7 @@ import { findOldestRead, listStaleRepos } from './repo-reads.ts';
 import { clearFailureOf, type Failure } from './request-failure.ts';
 import { useAgentPanel } from './useAgentPanel.tsx';
 import { useStoredMagnification } from './useStoredMagnification.ts';
+import { SHOW_LINES_KEY, SHOW_TITLES_KEY, useStoredSwitch } from './useStoredSwitch.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
 
 /** The dimensions whose scores the host keeps in an issue's labels. */
@@ -48,6 +49,8 @@ export function App(): ReactElement {
   const [shownRepos, setShownRepos] = useState<ReadonlySet<string>>();
   const [selectedKey, changeSelectedKey] = useUrlSelection();
   const [magnification, changeMagnification] = useStoredMagnification();
+  const [showTitles, changeShowTitles] = useStoredSwitch(SHOW_TITLES_KEY, false);
+  const [showLines, changeShowLines] = useStoredSwitch(SHOW_LINES_KEY, true);
   const agentPanel = useAgentPanel(state.kind === 'loaded' ? state.data : undefined, setScores, changeSelectedKey);
   // Writes for one item run in order, so that a late response cannot overwrite a newer change.
   const writeQueues = useRef(new Map<string, Promise<void>>());
@@ -297,6 +300,8 @@ export function App(): ReactElement {
           onScoresChange={changeScores}
           onScoresClear={clearScores}
           onSelectedKeyChange={changeSelectedKey}
+          onShowLinesChange={changeShowLines}
+          onShowTitlesChange={changeShowTitles}
           onShownReposChange={followShownRepos}
           onStatusChange={(itemKey, status) => {
             const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
@@ -311,6 +316,8 @@ export function App(): ReactElement {
           scoreLabelMapping={data.scoreLabelMapping}
           scores={scores}
           selectedKey={selectedKey}
+          showLines={showLines}
+          showTitles={showTitles}
           settingsHref={buildSettingsHref(selectedKey)}
           workTypeMapping={data.workTypeMapping}
         />

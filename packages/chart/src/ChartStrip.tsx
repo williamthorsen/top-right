@@ -20,9 +20,19 @@ export interface ChartStripProps {
   review: Review;
   showAllEdges: boolean;
   onShowAllEdgesChange: (showAllEdges: boolean) => void;
+  titles: StripTitles;
   scopeMode: ScopeMode;
   onScopeModeChange: (scopeMode: ScopeMode) => void;
   zoom: ZoomState;
+}
+
+/** The titles lane's switches, and whether the chart area has room for the lane. */
+export interface StripTitles {
+  isShown: boolean;
+  onShownChange: (isShown: boolean) => void;
+  hasLines: boolean;
+  onLinesChange: (hasLines: boolean) => void;
+  hasRoom: boolean;
 }
 
 /** The scope modes that the strip offers, in display order. */
@@ -32,8 +42,8 @@ const SCOPE_OPTIONS: ReadonlyArray<SegmentOption<ScopeMode>> = [
 ];
 
 /**
- * The strip above the chart: the filter, the review controls, the view controls with the zoom control and the More
- * menu, the shown chain's status, and, at its end, the items' read time with Refresh.
+ * The strip above the chart: the filter, the review controls, the view controls with the titles switches, the zoom
+ * control, and the More menu, the shown chain's status, and, at its end, the items' read time with Refresh.
  */
 export function ChartStrip({
   chainView,
@@ -42,6 +52,7 @@ export function ChartStrip({
   review,
   showAllEdges,
   onShowAllEdgesChange,
+  titles,
   scopeMode,
   onScopeModeChange,
   zoom,
@@ -60,6 +71,15 @@ export function ChartStrip({
         <Switch isChecked={showAllEdges} onChange={onShowAllEdgesChange}>
           All edges
         </Switch>
+        <Switch isChecked={titles.isShown} onChange={titles.onShownChange}>
+          Titles
+        </Switch>
+        <Switch isChecked={titles.hasLines} isDisabled={!titles.isShown} onChange={titles.onLinesChange}>
+          Lines
+        </Switch>
+        {titles.isShown && !titles.hasRoom ? (
+          <span className="tr-strip-note">No room for titles: widen the window or zoom out</span>
+        ) : null}
         <span className="tr-scope">
           <span aria-hidden="true" className="tr-scope-label">
             Scope

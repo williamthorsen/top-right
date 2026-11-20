@@ -23,7 +23,8 @@ export interface HoveredCell {
 /**
  * Returns the cell on which a mouse or pen has rested for `CALLOUT_DWELL`, on an empty spot of a scored cell or
  * anywhere in a gutter cell, its rows included: Each move restarts the wait until the cell shows, and a later move
- * within the cell keeps it. A circle, a ghost, a press, or the pointer's leaving clears it at once.
+ * within the cell keeps it, as does a move or a press over the titles lane. A circle, a ghost, a press, or the
+ * pointer's leaving clears it at once.
  */
 export function useCellHover({ scrollRef, svgRef, cellSize }: CellHoverOptions): HoveredCell | undefined {
   const [hovered, setHovered] = useState<HoveredCell>();
@@ -48,7 +49,7 @@ export function useCellHover({ scrollRef, svgRef, cellSize }: CellHoverOptions):
     }
 
     function handlePointerMove(event: PointerEvent): void {
-      if (event.pointerType === 'touch') return;
+      if (event.pointerType === 'touch' || isOverTitleLane(event)) return;
       const cell = event.buttons === 0 ? findHoveredCell(event) : undefined;
       if (cell?.u !== pending?.u || cell?.v !== pending?.v) clear();
       else if (isShown) return;
@@ -62,16 +63,27 @@ export function useCellHover({ scrollRef, svgRef, cellSize }: CellHoverOptions):
       }
     }
 
+    function handlePointerDown(event: PointerEvent): void {
+      if (!isOverTitleLane(event)) clear();
+    }
+
     container.addEventListener('pointermove', handlePointerMove);
-    container.addEventListener('pointerdown', clear);
+    container.addEventListener('pointerdown', handlePointerDown);
     container.addEventListener('pointerleave', clear);
     return () => {
       clearTimeout(timer);
       container.removeEventListener('pointermove', handlePointerMove);
-      container.removeEventListener('pointerdown', clear);
+      container.removeEventListener('pointerdown', handlePointerDown);
       container.removeEventListener('pointerleave', clear);
     };
   }, [scrollRef]);
 
   return hovered;
 }
+
+// region | Helpers
+/** Returns whether a pointer event is over the titles lane, which keeps the cell to which the lane narrows. */
+function isOverTitleLane(event: PointerEvent): boolean {
+  return event.target instanceof Element && event.target.closest('.tr-title-lane') !== null;
+}
+// endregion | Helpers

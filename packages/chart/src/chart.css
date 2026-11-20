@@ -247,6 +247,11 @@
   margin: auto;
 }
 
+/* The titles lane takes the room right of the matrix, so the matrix keeps to the area's left edge. */
+.tr-chart-scroll[data-titles='true'] .tr-canvas {
+  margin-left: 0;
+}
+
 .tr-chart {
   display: block;
   width: 100%;
@@ -274,6 +279,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  /* The titles lane's leaders end past the frame's edge. */
+  overflow: visible;
   pointer-events: none;
 }
 
@@ -326,6 +333,101 @@
 .tr-callout-leaders line {
   stroke: var(--tr-axis);
   stroke-width: 1;
+}
+
+/* Like the callout layer, in chart units; only the lane takes the pointer. */
+.tr-title-lane-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: var(--tr-font);
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+/* The whole lane takes the pointer, so that a move onto it keeps the cell to which it narrows. */
+.tr-title-lane {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: auto;
+}
+
+/* `CALLOUT_PITCH` in callout-layout.ts matches each row's height. */
+.tr-title-lane > li {
+  position: absolute;
+  left: 0;
+  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+  height: 17px;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tr-title {
+  overflow: hidden;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tr-ink);
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.tr-title:hover,
+.tr-title[data-hovered='true'] {
+  color: var(--tr-accent);
+}
+
+.tr-title[data-selected='true'] .tr-title-id {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tr-title-id {
+  margin-right: 6px;
+  font-family: var(--tr-mono);
+  font-weight: 600;
+}
+
+.tr-title-heading {
+  color: var(--tr-accent);
+  font-weight: 700;
+}
+
+.tr-title-more {
+  color: var(--tr-ink-2);
+}
+
+.tr-title-leaders line {
+  stroke: var(--tr-axis);
+  stroke-width: 1;
+}
+
+.tr-title-leaders line[data-state='selected'] {
+  stroke: var(--tr-ink);
+  stroke-width: 1.5;
+}
+
+.tr-title-leaders line[data-state='hovered'] {
+  stroke: var(--tr-accent);
+  stroke-width: 1.5;
+}
+
+.tr-strip-note {
+  color: var(--tr-ink-2);
+  font-size: 12px;
 }
 
 .tr-cell-hover {
@@ -749,8 +851,13 @@
   cursor: pointer;
 }
 
-.tr-switch:hover {
+.tr-switch:not(:disabled):hover {
   background: var(--tr-surface-2);
+}
+
+.tr-switch:disabled {
+  color: var(--tr-ink-2);
+  cursor: default;
 }
 
 .tr-switch-track {
@@ -765,7 +872,7 @@
   background: var(--tr-surface);
 }
 
-.tr-switch:hover .tr-switch-track {
+.tr-switch:not(:disabled):hover .tr-switch-track {
   border-color: var(--tr-ink);
 }
 

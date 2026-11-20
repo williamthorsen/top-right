@@ -12,6 +12,8 @@ export interface ZoomOptions {
   /** The host's magnification, read only while `onMagnificationChange` is passed; the natural size when undefined. */
   magnification?: number | undefined;
   onMagnificationChange?: ((magnification: number) => void) | undefined;
+  /** The width, in chart units, that the fit leaves beside the matrix. */
+  reservedWidth?: number | undefined;
 }
 
 export interface ZoomState {
@@ -55,6 +57,7 @@ export function useZoom({
   keyRootRef,
   magnification: hostMagnification,
   onMagnificationChange,
+  reservedWidth = 0,
 }: ZoomOptions): ZoomState {
   const [ownMagnification, setOwnMagnification] = useState(NATURAL_SCALE);
   const [area, setArea] = useState({ width: 0, height: 0 });
@@ -223,7 +226,7 @@ export function useZoom({
     };
   }, [scrollRef]);
 
-  const cellSize = fitCellSize(area.width, area.height, magnification);
+  const cellSize = fitCellSize(area.width, area.height, magnification, reservedWidth);
   return {
     magnification,
     cellSize,

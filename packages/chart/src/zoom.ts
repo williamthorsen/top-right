@@ -13,11 +13,11 @@ const MAX_STEP = 4;
 
 /**
  * Returns the largest whole cell size, in chart units, at which the matrix and its axis margins fit an area at
- * `magnification`, and never less than `MIN_CELL_SIZE`.
+ * `magnification` beside `reservedWidth` chart units, and never less than `MIN_CELL_SIZE`.
  */
-export function fitCellSize(areaWidth: number, areaHeight: number, magnification: number): number {
+export function fitCellSize(areaWidth: number, areaHeight: number, magnification: number, reservedWidth = 0): number {
   if (areaWidth <= 0 || areaHeight <= 0 || magnification <= 0) return MIN_CELL_SIZE;
-  const byWidth = (areaWidth / magnification - MARGIN_LEFT - MARGIN_RIGHT) / GRID_SIZE;
+  const byWidth = (areaWidth / magnification - reservedWidth - MARGIN_LEFT - MARGIN_RIGHT) / GRID_SIZE;
   const byHeight = (areaHeight / magnification - MARGIN_TOP - AXIS_HEIGHT) / GRID_SIZE;
   // The tolerance keeps an area of exactly a whole cell size from rounding down a unit through float error.
   return Math.max(MIN_CELL_SIZE, Math.floor(Math.min(byWidth, byHeight) + 1e-9));
