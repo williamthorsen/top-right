@@ -183,7 +183,7 @@ describe(runCli, () => {
     expect(run.stderr).toContain(message);
   });
 
-  it.each([
+  it.each<{ case: string; error: Error }>([
     { case: 'the host context fails to open', error: new StartupError('No GitHub token found.') },
     { case: 'the issues fail to load', error: new GitHubAdapterError('rate limited') },
   ])('reports and exits 1 when $case', async ({ error }) => {
