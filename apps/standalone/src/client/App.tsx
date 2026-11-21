@@ -1,37 +1,20 @@
-import { Chart, type SettableStatus } from '@top-right/chart';
-import {
-  applyScoreWrite,
-  clearScoreFields,
-  formatItemKey,
-  type ItemPatch,
-  type ItemScores,
-  keepItemScores,
-  type LabelDimension,
-  parseItemKey,
-  removeDimensionLabels,
-  type ScoreField,
-  type Scores,
-  type StatusOverride,
-  type WorkItem,
-} from '@top-right/model';
+import { Chart } from '@top-right/chart';
+import { formatItemKey, type ItemPatch, type WorkItem } from '@top-right/model';
 import { type ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 
 import { type ItemsResponse, itemsResponseSchema, repoReadsResponseSchema } from '#src/shared/items-response.ts';
-import { scoresResponseSchema, statusPatchSchema, statusResponseSchema } from '#src/shared/write-requests.ts';
 
 import { AppHeader } from './AppHeader.tsx';
-import { describeRequestError, getJson, HostResponseError, postJson } from './host-requests.ts';
+import { describeRequestError, getJson, postJson } from './host-requests.ts';
 import { buildChartHref, buildSettingsHref, readUrlItem } from './page-hrefs.ts';
 import { PageAlerts } from './PageAlerts.tsx';
 import { findOldestRead, listStaleRepos } from './repo-reads.ts';
 import { clearFailureOf, type Failure } from './request-failure.ts';
 import { useAgentPanel } from './useAgentPanel.tsx';
+import { useItemWrites } from './useItemWrites.ts';
 import { useStoredMagnification } from './useStoredMagnification.ts';
 import { SHOW_LINES_KEY, SHOW_TITLES_KEY, useStoredSwitch } from './useStoredSwitch.ts';
 import { useUrlSelection } from './useUrlSelection.ts';
-
-/** The dimensions whose scores the host keeps in an issue's labels. */
-const LABEL_DIMENSIONS: readonly LabelDimension[] = ['urgency', 'value', 'effort'];
 
 /**
  * The page: the chart of the configured repositories' open issues, whose scores and status it writes to the host, with
@@ -42,8 +25,6 @@ export function App(): ReactElement {
   // How the page asks the host for repositories' issues: from its last reads, or read afresh.
   type ReadPath = '/api/items/read' | '/api/items/refresh';
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
-  const [scores, setScores] = useState<Record<string, ItemScores>>({});
-  const [overrides, setOverrides] = useState<Record<string, StatusOverride>>({});
   const [failure, setFailure] = useState<Failure>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [shownRepos, setShownRepos] = useState<ReadonlySet<string>>();
@@ -51,58 +32,60 @@ export function App(): ReactElement {
   const [magnification, changeMagnification] = useStoredMagnification();
   const [showTitles, changeShowTitles] = useStoredSwitch(SHOW_TITLES_KEY, false);
   const [showLines, changeShowLines] = useStoredSwitch(SHOW_LINES_KEY, true);
-  const agentPanel = useAgentPanel(state.kind === 'loaded' ? state.data : undefined, setScores, changeSelectedKey);
-  // Writes for one item run in order, so that a late response cannot overwrite a newer change.
-  const writeQueues = useRef(new Map<string, Promise<void>>());
+  const patchItems = useCallback((patches: ReadonlyMap<string, ItemPatch>) => {
+    setState((current) =>
+      current.kind === 'loaded'
+        ? { ...current, data: { ...current.data, items: applyPatches(current.data.items, patches) } }
+        : current,
+    );
+  }, []);
+  const loaded = state.kind === 'loaded' ? state.data : undefined;
+  const writes = useItemWrites(loaded, patchItems, setFailure);
+  const { scores, setScores, overrides, setOverrides, countWrites, takeNewerPatches } = writes;
+  const agentPanel = useAgentPanel(loaded, setScores, changeSelectedKey);
   // The repositories that a read or a refresh is fetching, which a second request for them skips.
   const reposInFlight = useRef(new Set<string>());
   // The repositories that the chart showed when it last reported, so that a report asks only for the newly shown ones.
   const lastShown = useRef<ReadonlySet<string>>(new Set());
-  // A refresh answered after a write at the source may have read the issues before it, so the client re-applies newer
-  // writes.
-  const itemWrites = useRef(new Map<string, { patch: ItemPatch; sequence: number }>());
-  const itemWriteCount = useRef(0);
 
   // Replaces only the issues of the requested repositories, so that a read cannot overwrite a score or status write in
   // progress, and returns the repositories whose answered read is stale.
-  const readRepos = useCallback(async (path: ReadPath, requested: readonly string[]): Promise<string[]> => {
-    const repos = requested.filter((repo) => !reposInFlight.current.has(repo));
-    if (repos.length === 0) return [];
-    for (const repo of repos) reposInFlight.current.add(repo);
-    setIsRefreshing(true);
-    const startedAfter = itemWriteCount.current;
-    try {
-      const answer = await postJson(path, { repos }, repoReadsResponseSchema);
-      const readRepoSet = new Set(repos);
-      const newer = new Map<string, ItemPatch>();
-      for (const [itemKey, write] of itemWrites.current) {
-        if (write.sequence > startedAfter) newer.set(itemKey, write.patch);
-        else if (readRepoSet.has(parseItemKey(itemKey)?.repo ?? '')) itemWrites.current.delete(itemKey);
+  const readRepos = useCallback(
+    async (path: ReadPath, requested: readonly string[]): Promise<string[]> => {
+      const repos = requested.filter((repo) => !reposInFlight.current.has(repo));
+      if (repos.length === 0) return [];
+      for (const repo of repos) reposInFlight.current.add(repo);
+      setIsRefreshing(true);
+      const startedAfter = countWrites();
+      try {
+        const answer = await postJson(path, { repos }, repoReadsResponseSchema);
+        const readRepoSet = new Set(repos);
+        const items = applyPatches(answer.items, takeNewerPatches(startedAfter, readRepoSet));
+        setState((current) =>
+          current.kind === 'loaded'
+            ? {
+                ...current,
+                data: {
+                  ...current.data,
+                  items: [...current.data.items.filter((item) => !readRepoSet.has(item.repo)), ...items],
+                  reads: { ...current.data.reads, ...answer.reads },
+                },
+              }
+            : current,
+        );
+        setFailure(clearFailureOf('read'));
+        return listStaleRepos(answer.reads);
+      } catch (error) {
+        const verb = path === '/api/items/read' ? 'read' : 'refreshed';
+        setFailure({ kind: 'read', message: `Issues not ${verb}: ${endSentence(describeRequestError(error))}` });
+        return [];
+      } finally {
+        for (const repo of repos) reposInFlight.current.delete(repo);
+        setIsRefreshing(reposInFlight.current.size > 0);
       }
-      const items = applyPatches(answer.items, newer);
-      setState((current) =>
-        current.kind === 'loaded'
-          ? {
-              ...current,
-              data: {
-                ...current.data,
-                items: [...current.data.items.filter((item) => !readRepoSet.has(item.repo)), ...items],
-                reads: { ...current.data.reads, ...answer.reads },
-              },
-            }
-          : current,
-      );
-      setFailure(clearFailureOf('read'));
-      return listStaleRepos(answer.reads);
-    } catch (error) {
-      const verb = path === '/api/items/read' ? 'read' : 'refreshed';
-      setFailure({ kind: 'read', message: `Issues not ${verb}: ${endSentence(describeRequestError(error))}` });
-      return [];
-    } finally {
-      for (const repo of repos) reposInFlight.current.delete(repo);
-      setIsRefreshing(reposInFlight.current.size > 0);
-    }
-  }, []);
+    },
+    [countWrites, takeNewerPatches],
+  );
 
   useEffect(() => {
     void (async () => {
@@ -119,7 +102,7 @@ export function App(): ReactElement {
         setState({ kind: 'error', message: describeRequestError(error) });
       }
     })();
-  }, [readRepos]);
+  }, [readRepos, setScores, setOverrides]);
 
   useEffect(() => {
     function recordVisitEnd(): void {
@@ -155,108 +138,6 @@ export function App(): ReactElement {
         </p>
       </>
     );
-  }
-
-  function enqueueWrite(itemKey: string, write: () => Promise<void>): void {
-    const earlier = writeQueues.current.get(itemKey);
-    const queued = (async () => {
-      await earlier;
-      await write();
-    })();
-    writeQueues.current.set(itemKey, queued);
-  }
-
-  /** Applies the fields that a write at the source changed, and keeps them for a refresh that read before the write. */
-  function applyPatch(itemKey: string, patch: ItemPatch): void {
-    if (patch.labels === undefined && patch.sourceStatus === undefined) return;
-    itemWriteCount.current += 1;
-    const merged = { ...itemWrites.current.get(itemKey)?.patch, ...patch };
-    itemWrites.current.set(itemKey, { patch: merged, sequence: itemWriteCount.current });
-    const written = new Map([[itemKey, patch]]);
-    setState((current) =>
-      current.kind === 'loaded'
-        ? { ...current, data: { ...current.data, items: applyPatches(current.data.items, written) } }
-        : current,
-    );
-  }
-
-  function changeScores(itemKey: string, changed: Scores): void {
-    const previous = scores[itemKey];
-    const at = new Date().toISOString();
-    setScores((current) => ({ ...current, [itemKey]: applyScoreWrite(current[itemKey], changed, 'author', at) }));
-    enqueueWrite(itemKey, async () => {
-      try {
-        const body = await postJson('/api/scores', { itemKey, scores: changed }, scoresResponseSchema);
-        if (body.labels) applyPatch(itemKey, { labels: body.labels });
-        setScores((current) => ({ ...current, [itemKey]: body.scores }));
-        setFailure(clearFailureOf('write'));
-      } catch (error) {
-        setScores((current) => replaceEntry(current, itemKey, previous));
-        setFailure({ kind: 'write', message: `Score not saved: ${describeRequestError(error)}. Try again.` });
-      }
-    });
-  }
-
-  function clearScores(itemKey: string, fields: readonly ScoreField[]): void {
-    const previous = scores[itemKey];
-    const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
-    const dimensions = LABEL_DIMENSIONS.filter((dimension) => fields.includes(dimension));
-    setScores((current) => ({ ...current, [itemKey]: clearScoreFields(current[itemKey], fields) }));
-    // Drop the labels too, so that a label score does not show in the cleared row until the host answers.
-    if (item && dimensions.length > 0) {
-      applyPatch(itemKey, { labels: removeDimensionLabels(item.labels, dimensions, data.scoreLabelMapping) });
-    }
-    enqueueWrite(itemKey, async () => {
-      try {
-        const body = await postJson('/api/scores/clear', { itemKey, fields }, scoresResponseSchema);
-        if (body.labels) applyPatch(itemKey, { labels: body.labels });
-        setScores((current) => ({ ...current, [itemKey]: body.scores }));
-        setFailure(clearFailureOf('write'));
-      } catch (error) {
-        setScores((current) => replaceEntry(current, itemKey, previous));
-        if (item && dimensions.length > 0) applyPatch(itemKey, { labels: item.labels });
-        setFailure({ kind: 'write', message: `Score not cleared: ${describeRequestError(error)}. Try again.` });
-      }
-    });
-  }
-
-  function keepScores(itemKey: string): void {
-    const previous = scores[itemKey];
-    const at = new Date().toISOString();
-    setScores((current) => ({ ...current, [itemKey]: keepItemScores(current[itemKey], at) }));
-    enqueueWrite(itemKey, async () => {
-      try {
-        const body = await postJson('/api/keep', { itemKey }, scoresResponseSchema);
-        if (body.labels) applyPatch(itemKey, { labels: body.labels });
-        setScores((current) => ({ ...current, [itemKey]: body.scores }));
-        setFailure(clearFailureOf('write'));
-      } catch (error) {
-        setScores((current) => replaceEntry(current, itemKey, previous));
-        setFailure({ kind: 'write', message: `Scores not kept: ${describeRequestError(error)}. Try again.` });
-      }
-    });
-  }
-
-  function changeStatus(itemKey: string, status: SettableStatus, sourceState: 'closed' | 'open'): void {
-    const previous = overrides[itemKey];
-    // Set To do as an override too, so that an item whose source says In progress shows To do until the host answers.
-    const optimistic: StatusOverride = { status, sourceState, at: new Date().toISOString() };
-    setOverrides((current) => replaceEntry(current, itemKey, optimistic));
-    enqueueWrite(itemKey, async () => {
-      try {
-        const body = await postJson('/api/status', { itemKey, status, sourceState }, statusResponseSchema);
-        // The patch schema strips the answer's other fields.
-        applyPatch(itemKey, statusPatchSchema.parse(body));
-        setOverrides((current) => replaceEntry(current, itemKey, body.override ?? undefined));
-        setFailure(clearFailureOf('write'));
-      } catch (error) {
-        // Apply the item's new fields when the host wrote the source before its store failed.
-        const written = error instanceof HostResponseError ? statusPatchSchema.safeParse(error.body) : undefined;
-        if (written?.success) applyPatch(itemKey, written.data);
-        setOverrides((current) => replaceEntry(current, itemKey, previous));
-        setFailure({ kind: 'write', message: `Status not saved: ${describeRequestError(error)}. Try again.` });
-      }
-    });
   }
 
   const { data } = state;
@@ -295,17 +176,17 @@ export function App(): ReactElement {
           defaultCollectionId={data.defaultCollectionId ?? undefined}
           items={data.items}
           magnification={magnification}
-          onKeep={keepScores}
+          onKeep={writes.keepScores}
           onMagnificationChange={changeMagnification}
-          onScoresChange={changeScores}
-          onScoresClear={clearScores}
+          onScoresChange={writes.changeScores}
+          onScoresClear={writes.clearScores}
           onSelectedKeyChange={changeSelectedKey}
           onShowLinesChange={changeShowLines}
           onShowTitlesChange={changeShowTitles}
           onShownReposChange={followShownRepos}
           onStatusChange={(itemKey, status) => {
             const item = data.items.find((candidate) => formatItemKey(candidate) === itemKey);
-            if (item) changeStatus(itemKey, status, item.state);
+            if (item) writes.changeStatus(itemKey, status, item.state);
           }}
           overrides={overrides}
           refresh={
@@ -339,11 +220,5 @@ function applyPatches(items: readonly WorkItem[], patches: ReadonlyMap<string, I
     const patch = patches.get(formatItemKey(item));
     return patch ? { ...item, ...patch } : item;
   });
-}
-
-/** Returns `record` with `key` set to `value`, or without `key` when `value` is undefined. */
-function replaceEntry<T>(record: Readonly<Record<string, T>>, key: string, value: T | undefined): Record<string, T> {
-  const rest = Object.fromEntries(Object.entries(record).filter(([entryKey]) => entryKey !== key));
-  return value === undefined ? rest : { ...rest, [key]: value };
 }
 // endregion | Helpers
