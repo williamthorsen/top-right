@@ -24,7 +24,7 @@
     "@vitest/coverage-v8": "5.1.1",
     "@williamthorsen/eslint-config-typescript": "23.1.0",
     "@williamthorsen/nmr": "catalog:",
-    "@williamthorsen/release-kit": "18.5.0",
+    "@williamthorsen/release-kit": "18.7.0",
     "@williamthorsen/repo-tools": "0.6.2",
     "@williamthorsen/strict-lint": "16.0.1",
     "@williamthorsen/toolbelt.objects": "5.0.0",
