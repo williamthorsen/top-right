@@ -25,26 +25,21 @@ import { buildFocusView } from './focus-view.ts';
 import { Ghosts } from './Ghosts.tsx';
 import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
-import { findCellLevels, layoutCells, placeItems, type ScopeMode } from './layout.ts';
+import type { ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
 import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
 import { resolveScores } from './resolve-scores.ts';
-import { TITLE_LANE_WIDTH } from './title-lane.ts';
 import { listTrails } from './Trail.tsx';
 import { useChainView } from './useChainView.ts';
+import { useChartFocus } from './useChartFocus.ts';
 import { useHostSetting } from './useHostSetting.ts';
-import { useItemDrag } from './useItemDrag.ts';
 import { useItemFilter } from './useItemFilter.ts';
-import { usePan } from './usePan.ts';
-import { usePulse } from './usePulse.ts';
+import { useMatrix } from './useMatrix.ts';
 import { useReview } from './useReview.ts';
 import { useSelection } from './useSelection.ts';
-import { useSelectionScroll } from './useSelectionScroll.ts';
 import { useShownReposReport } from './useShownReposReport.ts';
-import { useTitleLane } from './useTitleLane.ts';
 import { useVisibleSelection } from './useVisibleSelection.ts';
-import { useZoom } from './useZoom.ts';
 
 import './chart.css';
 
@@ -149,13 +144,10 @@ export function Chart({
   onShownReposChange,
 }: ChartProps): ReactElement {
   const selection = useSelection({ selectedKey: hostSelectedKey, onSelectedKeyChange });
-  const [previewKey, setPreviewKey] = useState<string>();
   const [showAllEdges, setShowAllEdges] = useState(false);
   const [showTitles, setShowTitles] = useHostSetting(hostShowTitles, onShowTitlesChange, false);
   const [showLines, setShowLines] = useHostSetting(hostShowLines, onShowLinesChange, true);
   const [scopeMode, setScopeMode] = useState<ScopeMode>('original');
-  const [highlightedKey, setHighlightedKey] = useState<string>();
-  const [highlightOwner, setHighlightOwner] = useState<string>();
 
   const itemsByKey = useMemo(() => new Map(items.map((item) => [formatItemKey(item), item])), [items]);
   const scores = useMemo(
@@ -177,31 +169,11 @@ export function Chart({
     if (item) setFilter(revealItem(filter, item, overrides[key], shownRepos));
     return item !== undefined;
   });
-  if (previewKey !== undefined && !visibleKeys.has(previewKey)) setPreviewKey(undefined);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const zoom = useZoom({
-    scrollRef,
-    contentRef: svgRef,
-    keyRootRef: rootRef,
-    magnification,
-    onMagnificationChange,
-    reservedWidth: showTitles ? TITLE_LANE_WIDTH : 0,
-  });
-  const { cellSize } = zoom;
-  const scale = zoom.magnification;
-  const cells = useMemo(
-    () => layoutCells(placeItems(visibleItems, scores, scopeMode), cellSize),
-    [visibleItems, scores, scopeMode, cellSize],
+  const { previewKey, setPreviewKey, highlightedKey, setHighlightedKey, shownKey } = useChartFocus(
+    selectedKey,
+    visibleKeys,
   );
-
-  const shownKey = previewKey ?? selectedKey;
-  // A relation row unmounts without a pointer-leave or blur when the pane changes item, so the highlight ends with it.
-  if (highlightOwner !== shownKey) {
-    setHighlightOwner(shownKey);
-    setHighlightedKey(undefined);
-  }
+  const rootRef = useRef<HTMLDivElement>(null);
   const shownItem = shownKey === undefined ? undefined : itemsByKey.get(shownKey);
   const review = useReview({
     items: visibleItems,
@@ -214,37 +186,26 @@ export function Chart({
     onScoresChange,
     onScoresClear,
   });
-  const pulse = usePulse(selectedKey);
-  useSelectionScroll(scrollRef, selectedKey, pulse.settle);
   const chainView = useChainView(visibleItems, review);
   if (isRevealing && review.kind !== undefined) review.end();
-  const { drag, dragHandlersFor, selectItem, isHoldingPress } = useItemDrag({
-    svgRef,
-    cellSize,
+  const matrix = useMatrix({
+    keyRootRef: rootRef,
+    items: visibleItems,
     scores,
     scopeMode,
-    selectedKey,
-    onDrop: (key, cell) => {
-      const levels = findCellLevels(cell.u, cell.v);
-      if (levels) review.changeScores(key, levels);
-    },
-    onSelect: pulse.fromMatrix(selection.push),
-  });
-  usePan({ scrollRef, isHoldingPress });
-  const { hoveredCallouts, callouts, titleLane } = useTitleLane({
-    scrollRef,
-    svgRef,
-    cells,
-    cellSize,
-    spareWidth: zoom.spareWidth,
     graph,
+    magnification,
+    onMagnificationChange,
     showTitles,
     showLines,
     selectedKey,
     hoveredKey: previewKey ?? highlightedKey,
     onHighlight: setHighlightedKey,
-    onSelect: pulse.fromMatrix(selection.push),
+    onSelect: selection.push,
+    onScoresChange: review.changeScores,
   });
+  const { zoom, cells, pulse, drag, titleLane } = matrix;
+  const { cellSize } = zoom;
   const splitRef = useRef<HTMLDivElement>(null);
   const [split, setSplit] = useState(INITIAL_SPLIT);
 
@@ -272,7 +233,7 @@ export function Chart({
     showAllEdges,
     chainView,
     review,
-    callouts: hoveredCallouts,
+    callouts: matrix.hoveredCallouts,
   };
   const { edges, ends, ghosts, ghostOwner, fadeOf } = buildFocusView(focusState, cells, board, cellSize);
   const ghostElements = (
@@ -317,18 +278,18 @@ export function Chart({
           <div className="tr-split" ref={splitRef}>
             <div className="tr-chart-pane" style={{ flexBasis: `${split}%` }}>
               <ChartCanvas
-                callouts={callouts}
+                callouts={matrix.callouts}
                 cellSize={cellSize}
                 titleLane={titleLane}
                 pulse={pulse}
                 drag={drag}
                 edges={edges}
                 ends={ends}
-                scale={scale}
+                scale={zoom.magnification}
                 scoredCells={{
                   blockedKeys,
                   cells,
-                  dragHandlersFor,
+                  dragHandlersFor: matrix.dragHandlersFor,
                   draggingKey: drag?.key,
                   fadeOf,
                   ghostOwner,
@@ -337,15 +298,15 @@ export function Chart({
                   itemsByKey,
                   labelOf,
                   onPreview: setPreviewKey,
-                  onSelect: selectItem,
+                  onSelect: matrix.selectItem,
                   overrides,
                   scopeMode,
                   scores,
                   selectedKey,
                   workTypeMapping,
                 }}
-                scrollRef={scrollRef}
-                svgRef={svgRef}
+                scrollRef={matrix.scrollRef}
+                svgRef={matrix.svgRef}
                 trails={trails}
               />
               <Legend settingsHref={settingsHref} workTypeMapping={workTypeMapping} />
