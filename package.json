@@ -48,7 +48,7 @@
     "yaml": "2.9.1",
     "zod": "catalog:"
   },
-  "packageManager": "pnpm@12.21.0",
+  "packageManager": "pnpm@12.23.0",
   "engines": {
     "node": ">=26"
   }

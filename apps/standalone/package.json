@@ -19,7 +19,7 @@
     "top-right": "node src/cli/main.ts"
   },
   "dependencies": {
-    "@agentclientprotocol/claude-agent-acp": "0.109.0",
+    "@agentclientprotocol/claude-agent-acp": "0.109.1",
     "@modelcontextprotocol/server": "2.4.0",
     "@top-right/adapter-github": "workspace:*",
     "@top-right/chart": "workspace:*",
