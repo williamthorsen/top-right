@@ -88,6 +88,7 @@ function readCategoryKey(item: WorkItem, issue: unknown): string | undefined {
   }
   return parsed.data.status?.category.key;
 }
+
 /** Returns the open status that a status category key reads as; an issue without a status is Backlog. */
 function readOpenStatus(key: string | undefined): OpenStatus {
   if (key === undefined || key === 'backlog') return 'backlog';
