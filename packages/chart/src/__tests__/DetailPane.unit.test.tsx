@@ -210,15 +210,26 @@ describe(DetailPane, () => {
     expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
   });
 
-  it("shows a backlog item's status as Backlog, which the pane cannot set", async () => {
+  it('promotes a backlog item to To do', async () => {
     const user = userEvent.setup();
     const { onStatusChange } = renderPane({ item: { ...ITEM, sourceStatus: 'backlog' } });
-    const backlog = within(getGroup('Status')).getByRole('radio', { name: 'Backlog' });
+    const status = getGroup('Status');
 
-    expect(backlog).toBeChecked();
-    expect(backlog).toHaveAttribute('aria-disabled', 'true');
-    await user.click(backlog);
-    expect(onStatusChange).not.toHaveBeenCalled();
+    expect(within(status).getByRole('radio', { name: 'Backlog' })).toBeChecked();
+    await user.click(within(status).getByRole('radio', { name: 'To do' }));
+
+    expect(onStatusChange.mock.calls).toStrictEqual([[ITEM_KEY, 'to-do']]);
+  });
+
+  it('demotes a to-do item to Backlog by keyboard', async () => {
+    const user = userEvent.setup();
+    const { onStatusChange } = renderPane({ item: { ...ITEM, sourceStatus: 'to-do' } });
+    const status = getGroup('Status');
+
+    within(status).getByRole('radio', { name: 'To do' }).focus();
+    await user.keyboard('{ArrowLeft}');
+
+    expect(onStatusChange.mock.calls).toStrictEqual([[ITEM_KEY, 'backlog']]);
   });
 
   it("shows a closed item's status as Done, read-only", async () => {

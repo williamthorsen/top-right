@@ -30,7 +30,7 @@ export interface PaneScoresProps {
 }
 
 const STATUS_OPTIONS: ReadonlyArray<SegmentOption<StatusCategory>> = [
-  { value: 'backlog', label: STATUS_NAMES.backlog, isDisabled: true },
+  { value: 'backlog', label: STATUS_NAMES.backlog },
   { value: 'to-do', label: STATUS_NAMES['to-do'] },
   { value: 'in-progress', label: STATUS_NAMES['in-progress'] },
   { value: 'done', label: STATUS_NAMES.done, isDisabled: true },
@@ -86,7 +86,7 @@ export function PaneScores({
           isReadOnly={isClosed}
           label="Status"
           onChange={(value) => {
-            if (value === 'in-progress' || value === 'to-do') onStatusChange(value);
+            if (value !== 'done') onStatusChange(value);
           }}
           options={STATUS_OPTIONS}
           value={status}
