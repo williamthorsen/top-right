@@ -229,14 +229,14 @@ describe(createItemsCache, () => {
     });
 
     it('replaces only the fields that the patch names', async () => {
-      const labelled: WorkItem = { ...ITEM, labels: ['status:in-progress'], sourceStatus: 'in-progress' };
+      const labelled: WorkItem = { ...ITEM, labels: ['feature'], sourceStatus: 'in-progress' };
       const cache = createItemsCache({ loadRepo: () => Promise.resolve([labelled]), now: () => START });
       await cache.get([REPO]);
 
-      cache.patchItem(KEY, { labels: ['status:in-progress', 'urgency:high'] });
+      cache.patchItem(KEY, { labels: ['feature', 'urgency:high'] });
 
       expect((await cache.get([REPO])).items[0]).toMatchObject({
-        labels: ['status:in-progress', 'urgency:high'],
+        labels: ['feature', 'urgency:high'],
         sourceStatus: 'in-progress',
       });
     });
@@ -246,12 +246,12 @@ describe(createItemsCache, () => {
       const cache = createItemsCache({ loadRepo: () => read.promise, now: () => START });
 
       const refreshing = cache.refresh([REPO]);
-      cache.patchItem(KEY, { labels: ['status:in-progress'], sourceStatus: 'in-progress' });
-      cache.patchItem(KEY, { labels: ['status:in-progress', 'urgency:high'] });
+      cache.patchItem(KEY, { labels: ['feature'], sourceStatus: 'in-progress' });
+      cache.patchItem(KEY, { labels: ['feature', 'urgency:high'] });
       read.resolve([{ ...ITEM, sourceStatus: 'to-do' }]);
 
       expect((await refreshing).items[0]).toMatchObject({
-        labels: ['status:in-progress', 'urgency:high'],
+        labels: ['feature', 'urgency:high'],
         sourceStatus: 'in-progress',
       });
     });
