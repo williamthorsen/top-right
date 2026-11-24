@@ -144,6 +144,73 @@ describe(Chart, () => {
     });
   });
 
+  describe('with hidden backlog items at the ends of edges', () => {
+    // T.1 is blocked by T.6 and is the sub-issue of T.7, both in the backlog and scored; T.8 is a backlog parent of T.1
+    // without scores.
+    const backlogItems: WorkItem[] = [
+      buildItem({
+        number: 1,
+        relations: [relate('blocked-by', 6, REPO, 'open'), relate('parent', 7, REPO, 'open')],
+      }),
+      buildItem({ number: 6, sourceStatus: 'backlog', relations: [relate('blocking', 1)] }),
+      buildItem({ number: 7, sourceStatus: 'backlog', relations: [relate('sub-issue', 1)] }),
+      buildItem({ number: 8, sourceStatus: 'backlog', relations: [relate('sub-issue', 1)] }),
+    ];
+    const backlogScores = {
+      [`${REPO}#1`]: place(3, 3),
+      [`${REPO}#6`]: place(2, 4),
+      [`${REPO}#7`]: place(4, 4),
+    };
+    const BLOCKER_NAME = 'T.6: Issue 6, backlog, hidden';
+    const PARENT_NAME = 'T.7: Issue 7, backlog, hidden';
+
+    it('draws a hollow ghost for each scored one while the related item is selected, without moving the circle', async () => {
+      const user = userEvent.setup();
+      renderChart(backlogItems, {}, backlogScores);
+      const circle = screen.getByRole('button', { name: /^T\.1:/ });
+      const position = circle.getAttribute('transform');
+
+      await user.click(circle);
+
+      expect(screen.getByRole('button', { name: BLOCKER_NAME })).toHaveAttribute('data-status', 'backlog');
+      expect(screen.getByRole('button', { name: PARENT_NAME })).toHaveAttribute('data-status', 'backlog');
+      expect(listEdgeEnds().toSorted()).toStrictEqual(['1>7', '6>1']);
+      expect(circle).toHaveAttribute('transform', position);
+    });
+
+    it('draws no ghost for an unscored one', async () => {
+      const user = userEvent.setup();
+      renderChart(backlogItems, {}, backlogScores);
+
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+
+      expect(screen.queryByRole('button', { name: /^T\.8:/ })).not.toBeInTheDocument();
+    });
+
+    it('when the ghost is clicked, selects and reveals that item alone and leaves Backlog off', async () => {
+      const user = userEvent.setup();
+      renderChart(backlogItems, {}, backlogScores);
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+
+      await user.click(screen.getByRole('button', { name: BLOCKER_NAME }));
+
+      expect(screen.getByRole('button', { name: /^T\.6: Issue 6$/ })).toBePressed();
+      expect(screen.queryByRole('button', { name: /^T\.7: Issue 7$/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Backlog/ })).not.toBePressed();
+    });
+
+    it('hides the revealed item again at the next filter-bar change', async () => {
+      const user = userEvent.setup();
+      renderChart(backlogItems, {}, backlogScores);
+      await user.click(screen.getByRole('button', { name: /^T\.1:/ }));
+      await user.click(screen.getByRole('button', { name: BLOCKER_NAME }));
+
+      await user.click(screen.getByRole('button', { name: /^To do/ }));
+
+      expect(screen.queryByRole('button', { name: /^T\.6: Issue 6$/ })).not.toBeInTheDocument();
+    });
+  });
+
   describe('with related items in a repository that the filter hides', () => {
     // T.1 is blocked by C.2, which is open and not loaded, and is the parent of C.3, which is closed, loaded, and scored.
     const crossItems: WorkItem[] = [
