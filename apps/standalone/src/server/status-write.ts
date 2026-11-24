@@ -1,5 +1,5 @@
 import type { StatusStrategy } from '@top-right/adapter-github';
-import type { ItemPatch, ItemRef, OpenStatus } from '@top-right/model';
+import type { ItemPatch, ItemRef, SettableStatus } from '@top-right/model';
 import type { Store } from '@top-right/store';
 import { describeError } from '@williamthorsen/toolbelt.errors';
 
@@ -21,7 +21,7 @@ export async function writeStatusAtSource(
   strategy: StatusStrategy,
   ref: Pick<ItemRef, 'number' | 'repo'>,
   itemKey: string,
-  status: OpenStatus,
+  status: SettableStatus,
 ): Promise<{ status: number; body: unknown }> {
   let patch: ItemPatch;
   try {

@@ -15,6 +15,7 @@ const USER = 'github:author';
 const EPIC = buildItem(1, { relations: [{ kind: 'sub-issue', ref: buildRef(2) }] });
 const CHILD = buildItem(2, {
   labels: ['urgency:high'],
+  sourceStatus: 'backlog',
   relations: [{ kind: 'parent', ref: buildRef(1) }],
   createdAt: '2026-11-05T09:00:00Z',
 });
@@ -36,7 +37,7 @@ describe(createAgentTools, () => {
     });
   });
 
-  it('lists the open items with their parent and the scores that their labels supply', async () => {
+  it('lists the open items, backlog included, with their parent and the scores that their labels supply', async () => {
     const { callTool } = await setUp();
 
     const { json } = await callTool('list_items');

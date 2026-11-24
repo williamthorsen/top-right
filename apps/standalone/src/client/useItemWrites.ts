@@ -1,4 +1,3 @@
-import type { SettableStatus } from '@top-right/chart';
 import {
   applyScoreWrite,
   clearScoreFields,
@@ -11,6 +10,7 @@ import {
   removeDimensionLabels,
   type ScoreField,
   type Scores,
+  type SettableStatus,
   type StatusOverride,
 } from '@top-right/model';
 import { type Dispatch, type SetStateAction, useCallback, useRef, useState } from 'react';

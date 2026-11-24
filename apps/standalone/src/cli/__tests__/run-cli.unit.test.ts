@@ -18,6 +18,7 @@ const ITEM: WorkItem = {
   relations: [],
 };
 const CLOSED_ITEM: WorkItem = { ...ITEM, number: 2, url: 'https://github.com/o/r/issues/2', state: 'closed' };
+const BACKLOG_ITEM: WorkItem = { ...ITEM, number: 4, url: 'https://github.com/o/r/issues/4', sourceStatus: 'backlog' };
 const NOW = new Date('2026-11-08T12:00:00.000Z');
 
 describe(runCli, () => {
@@ -60,12 +61,15 @@ describe(runCli, () => {
     expect(run.stderr).toMatch(/^top-right list-items: .*--yaml/);
   });
 
-  it('lists the open items as JSON, leaving out the closed ones', async () => {
+  it('lists the open items as JSON, backlog included, leaving out the closed ones', async () => {
     const run = await runWith(['list-items', '--json']);
 
     expect(run.code).toBe(0);
     expect(JSON.parse(run.stdout)).toStrictEqual({
-      items: [expect.objectContaining({ itemKey: 'o/r#1', scores: {} })],
+      items: [
+        expect.objectContaining({ itemKey: 'o/r#1', scores: {} }),
+        expect.objectContaining({ itemKey: 'o/r#4', scores: {} }),
+      ],
     });
   });
 
@@ -207,8 +211,8 @@ interface RunOptions {
 }
 
 /**
- * Runs the CLI against a memory store, with the repositories `o/r` and `o/s` configured and the open item `o/r#1` and
- * the closed `o/r#2` loaded, and returns its output and exit code.
+ * Runs the CLI against a memory store, with the repositories `o/r` and `o/s` configured and the open item `o/r#1`, the
+ * closed `o/r#2`, and the open backlog item `o/r#4` loaded, and returns its output and exit code.
  */
 async function runWith(argv: string[], options: RunOptions = {}) {
   const store: MemoryStore = createMemoryStore({ abbreviations: options.abbreviations ?? {} });
@@ -224,7 +228,7 @@ async function runWith(argv: string[], options: RunOptions = {}) {
         loadItems: () =>
           options.failure
             ? Promise.reject(options.failure)
-            : Promise.resolve([{ ...ITEM, labels: options.labels ?? [] }, CLOSED_ITEM]),
+            : Promise.resolve([{ ...ITEM, labels: options.labels ?? [] }, CLOSED_ITEM, BACKLOG_ITEM]),
         repos: ['o/r', 'o/s'],
         store,
         userId: 'github:author',
