@@ -8,6 +8,7 @@ export {
   type GraphqlRequest,
 } from './fetch-issues.ts';
 export { fetchViewerLogin } from './fetch-viewer-login.ts';
+export { createIssueStatusStrategy } from './issue-status.ts';
 export {
   createProjectStatusStrategy,
   DEFAULT_PROJECT_STATUS_OPTIONS,

@@ -1,7 +1,8 @@
 import type { OpenStatus, WorkItem } from '@top-right/model';
 import { z } from 'zod';
 
-import { GitHubAdapterError, GitHubNotFoundError, GitHubScopeError, type GraphqlRequest } from './fetch-issues.ts';
+import { GitHubAdapterError, GitHubNotFoundError, type GraphqlRequest } from './fetch-issues.ts';
+import { describeErrors, sendRequest, sendStrictRequest } from './graphql-helpers.ts';
 import { PROJECT_ITEM_LIMIT } from './query.ts';
 import type { StatusStrategy } from './status-strategy.ts';
 
@@ -29,6 +30,9 @@ export interface ResolvedProject {
 
 /** The option names of the Status field of a project that GitHub creates. */
 export const DEFAULT_PROJECT_STATUS_OPTIONS: ProjectStatusOptions = { toDo: ['Todo'], inProgress: ['In Progress'] };
+
+/** What a request of this module needs the token's scope to cover. */
+const SCOPE_NEED = 'projects';
 
 /** The name of the single-select field that holds an item's status. */
 const STATUS_FIELD_NAME = 'Status';
@@ -76,14 +80,14 @@ export function createProjectStatusStrategy(
       const contentId = await readIssueId(request, ref.repo, ref.number);
       const added = await sendStrictRequest(
         request,
-        key,
+        { key, need: SCOPE_NEED },
         ADD_ITEM_MUTATION,
         { projectId: project.id, contentId },
         z.object({ addProjectV2ItemById: z.object({ item: z.object({ id: z.string() }) }) }),
       );
       await sendStrictRequest(
         request,
-        key,
+        { key, need: SCOPE_NEED },
         SET_STATUS_MUTATION,
         {
           projectId: project.id,
@@ -134,7 +138,7 @@ export async function resolveProject(request: GraphqlRequest, url: string): Prom
     .nullable();
   const { data, errors } = await sendRequest(
     request,
-    ref.url,
+    { key: ref.url, need: SCOPE_NEED },
     buildProjectQuery(ref.ownerKind),
     { login: ref.login, number: ref.number },
     z.object({
@@ -192,18 +196,13 @@ function buildProjectQuery(ownerKind: ProjectRef['ownerKind']): string {
 }`;
 }
 
-/** Joins the messages of GraphQL errors into one line. */
-function describeErrors(errors: ReadonlyArray<{ message: string }>): string {
-  return errors.map((error) => error.message).join('; ');
-}
-
 /** Reads the node id of issue `number` of `repo` (`owner/name`). */
 async function readIssueId(request: GraphqlRequest, repo: string, number: number): Promise<string> {
   const [owner, name] = repo.split('/', 2);
   const key = `${repo}#${number}`;
   const data = await sendStrictRequest(
     request,
-    key,
+    { key, need: SCOPE_NEED },
     ISSUE_ID_QUERY,
     { owner, name, number },
     z.object({ repository: z.object({ issue: z.object({ id: z.string() }).nullable() }).nullable() }),
@@ -224,41 +223,4 @@ function readOptionName(item: WorkItem, issue: unknown, projectId: string): stri
   return parsed.data.projectItems.nodes.find((node) => node.project.id === projectId)?.fieldValueByName?.name;
 }
 
-/**
- * Sends a query or a mutation and returns its parsed data and errors. Rejects, naming `key`, on a malformed response,
- * and with a `GitHubScopeError` when the token lacks a scope that the request needs.
- */
-async function sendRequest<T extends z.ZodType>(
-  request: GraphqlRequest,
-  key: string,
-  query: string,
-  variables: Record<string, unknown>,
-  dataSchema: T,
-): Promise<{ data: z.output<T> | undefined; errors: Array<{ message: string; type?: string | undefined }> }> {
-  const schema = z.object({
-    data: dataSchema.nullish(),
-    errors: z.array(z.object({ message: z.string(), type: z.string().optional() })).optional(),
-  });
-  const parsed = schema.safeParse(await request(query, variables));
-  if (!parsed.success) throw new GitHubAdapterError(`${key}: unexpected response from GitHub`, { cause: parsed.error });
-  const { data, errors = [] } = parsed.data;
-  if (errors.some((error) => error.type === 'INSUFFICIENT_SCOPES')) {
-    throw new GitHubScopeError(`${key}: the token lacks the scope that projects need`);
-  }
-  return { data: data ?? undefined, errors };
-}
-
-/** Sends a query or a mutation as `sendRequest` does, and also rejects on any error or on a response without data. */
-async function sendStrictRequest<T extends z.ZodType>(
-  request: GraphqlRequest,
-  key: string,
-  query: string,
-  variables: Record<string, unknown>,
-  dataSchema: T,
-): Promise<z.output<T>> {
-  const { data, errors } = await sendRequest(request, key, query, variables, dataSchema);
-  if (errors.length > 0) throw new GitHubAdapterError(`${key}: GitHub refused the request: ${describeErrors(errors)}`);
-  if (data === undefined) throw new GitHubAdapterError(`${key}: GitHub returned no data`);
-  return data;
-}
 // endregion | Helpers

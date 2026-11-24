@@ -11,9 +11,7 @@ const REPO = 'williamthorsen/top-right';
 const WIP_STRATEGY: StatusStrategy = {
   issueFields: 'wip',
   read: (_item, issue) =>
-    typeof issue === 'object' && issue !== null && 'wip' in issue
-      ? { sourceStatus: 'in-progress', sourceStatusLabel: 'wip' }
-      : { sourceStatus: 'to-do' },
+    isWip(issue) ? { sourceStatus: 'in-progress', sourceStatusLabel: 'wip' } : { sourceStatus: 'to-do' },
   write: () => Promise.reject(new Error('not written in this test')),
 };
 
@@ -136,6 +134,28 @@ describe(fetchIssues, () => {
 
       expect(item).not.toHaveProperty('sourceStatus');
     });
+
+    it('drops the open items that the strategy hides, and never a closed one', async () => {
+      const [first, second] = pageTwo.data.repository.issues.nodes;
+      if (!first || !second) throw new Error('fixture page 2 lacks two issues');
+      const closed = { ...buildClosedIssue(101, '2026-11-05T00:00:00Z'), wip: true };
+      const request: GraphqlRequest = (_query, variables) =>
+        Promise.resolve(
+          buildPage(
+            Array.isArray(variables['states']) && variables['states'].includes('CLOSED')
+              ? [closed]
+              : [{ ...first, wip: true }, second],
+          ),
+        );
+      const hidingStrategy: StatusStrategy = { ...WIP_STRATEGY, hides: (_item, issue) => isWip(issue) };
+
+      const items = await fetchIssues(request, REPO, {
+        closedSince: new Date('2026-11-01T00:00:00Z'),
+        status: hidingStrategy,
+      });
+
+      expect(items.map((item) => item.number)).toStrictEqual([second.number, 101]);
+    });
   });
 
   it('if the repository is not owner/name, rejects without sending a request', async () => {
@@ -184,5 +204,9 @@ function buildClosedIssue(number: number, closedAt: string) {
 
 function buildPage(nodes: unknown[]) {
   return { data: { repository: { issues: { pageInfo: { hasNextPage: false, endCursor: null }, nodes } } } };
+}
+
+function isWip(issue: unknown): boolean {
+  return typeof issue === 'object' && issue !== null && 'wip' in issue;
 }
 // endregion | Helpers
