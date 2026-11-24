@@ -279,22 +279,17 @@ describe(App, () => {
 });
 
 describe('setting the status', () => {
-  const IN_PROGRESS_BY_LABEL: ItemsResponse = {
+  const IN_PROGRESS_AT_SOURCE: ItemsResponse = {
     ...ITEMS,
-    items: ITEMS.items.map((item) => ({
-      ...item,
-      labels: ['feature', 'status:in-progress'],
-      sourceStatus: 'in-progress',
-      sourceStatusLabel: 'status:in-progress',
-    })),
+    items: ITEMS.items.map((item) => ({ ...item, sourceStatus: 'in-progress' })),
   };
-  const TO_DO_WRITTEN = { itemKey: ITEM_KEY, override: null, labels: ['feature'], sourceStatus: 'to-do' };
+  const TO_DO_WRITTEN = { itemKey: ITEM_KEY, override: null, sourceStatus: 'to-do' };
 
-  it('shows To do on an issue labelled In progress before the host confirms it, and after', async () => {
+  it('shows To do on an issue In progress at its source before the host confirms it, and after', async () => {
     const user = userEvent.setup();
     const write = Promise.withResolvers<Response>();
     stubFetch((path) =>
-      path === '/api/status' ? write.promise : Promise.resolve(Response.json(IN_PROGRESS_BY_LABEL)),
+      path === '/api/status' ? write.promise : Promise.resolve(Response.json(IN_PROGRESS_AT_SOURCE)),
     );
     render(<App />);
 
@@ -314,10 +309,10 @@ describe('setting the status', () => {
       Promise.resolve(
         path === '/api/status'
           ? Response.json(
-              { error: 'owner/repo has no label "status:in-progress"; create it at GitHub' },
+              { error: 'owner/repo: the repository has no issue status in the "planned" category' },
               { status: 502 },
             )
-          : Response.json(IN_PROGRESS_BY_LABEL),
+          : Response.json(IN_PROGRESS_AT_SOURCE),
       ),
     );
     render(<App />);
@@ -325,30 +320,13 @@ describe('setting the status', () => {
     await selectItem(user);
     await user.click(within(getGroup('Status')).getByRole('radio', { name: 'To do' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/^Status not saved: .*create it at GitHub/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /^Status not saved: .*no issue status in the "planned" category/,
+    );
     expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
   });
 
-  it('leaves the label that the host reports as the In progress label out of the Labels list', async () => {
-    const user = userEvent.setup();
-    const written = {
-      itemKey: ITEM_KEY,
-      override: null,
-      labels: ['feature', 'status:in-progress'],
-      sourceStatus: 'in-progress',
-      sourceStatusLabel: 'status:in-progress',
-    };
-    stubFetch((path) => Promise.resolve(Response.json(path === '/api/status' ? written : ITEMS)));
-    render(<App />);
-
-    await selectItem(user);
-    await user.click(within(getGroup('Status')).getByRole('radio', { name: 'In progress' }));
-
-    await waitFor(() => expect(screen.queryByRole('list', { name: 'Labels' })).not.toBeInTheDocument());
-    expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
-  });
-
-  it('if the store fails after the write at GitHub, shows the status that the returned labels supply', async () => {
+  it('if the store fails after the write at GitHub, shows the status that the returned source status supplies', async () => {
     const user = userEvent.setup();
     const { itemKey: _itemKey, override: _override, ...patch } = TO_DO_WRITTEN;
     stubFetch((path) =>
@@ -360,7 +338,7 @@ describe('setting the status', () => {
                 status: 500,
               },
             )
-          : Response.json(IN_PROGRESS_BY_LABEL),
+          : Response.json(IN_PROGRESS_AT_SOURCE),
       ),
     );
     render(<App />);

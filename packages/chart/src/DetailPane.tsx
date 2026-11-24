@@ -115,7 +115,7 @@ export function DetailPane({
     );
   }
 
-  const shownLabels = listShownLabels(item, scores, override, workTypeMapping);
+  const shownLabels = listShownLabels(item, scores, workTypeMapping);
   return (
     <aside aria-label="Item detail" className="tr-pane" data-empty="false">
       <div className="tr-pane-body" ref={bodyRef}>

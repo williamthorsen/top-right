@@ -9,22 +9,15 @@ import { closeServers, EARLIER, ITEM, ITEM_KEY, NOW, post, startServer } from '.
 const REF = { repo: ITEM.repo, number: ITEM.number };
 const LEGACY: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
 const WRITES: Array<{ status: OpenStatus; patch: ItemPatch }> = [
-  {
-    status: 'in-progress',
-    patch: {
-      labels: ['feature', 'status:in-progress'],
-      sourceStatus: 'in-progress',
-      sourceStatusLabel: 'status:in-progress',
-    },
-  },
-  { status: 'to-do', patch: { labels: ['feature'], sourceStatus: 'to-do' } },
+  { status: 'in-progress', patch: { sourceStatus: 'in-progress' } },
+  { status: 'to-do', patch: { sourceStatus: 'to-do' } },
 ];
 
 afterEach(closeServers);
 
 describe('POST /api/status on a host whose repository has a status strategy', () => {
   it.each(WRITES)(
-    'writes $status at the source, deletes the stored override, and serves the new labels',
+    'writes $status at the source, deletes the stored override, and serves the new source status',
     async ({ status, patch }) => {
       const store = createMemoryStore({ overrides: { [ITEM_KEY]: LEGACY } });
       const strategy = createStrategy(() => Promise.resolve(patch));
@@ -43,14 +36,18 @@ describe('POST /api/status on a host whose repository has a status strategy', ()
 
   it('if the source refuses the write, answers 502 and leaves the override and the item as they were', async () => {
     const store = createMemoryStore({ overrides: { [ITEM_KEY]: LEGACY } });
-    const strategy = createStrategy(() => Promise.reject(new Error('has no label "status:in-progress"')));
+    const strategy = createStrategy(() =>
+      Promise.reject(new Error('owner/repo: the repository has no issue status in the "planned" category')),
+    );
     const baseUrl = await startServer({ store, statusStrategyFor: () => strategy });
     await fetch(`${baseUrl}/api/items`);
 
     const response = await post(`${baseUrl}/api/status`, { itemKey: ITEM_KEY, status: 'to-do', sourceState: 'open' });
 
     expect(response.status).toBe(502);
-    expect(await response.json()).toStrictEqual({ error: expect.stringContaining('has no label') });
+    expect(await response.json()).toStrictEqual({
+      error: expect.stringContaining('no issue status in the "planned" category'),
+    });
     expect(store.state.overrides).toStrictEqual({ [ITEM_KEY]: LEGACY });
     const items: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
     expect(items).toMatchObject({ items: [{ labels: ITEM.labels }] });

@@ -10,8 +10,7 @@ const REPO = 'williamthorsen/top-right';
 /** Reads In progress from a `wip` field that it adds to the query, so that the tests see the raw issue reach `read`. */
 const WIP_STRATEGY: StatusStrategy = {
   issueFields: 'wip',
-  read: (_item, issue) =>
-    isWip(issue) ? { sourceStatus: 'in-progress', sourceStatusLabel: 'wip' } : { sourceStatus: 'to-do' },
+  read: (_item, issue) => (isWip(issue) ? { sourceStatus: 'in-progress' } : { sourceStatus: 'to-do' }),
   write: () => Promise.reject(new Error('not written in this test')),
 };
 
@@ -106,7 +105,7 @@ describe(fetchIssues, () => {
   });
 
   describe('with a status strategy', () => {
-    it("adds the strategy's fields to the query and sets each open item's status and status label from its issue", async () => {
+    it("adds the strategy's fields to the query and sets each open item's status from its issue", async () => {
       const [first, second] = pageTwo.data.repository.issues.nodes;
       if (!first || !second) throw new Error('fixture page 2 lacks two issues');
       const request = vi.fn<GraphqlRequest>(() => Promise.resolve(buildPage([{ ...first, wip: true }, second])));
@@ -114,10 +113,7 @@ describe(fetchIssues, () => {
       const items = await fetchIssues(request, REPO, { status: WIP_STRATEGY });
 
       expect(request.mock.calls[0]?.[0]).toMatch(/parent \{ \.\.\.IssueRef \}\s+wip\s/);
-      expect(items.map(({ sourceStatus, sourceStatusLabel }) => [sourceStatus, sourceStatusLabel])).toStrictEqual([
-        ['in-progress', 'wip'],
-        ['to-do', undefined],
-      ]);
+      expect(items.map((item) => item.sourceStatus)).toStrictEqual(['in-progress', 'to-do']);
     });
 
     it('leaves the status unset on a closed item', async () => {
