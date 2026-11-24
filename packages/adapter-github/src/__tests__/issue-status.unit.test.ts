@@ -26,18 +26,15 @@ describe(createIssueStatusStrategy, () => {
     { key: 'started', status: 'in-progress' },
     { key: 'planned', status: 'to-do' },
     { key: 'triage', status: 'to-do' },
-  ])('reads an issue in the $key category as $status, and shows it', ({ key, status }) => {
-    const issue = { status: { category: { key } } };
-
-    expect(strategy.read(ITEM, issue)).toStrictEqual({ sourceStatus: status });
-    expect(strategy.hides?.(ITEM, issue)).toBe(false);
+  ])('reads an issue in the $key category as $status', ({ key, status }) => {
+    expect(strategy.read(ITEM, { status: { category: { key } } })).toStrictEqual({ sourceStatus: status });
   });
 
   it.each([
     { case: 'in the backlog category', issue: { status: { category: { key: 'backlog' } } } },
     { case: 'without a status', issue: { status: null } },
-  ])('hides an issue $case', ({ issue }) => {
-    expect(strategy.hides?.(ITEM, issue)).toBe(true);
+  ])('reads an issue $case as backlog', ({ issue }) => {
+    expect(strategy.read(ITEM, issue)).toStrictEqual({ sourceStatus: 'backlog' });
   });
 
   it('if the status is malformed, throws naming the item', () => {

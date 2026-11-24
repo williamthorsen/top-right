@@ -53,6 +53,13 @@ describe(filterItems, () => {
     expect(filterItems(items, { 'o/a#2': IN_PROGRESS }, filter, undefined).map((item) => item.number)).toEqual([1]);
   });
 
+  it('excludes a backlog item under the default filter, and keeps it once the filter keeps Backlog', () => {
+    const items = [buildItem('o/a', 1), buildBacklogItem('o/a', 2)];
+
+    expect(filterItems(items, {}, DEFAULT_FILTER, undefined).map((item) => item.number)).toEqual([1]);
+    expect(filterItems(items, {}, buildFilter(['backlog']), undefined).map((item) => item.number)).toEqual([2]);
+  });
+
   it('excludes a closed item under the default filter, whatever its override', () => {
     const items = [buildItem('o/a', 1, 'closed')];
 
@@ -69,9 +76,16 @@ describe(filterItems, () => {
 
 describe(countByStatus, () => {
   it('counts each status within the shown repos, closed items as done', () => {
-    const items = [buildItem('o/a', 1), buildItem('o/a', 2), buildItem('o/a', 3, 'closed'), buildItem('o/b', 4)];
+    const items = [
+      buildItem('o/a', 1),
+      buildItem('o/a', 2),
+      buildItem('o/a', 3, 'closed'),
+      buildItem('o/b', 4),
+      buildBacklogItem('o/a', 5),
+    ];
 
     expect(countByStatus(items, { 'o/a#2': IN_PROGRESS }, new Set(['o/a']))).toEqual({
+      backlog: 1,
       done: 1,
       'in-progress': 1,
       'to-do': 1,
@@ -81,7 +95,7 @@ describe(countByStatus, () => {
   it('counts every repo when the shown repos are undefined', () => {
     const items = [buildItem('o/a', 1), buildItem('o/b', 2)];
 
-    expect(countByStatus(items, {}, undefined)).toEqual({ done: 0, 'in-progress': 0, 'to-do': 2 });
+    expect(countByStatus(items, {}, undefined)).toEqual({ backlog: 0, done: 0, 'in-progress': 0, 'to-do': 2 });
   });
 });
 
@@ -127,6 +141,10 @@ describe(revealItem, () => {
 });
 
 // region | Helpers
+function buildBacklogItem(repo: string, number: number): WorkItem {
+  return { ...buildItem(repo, number), sourceStatus: 'backlog' };
+}
+
 function buildFilter(statuses: StatusCategory[]): ItemFilter {
   return { revealedKeys: new Set(), scope: EMPTY_REPO_SCOPE, statuses: new Set(statuses) };
 }

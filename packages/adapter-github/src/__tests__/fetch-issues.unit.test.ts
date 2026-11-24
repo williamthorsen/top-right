@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { fetchIssues, fetchIssuesOfRepos, GitHubAdapterError, type GraphqlRequest } from '../fetch-issues.ts';
+import { createIssueStatusStrategy } from '../issue-status.ts';
 import type { StatusStrategy } from '../status-strategy.ts';
 import pageOne from './fixtures/open-issues.page-1.json' with { type: 'json' };
 import pageTwo from './fixtures/open-issues.page-2.json' with { type: 'json' };
@@ -131,26 +132,22 @@ describe(fetchIssues, () => {
       expect(item).not.toHaveProperty('sourceStatus');
     });
 
-    it('drops the open items that the strategy hides, and never a closed one', async () => {
-      const [first, second] = pageTwo.data.repository.issues.nodes;
-      if (!first || !second) throw new Error('fixture page 2 lacks two issues');
-      const closed = { ...buildClosedIssue(101, '2026-11-05T00:00:00Z'), wip: true };
-      const request: GraphqlRequest = (_query, variables) =>
+    it('keeps every open item under the issue-status strategy, reading a backlog or unset status as backlog', async () => {
+      const [first, second, third] = pageOne.data.repository.issues.nodes;
+      if (!first || !second || !third) throw new Error('fixture page 1 lacks three issues');
+      const request = vi.fn<GraphqlRequest>(() =>
         Promise.resolve(
-          buildPage(
-            Array.isArray(variables['states']) && variables['states'].includes('CLOSED')
-              ? [closed]
-              : [{ ...first, wip: true }, second],
-          ),
-        );
-      const hidingStrategy: StatusStrategy = { ...WIP_STRATEGY, hides: (_item, issue) => isWip(issue) };
+          buildPage([
+            { ...first, status: { category: { key: 'backlog' } } },
+            { ...second, status: null },
+            { ...third, status: { category: { key: 'planned' } } },
+          ]),
+        ),
+      );
 
-      const items = await fetchIssues(request, REPO, {
-        closedSince: new Date('2026-11-01T00:00:00Z'),
-        status: hidingStrategy,
-      });
+      const items = await fetchIssues(request, REPO, { status: createIssueStatusStrategy(request) });
 
-      expect(items.map((item) => item.number)).toStrictEqual([second.number, 101]);
+      expect(items.map((item) => item.sourceStatus)).toStrictEqual(['backlog', 'backlog', 'to-do']);
     });
   });
 

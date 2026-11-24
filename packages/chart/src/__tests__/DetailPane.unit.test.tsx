@@ -210,6 +210,17 @@ describe(DetailPane, () => {
     expect(within(getGroup('Status')).getByRole('radio', { name: 'In progress' })).toBeChecked();
   });
 
+  it("shows a backlog item's status as Backlog, which the pane cannot set", async () => {
+    const user = userEvent.setup();
+    const { onStatusChange } = renderPane({ item: { ...ITEM, sourceStatus: 'backlog' } });
+    const backlog = within(getGroup('Status')).getByRole('radio', { name: 'Backlog' });
+
+    expect(backlog).toBeChecked();
+    expect(backlog).toHaveAttribute('aria-disabled', 'true');
+    await user.click(backlog);
+    expect(onStatusChange).not.toHaveBeenCalled();
+  });
+
   it("shows a closed item's status as Done, read-only", async () => {
     const user = userEvent.setup();
     const { onStatusChange } = renderPane({ item: { ...ITEM, state: 'closed' } });

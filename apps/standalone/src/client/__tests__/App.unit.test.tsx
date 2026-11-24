@@ -72,6 +72,19 @@ describe(App, () => {
     expect(await screen.findByRole('button', { name: 'Repos: Product' })).toBeInTheDocument();
   });
 
+  it('loads an item that is in the backlog at its source, counted under Backlog', async () => {
+    const backlog: ItemsResponse = {
+      ...ITEMS,
+      items: ITEMS.items.map((item) => ({ ...item, sourceStatus: 'backlog' })),
+    };
+    stubFetch(() => Promise.resolve(Response.json(backlog)));
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: `Backlog ${ITEMS.items.length}` })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('shows no clash alert while every abbreviation is distinct', async () => {
     stubFetch(() => Promise.resolve(Response.json(ITEMS)));
 

@@ -11,6 +11,7 @@ import {
   type ScoreField,
   type ScoreLabelMapping,
   type Scores,
+  type SettableStatus,
   type StatusOverride,
   type WorkItem,
   type WorkTypeMapping,
@@ -27,7 +28,6 @@ import type { Abbreviations } from './item-label.ts';
 import { ItemTable } from './ItemTable.tsx';
 import type { ScopeMode } from './layout.ts';
 import { Legend } from './Legend.tsx';
-import type { SettableStatus } from './PaneScores.tsx';
 import type { ChartRefresh } from './RefreshControl.tsx';
 import { resolveScores } from './resolve-scores.ts';
 import { listTrails } from './Trail.tsx';

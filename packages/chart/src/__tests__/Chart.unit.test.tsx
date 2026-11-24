@@ -165,6 +165,22 @@ describe(Chart, () => {
       expect(second.querySelector('.tr-node-pie')).toBeNull();
     });
 
+    it('draws a backlog item as a backlog circle, without a pie', async () => {
+      const user = userEvent.setup();
+      const placed: ItemScores = {
+        urgency: { score: 'medium', by: author, at },
+        value: { score: 'nice-to-have', by: author, at },
+      };
+      renderChart([buildItem({ number: 1, sourceStatus: 'backlog' })], {}, { [`${REPO}#1`]: placed });
+
+      await user.click(screen.getByRole('button', { name: /^Backlog/ }));
+
+      const circle = screen.getByRole('button', { name: /^T\.1:/ });
+      expect(circle).toHaveAttribute('data-status', 'backlog');
+      // eslint-disable-next-line testing-library/no-node-access -- the pie is decorative SVG, which has no role to query.
+      expect(circle.querySelector('.tr-node-pie')).toBeNull();
+    });
+
     it('switches circle area to remaining scope and fills an in-progress circle solid', async () => {
       const user = userEvent.setup();
       const halfDone: ItemScores = {

@@ -12,7 +12,7 @@ export interface ItemFilter {
 
 /**
  * Returns the filter that the board starts at: the default collection when it exists, else every repo, with the items
- * that are to do or in progress.
+ * that are to do or in progress, leaving out Backlog and Done.
  */
 export function buildDefaultFilter(
   defaultCollectionId: string | undefined,
@@ -37,7 +37,7 @@ export function countByStatus(
   overrides: Readonly<Record<string, StatusOverride>>,
   shownRepos: ReadonlySet<string> | undefined,
 ): Record<StatusCategory, number> {
-  const counts: Record<StatusCategory, number> = { done: 0, 'in-progress': 0, 'to-do': 0 };
+  const counts: Record<StatusCategory, number> = { backlog: 0, done: 0, 'in-progress': 0, 'to-do': 0 };
   for (const item of items) {
     if (!isInRepos(item, shownRepos)) continue;
     counts[deriveStatus(item, overrides[formatItemKey(item)])] += 1;

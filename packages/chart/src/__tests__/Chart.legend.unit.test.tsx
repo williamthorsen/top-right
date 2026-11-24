@@ -42,7 +42,7 @@ describe('Chart legend', () => {
     );
   });
 
-  it('names each status fill, Done included', () => {
+  it('names each status fill, Backlog and Done included', () => {
     render(<Chart abbreviations={{}} items={[buildItem({ number: 1 })]} />);
 
     const statuses = screen.getByRole('list', { name: 'Status' });
@@ -50,14 +50,20 @@ describe('Chart legend', () => {
       within(statuses)
         .getAllByRole('listitem')
         .map((entry) => entry.textContent),
-    ).toStrictEqual(['To do', 'In progress', 'Done', 'Not sized, drawn as 1 point']);
+    ).toStrictEqual(['Backlog', 'To do', 'In progress', 'Done', 'Not sized, drawn as 1 point']);
   });
 
   it('draws the unsized entry’s swatch dotted and the status swatches solid', () => {
     render(<Chart abbreviations={{}} items={[buildItem({ number: 1 })]} />);
 
     const entries = within(screen.getByRole('list', { name: 'Status' })).getAllByRole('listitem');
-    expect(entries.map((entry) => getSwatch(entry)?.dataset['sized'])).toStrictEqual(['true', 'true', 'true', 'false']);
+    expect(entries.map((entry) => getSwatch(entry)?.dataset['sized'])).toStrictEqual([
+      'true',
+      'true',
+      'true',
+      'true',
+      'false',
+    ]);
   });
 
   it('classifies items by the mapping that it is passed', () => {

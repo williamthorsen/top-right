@@ -1,3 +1,4 @@
+import type { StatusCategory } from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { RADIUS_PER_POINT } from './layout.ts';
@@ -5,23 +6,30 @@ import { BLOCKED_GAP, BORDER_WIDTH, UNSIZED_DOT_COUNT } from './ScoredCircle.tsx
 
 const SIZE = 2 * (RADIUS_PER_POINT + BLOCKED_GAP) + BORDER_WIDTH;
 
+const STATUS_CLASS_NAMES: Readonly<Record<StatusCategory, string>> = {
+  backlog: 'tr-circle tr-circle-backlog',
+  done: 'tr-circle tr-circle-done',
+  'in-progress': 'tr-circle',
+  'to-do': 'tr-circle',
+};
+
 /**
- * A one-point item circle, drawn inline, with the done fill, the dotted border of an unsized item, and the blocked ring
- * when it has them; its border colour follows the nearest `data-work-type`.
+ * A one-point item circle, drawn inline, with the fill of its status, the dotted border of an unsized item, and the
+ * blocked ring when it has them; its border colour follows the nearest `data-work-type`.
  */
 export function CircleIcon({
   isBlocked = false,
-  isDone = false,
+  status = 'to-do',
   isUnsized = false,
 }: {
   isBlocked?: boolean;
-  isDone?: boolean;
+  status?: StatusCategory;
   isUnsized?: boolean;
 }): ReactElement {
   return (
     <svg aria-hidden="true" className="tr-circle-icon" height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} width={SIZE}>
       <circle
-        className={isDone ? 'tr-circle tr-circle-done' : 'tr-circle'}
+        className={STATUS_CLASS_NAMES[status]}
         cx={SIZE / 2}
         cy={SIZE / 2}
         data-sized={!isUnsized}
