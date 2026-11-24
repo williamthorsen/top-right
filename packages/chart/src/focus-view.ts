@@ -3,8 +3,8 @@ import type { RelationGraph } from '@top-right/model';
 import type { CellCallouts } from './callout-layout.ts';
 import type { EdgeEnd } from './edge-path.ts';
 import { focusItem, mergeChainEdges, type WeightedEdge } from './Edges.tsx';
-import { type GhostBoard, layoutGhosts } from './Ghosts.tsx';
-import type { CellLayout, GhostPlacement } from './layout.ts';
+import { type Ghost, type GhostBoard, layoutGhosts } from './Ghosts.tsx';
+import type { CellLayout } from './layout.ts';
 import type { Fade } from './ScoredCircle.tsx';
 import type { ChainView } from './useChainView.ts';
 import type { Review } from './useReview.ts';
@@ -13,7 +13,7 @@ import type { Review } from './useReview.ts';
 export interface FocusView {
   edges: WeightedEdge[];
   ends: Map<string, EdgeEnd>;
-  ghosts: GhostPlacement[];
+  ghosts: Ghost[];
   ghostOwner: string | undefined;
   fadeOf: (key: string) => Fade | undefined;
 }

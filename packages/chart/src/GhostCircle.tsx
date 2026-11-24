@@ -1,8 +1,11 @@
-import type { WorkType } from '@top-right/model';
+import type { StatusCategory, WorkType } from '@top-right/model';
 import type { KeyboardEvent, ReactElement } from 'react';
 
 import type { GhostPlacement } from './layout.ts';
 import { type Fade, HIT_RADIUS, measureRings, UNSIZED_DOT_COUNT } from './ScoredCircle.tsx';
+
+/** A status whose hidden items take ghosts. */
+export type GhostStatus = Extract<StatusCategory, 'backlog' | 'done'>;
 
 export interface GhostCircleProps {
   ghost: GhostPlacement;
@@ -11,11 +14,15 @@ export interface GhostCircleProps {
   /** How strongly a review, the chain view, or a focus fades the ghost; it stays activatable. */
   fade: Fade | undefined;
   onReveal: (id: string) => void;
+  status: GhostStatus;
   workType: WorkType;
 }
 
-/** A hidden done item at the end of a shown edge, drawn as a done circle, which reveals that item when activated. */
-export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCircleProps): ReactElement {
+/**
+ * A hidden done or backlog item at the end of a shown edge, drawn as a circle of its status, which reveals that item
+ * when activated.
+ */
+export function GhostCircle({ fade, ghost, name, onReveal, status, workType }: GhostCircleProps): ReactElement {
   const { id, x, y, r, isUnsized } = ghost;
   const rings = measureRings(r, false, false);
 
@@ -32,7 +39,7 @@ export function GhostCircle({ fade, ghost, name, onReveal, workType }: GhostCirc
       data-fade={fade}
       data-item-key={id}
       data-sized={!isUnsized}
-      data-status="done"
+      data-status={status}
       data-work-type={workType}
       onClick={() => onReveal(id)}
       onKeyDown={revealOnKey}
