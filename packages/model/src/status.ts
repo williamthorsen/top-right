@@ -6,15 +6,12 @@ export type StatusCategory = 'backlog' | 'done' | 'in-progress' | 'to-do';
 /** A status that an open item can have at its source; Done follows only from the closed state at the source. */
 export type OpenStatus = Exclude<StatusCategory, 'done'>;
 
-/** A status that the app can set on an open item; Backlog is read from the source. */
-export type SettableStatus = Exclude<OpenStatus, 'backlog'>;
-
 /** The statuses in the order in which work moves through them, which is the order that a status sort follows. */
 export const STATUS_ORDER: readonly StatusCategory[] = ['backlog', 'to-do', 'in-progress', 'done'];
 
 /** A status that the app stores over the source's, recorded with the source state at the time it was set. */
 export interface StatusOverride {
-  status: SettableStatus;
+  status: OpenStatus;
   sourceState: ItemState;
   /** When the override was set, as an ISO timestamp. */
   at: string;

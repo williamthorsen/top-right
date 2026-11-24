@@ -42,6 +42,7 @@ describe(createIssueStatusStrategy, () => {
   });
 
   it.each([
+    { status: 'backlog' as const, id: 'IS_backlog' },
     { status: 'in-progress' as const, id: 'IS_in_progress' },
     { status: 'to-do' as const, id: 'IS_todo' },
   ])('writes $status as the first status of its category', async ({ status, id }) => {
@@ -56,18 +57,26 @@ describe(createIssueStatusStrategy, () => {
   it.each([
     {
       case: 'issue statuses are unavailable',
+      status: 'to-do' as const,
       statuses: null,
       message: /^owner\/repo: issue statuses are not available/,
     },
     {
-      case: 'no status has the target category',
+      case: 'no status has the planned category',
+      status: 'to-do' as const,
       statuses: DEFAULT_PLANNING_STATUSES.filter(({ key }) => key !== 'planned'),
       message: /^owner\/repo: the repository has no issue status in the "planned" category/,
     },
-  ])('if $case, refuses the write naming the repository', async ({ statuses, message }) => {
+    {
+      case: 'no status has the backlog category',
+      status: 'backlog' as const,
+      statuses: DEFAULT_PLANNING_STATUSES.filter(({ key }) => key !== 'backlog'),
+      message: /^owner\/repo: the repository has no issue status in the "backlog" category/,
+    },
+  ])('if $case, refuses the write naming the repository', async ({ status, statuses, message }) => {
     const fake = createFakeIssueStatus({ statuses });
 
-    const result = createIssueStatusStrategy(fake.request).write(REF, 'to-do');
+    const result = createIssueStatusStrategy(fake.request).write(REF, status);
 
     await expect(result).rejects.toThrow(GitHubAdapterError);
     await expect(result).rejects.toThrow(message);

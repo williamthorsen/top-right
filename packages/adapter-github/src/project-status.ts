@@ -1,4 +1,4 @@
-import type { SettableStatus, WorkItem } from '@top-right/model';
+import type { OpenStatus, WorkItem } from '@top-right/model';
 import { z } from 'zod';
 
 import { GitHubAdapterError, GitHubNotFoundError, type GraphqlRequest } from './fetch-issues.ts';
@@ -57,7 +57,7 @@ export function createProjectStatusStrategy(
     );
   }
   const inProgress = new Set(options.inProgress.map((name) => name.toLowerCase()));
-  const target: Record<SettableStatus, string | undefined> = {
+  const target: Record<Exclude<OpenStatus, 'backlog'>, string | undefined> = {
     'in-progress': optionIdOf.get(options.inProgress[0]?.toLowerCase() ?? ''),
     'to-do': optionIdOf.get(options.toDo[0]?.toLowerCase() ?? ''),
   };
@@ -74,6 +74,9 @@ export function createProjectStatusStrategy(
       return { sourceStatus: name !== undefined && inProgress.has(name.toLowerCase()) ? 'in-progress' : 'to-do' };
     },
     async write(ref, status) {
+      // The read never yields Backlog, so a written Backlog would read back as To do.
+      if (status === 'backlog')
+        throw new GitHubAdapterError(`${project.url}: the Project strategy does not write Backlog`);
       const key = `${ref.repo}#${ref.number}`;
       const optionId = target[status];
       if (optionId === undefined) throw new GitHubAdapterError(`${project.url}: no option is listed for ${status}`);

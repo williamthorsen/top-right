@@ -29,7 +29,7 @@ export const repoReadSchema = z.object({ readAt: z.string(), isStale: z.boolean(
 
 /** A stored status override. */
 export const statusOverrideSchema = z.object({
-  status: z.enum(['in-progress', 'to-do']),
+  status: z.enum(['backlog', 'in-progress', 'to-do']),
   sourceState: z.enum(['closed', 'open']),
   at: z.string(),
 });

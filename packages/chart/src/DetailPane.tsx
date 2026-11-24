@@ -3,12 +3,12 @@ import {
   findTrailOrigin,
   formatItemKey,
   isAgentScored,
+  type OpenStatus,
   type Relation,
   type RelationKind,
   type ResolvedItemScores,
   type ScoreField,
   type Scores,
-  type SettableStatus,
   type StatusOverride,
   WORK_TYPE_NAMES,
   type WorkItem,
@@ -42,7 +42,7 @@ export interface DetailPaneProps {
   onScoresChange: (itemKey: string, scores: Scores) => void;
   /** Clears scores of the item; the rows offer a clear button only when the host passes it. */
   onScoresClear: ((itemKey: string, fields: readonly ScoreField[]) => void) | undefined;
-  onStatusChange: (itemKey: string, status: SettableStatus) => void;
+  onStatusChange: (itemKey: string, status: OpenStatus) => void;
   /** Reports the relation row under the pointer or focus, by item key, so that the chart can ring its circle. */
   onRelationHighlight?: (itemKey: string | undefined) => void;
   /** Selects a related item; a row offers it only for an item that `isGiven` accepts. */

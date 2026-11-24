@@ -36,7 +36,7 @@ A circle's id is the repository's abbreviation and the issue number, such as `T.
 
 The Settings page also defines collections, named groups of the configured repositories, and the default collection. The chart's Repos filter selects collections and repositories and shows their union, and the chart opens with the default collection after each reload, or with every repository without one. [`docs/design.md`](../../docs/design.md#filter-and-fade) states the reasons.
 
-An open issue's status comes from GitHub's native issue status, and setting In progress or To do in the pane sets that status. An open issue whose status is Backlog or unset loads as Backlog, which the chart shows while its Backlog filter is on. [`docs/design.md`](../../docs/design.md#status-is-a-derived-category-with-an-override-and-done-is-read-only) states which statuses read as which, and which one a write sets.
+An open issue's status comes from GitHub's native issue status, and setting Backlog, To do, or In progress in the pane sets that status. An open issue whose status is Backlog or unset loads as Backlog, which the chart shows while its Backlog filter is on. [`docs/design.md`](../../docs/design.md#status-is-a-derived-category-with-an-override-and-done-is-read-only) states which statuses read as which, and which one a write sets.
 
 A repository whose entry names a GitHub Project by its URL takes its status from the project's Status field instead, and setting a status in the pane sets the field, adding the issue to the project when it is not yet an item. [`DEFAULT_PROJECT_STATUS_OPTIONS`](../../packages/adapter-github/src/project-status.ts) names the options that read as To do and In progress; `projects` lists a project's own, and a write sets the first of each list:
 

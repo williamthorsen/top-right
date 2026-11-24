@@ -2,11 +2,11 @@ import {
   deriveStatus,
   EFFORT_SCALE,
   type ItemRef,
+  type OpenStatus,
   PROGRESS_STEP,
   type ResolvedItemScores,
   type ScoreField,
   type Scores,
-  type SettableStatus,
   type StatusCategory,
   type StatusOverride,
   URGENCY_LEVELS,
@@ -26,11 +26,11 @@ export interface PaneScoresProps {
   onScoresChange: (scores: Scores) => void;
   /** Clears one of the item's scores; without it, the rows offer no clear button. */
   onScoresClear: ((field: ScoreField) => void) | undefined;
-  onStatusChange: (status: SettableStatus) => void;
+  onStatusChange: (status: OpenStatus) => void;
 }
 
 const STATUS_OPTIONS: ReadonlyArray<SegmentOption<StatusCategory>> = [
-  { value: 'backlog', label: STATUS_NAMES.backlog, isDisabled: true },
+  { value: 'backlog', label: STATUS_NAMES.backlog },
   { value: 'to-do', label: STATUS_NAMES['to-do'] },
   { value: 'in-progress', label: STATUS_NAMES['in-progress'] },
   { value: 'done', label: STATUS_NAMES.done, isDisabled: true },
@@ -86,7 +86,7 @@ export function PaneScores({
           isReadOnly={isClosed}
           label="Status"
           onChange={(value) => {
-            if (value === 'in-progress' || value === 'to-do') onStatusChange(value);
+            if (value !== 'done') onStatusChange(value);
           }}
           options={STATUS_OPTIONS}
           value={status}

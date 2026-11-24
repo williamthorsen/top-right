@@ -1,4 +1,4 @@
-import type { OpenStatus, SettableStatus, WorkItem } from '@top-right/model';
+import type { OpenStatus, WorkItem } from '@top-right/model';
 import { z } from 'zod';
 
 import { GitHubAdapterError, type GraphqlRequest } from './fetch-issues.ts';
@@ -9,7 +9,11 @@ import type { StatusStrategy } from './status-strategy.ts';
 const PLANNING_STATUS_LIMIT = 50;
 
 /** The status category that each open status writes; the repository's first status of the category is set. */
-const TARGET_CATEGORY: Record<SettableStatus, string> = { 'in-progress': 'started', 'to-do': 'planned' };
+const TARGET_CATEGORY: Record<OpenStatus, string> = {
+  backlog: 'backlog',
+  'in-progress': 'started',
+  'to-do': 'planned',
+};
 
 /**
  * Returns the strategy that reads an open item's status from GitHub's native issue status and writes it there. An open

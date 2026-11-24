@@ -54,7 +54,7 @@ const scoreRowSchema = z.object({
 
 const overrideRowSchema = z.object({
   item_key: z.string(),
-  status: z.enum(['in-progress', 'to-do']),
+  status: z.enum(['backlog', 'in-progress', 'to-do']),
   source_state: z.enum(['closed', 'open']),
   set_at: z.string(),
 });

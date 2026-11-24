@@ -193,9 +193,9 @@ export function describeStoreContract(name: string, openStore: () => Promise<Ope
       await opened.store.writeStatusOverride(USER, ITEM, IN_PROGRESS);
       expect((await opened.store.readUserState(USER)).overrides).toEqual({ [ITEM]: IN_PROGRESS });
 
-      const toDo: StatusOverride = { status: 'to-do', sourceState: 'open', at: LATER };
-      await opened.store.writeStatusOverride(USER, ITEM, toDo);
-      expect((await opened.store.readUserState(USER)).overrides).toEqual({ [ITEM]: toDo });
+      const backlog: StatusOverride = { status: 'backlog', sourceState: 'open', at: LATER };
+      await opened.store.writeStatusOverride(USER, ITEM, backlog);
+      expect((await opened.store.readUserState(USER)).overrides).toEqual({ [ITEM]: backlog });
 
       await opened.store.writeStatusOverride(USER, ITEM, undefined);
       expect((await opened.store.readUserState(USER)).overrides).toEqual({});
