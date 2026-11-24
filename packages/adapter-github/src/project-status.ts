@@ -8,6 +8,8 @@ import type { StatusStrategy } from './status-strategy.ts';
 
 /** The options of a project's Status field that read as each open status; the first of each list is the one written. */
 export interface ProjectStatusOptions {
+  /** Empty when the project does not track Backlog, which then reads as To do and refuses a Backlog write. */
+  backlog: readonly string[];
   inProgress: readonly string[];
   toDo: readonly string[];
 }
@@ -29,7 +31,11 @@ export interface ResolvedProject {
 }
 
 /** The option names of the Status field of a project that GitHub creates. */
-export const DEFAULT_PROJECT_STATUS_OPTIONS: ProjectStatusOptions = { toDo: ['Todo'], inProgress: ['In Progress'] };
+export const DEFAULT_PROJECT_STATUS_OPTIONS: ProjectStatusOptions = {
+  backlog: [],
+  toDo: ['Todo'],
+  inProgress: ['In Progress'],
+};
 
 /** What a request of this module needs the token's scope to cover. */
 const SCOPE_NEED = 'projects';
@@ -41,7 +47,8 @@ const PROJECT_URL_PATTERN = /^https:\/\/github\.com\/(users|orgs)\/([\w-]+)\/pro
 
 /**
  * Returns the status strategy that reads an open item's status from the project's Status field and writes it there,
- * adding the issue to the project when it is not yet an item. Throws when the field lacks a listed option.
+ * adding the issue to the project when it is not yet an item. Throws when the field lacks a listed option, or when one
+ * option is listed for two statuses.
  */
 export function createProjectStatusStrategy(
   request: GraphqlRequest,
@@ -49,15 +56,31 @@ export function createProjectStatusStrategy(
   options: ProjectStatusOptions = DEFAULT_PROJECT_STATUS_OPTIONS,
 ): StatusStrategy {
   const optionIdOf = new Map(project.statusField.options.map((option) => [option.name.toLowerCase(), option.id]));
-  const missing = [...options.toDo, ...options.inProgress].filter((name) => !optionIdOf.has(name.toLowerCase()));
+  const listed = [...options.backlog, ...options.toDo, ...options.inProgress];
+  const missing = listed.filter((name) => !optionIdOf.has(name.toLowerCase()));
   if (missing.length > 0) {
     const names = project.statusField.options.map((option) => option.name).join(', ');
     throw new GitHubAdapterError(
       `${project.url}: the ${STATUS_FIELD_NAME} field has no option ${missing.map((name) => `"${name}"`).join(', ')}; its options are ${names}`,
     );
   }
-  const inProgress = new Set(options.inProgress.map((name) => name.toLowerCase()));
-  const target: Record<Exclude<OpenStatus, 'backlog'>, string | undefined> = {
+  const statusOf = new Map<string, OpenStatus>();
+  const lists: ReadonlyArray<[OpenStatus, readonly string[]]> = [
+    ['backlog', options.backlog],
+    ['in-progress', options.inProgress],
+    ['to-do', options.toDo],
+  ];
+  for (const [status, names] of lists) {
+    for (const name of names) {
+      const key = name.toLowerCase();
+      const other = statusOf.get(key);
+      if (other !== undefined && other !== status)
+        throw new GitHubAdapterError(`${project.url}: the option "${name}" is listed for both ${other} and ${status}`);
+      statusOf.set(key, status);
+    }
+  }
+  const target: Record<OpenStatus, string | undefined> = {
+    backlog: optionIdOf.get(options.backlog[0]?.toLowerCase() ?? ''),
     'in-progress': optionIdOf.get(options.inProgress[0]?.toLowerCase() ?? ''),
     'to-do': optionIdOf.get(options.toDo[0]?.toLowerCase() ?? ''),
   };
@@ -71,12 +94,10 @@ export function createProjectStatusStrategy(
         }`,
     read(item, issue) {
       const name = readOptionName(item, issue, project.id);
-      return { sourceStatus: name !== undefined && inProgress.has(name.toLowerCase()) ? 'in-progress' : 'to-do' };
+      const status = name === undefined ? undefined : statusOf.get(name.toLowerCase());
+      return { sourceStatus: status ?? 'to-do' };
     },
     async write(ref, status) {
-      // The read never yields Backlog, so a written Backlog would read back as To do.
-      if (status === 'backlog')
-        throw new GitHubAdapterError(`${project.url}: the Project strategy does not write Backlog`);
       const key = `${ref.repo}#${ref.number}`;
       const optionId = target[status];
       if (optionId === undefined) throw new GitHubAdapterError(`${project.url}: no option is listed for ${status}`);

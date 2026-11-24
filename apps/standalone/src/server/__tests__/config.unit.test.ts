@@ -34,15 +34,19 @@ describe(parseConfig, () => {
     expect(config.reposWithAbbreviation).toStrictEqual(['w/top-right']);
   });
 
-  it("reads each repository's project and each project's options under the project's canonical URL", () => {
+  it("reads each repository's project and each project's options under the project's canonical URL, with Backlog defaulting to none", () => {
     const config = parseConfig(
       JSON.stringify({
         repos: [
           { repo: 'w/a', project: 'https://github.com/users/W/projects/3/views/1' },
           { repo: 'w/b', project: 'https://github.com/users/w/projects/3' },
           { repo: 'w/c' },
+          { repo: 'w/d', project: 'https://github.com/users/w/projects/4' },
         ],
-        projects: { 'https://github.com/users/w/projects/3/': { toDo: ['Backlog'], inProgress: ['Doing'] } },
+        projects: {
+          'https://github.com/users/w/projects/3/': { backlog: ['Icebox'], toDo: ['Backlog'], inProgress: ['Doing'] },
+          'https://github.com/users/w/projects/4': { toDo: ['Todo'], inProgress: ['Doing'] },
+        },
       }),
       PATH,
     );
@@ -50,9 +54,11 @@ describe(parseConfig, () => {
     expect(config.projectOf).toStrictEqual({
       'w/a': 'https://github.com/users/w/projects/3',
       'w/b': 'https://github.com/users/w/projects/3',
+      'w/d': 'https://github.com/users/w/projects/4',
     });
     expect(config.projectOptions).toStrictEqual({
-      'https://github.com/users/w/projects/3': { toDo: ['Backlog'], inProgress: ['Doing'] },
+      'https://github.com/users/w/projects/3': { backlog: ['Icebox'], toDo: ['Backlog'], inProgress: ['Doing'] },
+      'https://github.com/users/w/projects/4': { backlog: [], toDo: ['Todo'], inProgress: ['Doing'] },
     });
   });
 

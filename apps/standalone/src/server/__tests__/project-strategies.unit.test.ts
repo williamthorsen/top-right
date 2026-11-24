@@ -76,7 +76,7 @@ describe(resolveProjectStrategies, () => {
   it('if a listed option is missing, names it without the projects hint', async () => {
     const result = resolveProjectStrategies(() => Promise.resolve(FOUND), {
       projectOf: { 'w/a': URL },
-      projectOptions: { [URL]: { toDo: ['Backlog'], inProgress: ['In Progress'] } },
+      projectOptions: { [URL]: { backlog: ['Backlog'], toDo: ['Todo'], inProgress: ['In Progress'] } },
     });
 
     await expect(result).rejects.toThrow(/no option "Backlog"; its options are Todo, In Progress\.$/);

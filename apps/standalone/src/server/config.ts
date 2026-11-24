@@ -41,7 +41,16 @@ const configSchema = z
       )
       .min(1),
     closedWindowDays: z.number().int().min(0).default(DEFAULT_CLOSED_WINDOW_DAYS),
-    projects: z.record(z.string(), z.object({ toDo: optionListSchema, inProgress: optionListSchema })).default({}),
+    projects: z
+      .record(
+        z.string(),
+        z.object({
+          backlog: optionListSchema.optional().default([]),
+          toDo: optionListSchema,
+          inProgress: optionListSchema,
+        }),
+      )
+      .default({}),
     agent: agentSchema.optional(),
   })
   .superRefine((config, context) => {
