@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { describeScopeWarnings, fetchTokenScopes } from '../token-scopes.ts';
 
-const BOTH = { hasLabelRepos: true, hasProjectRepos: true };
+const BOTH = { hasIssueStatusRepos: true, hasProjectRepos: true };
 
 describe(fetchTokenScopes, () => {
   it('returns the scopes that GitHub reports, sending the token', async () => {
@@ -34,14 +34,14 @@ describe(describeScopeWarnings, () => {
     expect(warnings[0]).toMatch(/"project" scope.*gh auth refresh --scopes project/);
   });
 
-  it('warns about the repo scopes for label repositories', () => {
+  it('warns about the repo scopes for issue-status repositories', () => {
     expect(describeScopeWarnings(['project'], BOTH)).toStrictEqual([expect.stringMatching(/"repo" and "public_repo"/)]);
   });
 
   it.each([
     { case: 'the token has the scopes', scopes: ['public_repo', 'project'], use: BOTH },
     { case: 'no repository uses a project', scopes: ['repo'], use: { ...BOTH, hasProjectRepos: false } },
-    { case: 'every repository uses a project', scopes: ['project'], use: { ...BOTH, hasLabelRepos: false } },
+    { case: 'every repository uses a project', scopes: ['project'], use: { ...BOTH, hasIssueStatusRepos: false } },
     { case: 'GitHub reports no scopes', scopes: undefined, use: BOTH },
   ])('returns none when $case', ({ scopes, use }) => {
     expect(describeScopeWarnings(scopes, use)).toStrictEqual([]);
