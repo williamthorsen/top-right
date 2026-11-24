@@ -19,7 +19,7 @@ Revised after the product manager and interaction designer evaluations: The purp
 ## Non-goals
 
 - Replacing the tracker. GitHub and Jira remain the source of truth for an item's title, description, and state; Top Right stores only what the sources do not hold.
-- Writing an item's open or closed state to the tracker. Done is read from the source and never set in the chart. The standalone host writes In progress or To do to a GitHub issue's native status or to its Project's Status field, which leaves the issue open.
+- Writing an item's open or closed state to the tracker. Done is read from the source and never set in the chart. The standalone host writes Backlog, To do, or In progress to a GitHub issue's native status, and To do or In progress to its Project's Status field, which leaves the issue open.
 - Planning by dependency. Relationships are shown on the chart but never position a circle.
 - A hosted service before there is demand for one.
 
