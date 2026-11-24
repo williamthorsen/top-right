@@ -1,4 +1,4 @@
-import type { OpenStatus, WorkItem } from '@top-right/model';
+import type { SettableStatus, WorkItem } from '@top-right/model';
 import { z } from 'zod';
 
 import { GitHubAdapterError, GitHubNotFoundError, type GraphqlRequest } from './fetch-issues.ts';
@@ -57,7 +57,7 @@ export function createProjectStatusStrategy(
     );
   }
   const inProgress = new Set(options.inProgress.map((name) => name.toLowerCase()));
-  const target: Record<OpenStatus, string | undefined> = {
+  const target: Record<SettableStatus, string | undefined> = {
     'in-progress': optionIdOf.get(options.inProgress[0]?.toLowerCase() ?? ''),
     'to-do': optionIdOf.get(options.toDo[0]?.toLowerCase() ?? ''),
   };

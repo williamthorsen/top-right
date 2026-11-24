@@ -1,4 +1,4 @@
-import type { OpenStatus, WorkItem } from '@top-right/model';
+import type { OpenStatus, SettableStatus, WorkItem } from '@top-right/model';
 import { z } from 'zod';
 
 import { GitHubAdapterError, type GraphqlRequest } from './fetch-issues.ts';
@@ -9,21 +9,17 @@ import type { StatusStrategy } from './status-strategy.ts';
 const PLANNING_STATUS_LIMIT = 50;
 
 /** The status category that each open status writes; the repository's first status of the category is set. */
-const TARGET_CATEGORY: Record<OpenStatus, string> = { 'in-progress': 'started', 'to-do': 'planned' };
+const TARGET_CATEGORY: Record<SettableStatus, string> = { 'in-progress': 'started', 'to-do': 'planned' };
 
 /**
  * Returns the strategy that reads an open item's status from GitHub's native issue status and writes it there. An open
- * issue in the `started` category is In progress, one in the `backlog` category or without a status is hidden, and any
+ * issue in the `started` category is In progress, one in the `backlog` category or without a status is Backlog, and any
  * other is To do.
  */
 export function createIssueStatusStrategy(request: GraphqlRequest): StatusStrategy {
   return {
     issueFields: 'status { category { key } }',
-    hides: (item, issue) => {
-      const key = readCategoryKey(item, issue);
-      return key === undefined || key === 'backlog';
-    },
-    read: (item, issue) => ({ sourceStatus: readCategoryKey(item, issue) === 'started' ? 'in-progress' : 'to-do' }),
+    read: (item, issue) => ({ sourceStatus: readOpenStatus(readCategoryKey(item, issue)) }),
     async write(ref, status) {
       const key = `${ref.repo}#${ref.number}`;
       const [owner, name] = ref.repo.split('/', 2);
@@ -91,5 +87,10 @@ function readCategoryKey(item: WorkItem, issue: unknown): string | undefined {
     });
   }
   return parsed.data.status?.category.key;
+}
+/** Returns the open status that a status category key reads as; an issue without a status is Backlog. */
+function readOpenStatus(key: string | undefined): OpenStatus {
+  if (key === undefined || key === 'backlog') return 'backlog';
+  return key === 'started' ? 'in-progress' : 'to-do';
 }
 // endregion | Helpers
