@@ -25,7 +25,7 @@ export interface FilterBarProps {
 }
 
 /** The statuses that the filter offers as chips, in display order. */
-const STATUS_CHIPS: readonly StatusCategory[] = ['to-do', 'in-progress', 'done'];
+const STATUS_CHIPS: readonly StatusCategory[] = ['backlog', 'to-do', 'in-progress', 'done'];
 
 /**
  * The Filter group at the chart's top edge: the Repos menu, whose checkable collections and repositories the chart

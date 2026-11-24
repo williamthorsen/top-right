@@ -8,6 +8,7 @@ import {
   type ResolvedItemScores,
   type ScoreField,
   type Scores,
+  type SettableStatus,
   type StatusOverride,
   WORK_TYPE_NAMES,
   type WorkItem,
@@ -18,7 +19,7 @@ import { type ReactElement, useEffect, useLayoutEffect, useRef } from 'react';
 import { ExternalLinkIcon } from './ExternalLinkIcon.tsx';
 import { type Abbreviations, labelItem } from './item-label.ts';
 import { LEVEL_NAMES } from './level-names.ts';
-import { PaneScores, type SettableStatus } from './PaneScores.tsx';
+import { PaneScores } from './PaneScores.tsx';
 import { listShownLabels } from './shown-labels.ts';
 
 /** Why the pane shows its item: a hover or focus, or a selection. */

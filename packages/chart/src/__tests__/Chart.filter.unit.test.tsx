@@ -97,6 +97,30 @@ describe(Chart, () => {
       expect(screen.getByRole('button', { name: /^T\.2:/ })).toBeInTheDocument();
     });
 
+    it('hides backlog items until Backlog is turned on, and counts them under Backlog', async () => {
+      const user = userEvent.setup();
+      renderChart([buildItem({ number: 1 }), buildItem({ number: 2, sourceStatus: 'backlog' })]);
+      const toggle = screen.getByRole('button', { name: /^Backlog/ });
+      expect(toggle).not.toBePressed();
+      expect(toggle).toHaveAccessibleName('Backlog 1');
+      expect(screen.queryByRole('button', { name: /^T\.2:/ })).not.toBeInTheDocument();
+
+      await user.click(toggle);
+
+      expect(toggle).toBePressed();
+      expect(screen.getByRole('button', { name: /^T\.2:/ })).toBeInTheDocument();
+    });
+
+    it('counts backlog items in the review queues only while Backlog is on', async () => {
+      const user = userEvent.setup();
+      renderChart([buildItem({ number: 1 }), buildItem({ number: 2, sourceStatus: 'backlog' })]);
+      expect(screen.getByRole('button', { name: 'Review unscored (1)' })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /^Backlog/ }));
+
+      expect(screen.getByRole('button', { name: 'Review unscored (2)' })).toBeInTheDocument();
+    });
+
     it('counts each status within the repo filter', async () => {
       const user = userEvent.setup();
       renderChart(

@@ -546,6 +546,12 @@
   fill: var(--tr-done);
 }
 
+/* A backlog circle is hollow; an icon or a swatch sits on varied surfaces, so it shows through. */
+.tr-circle-backlog,
+.tr-swatch .tr-node[data-status='backlog'] .tr-node-main {
+  fill: none;
+}
+
 [data-work-type='feature'] .tr-circle,
 .tr-circle[data-work-type='feature'] {
   stroke: var(--tr-cat-feature);
@@ -588,6 +594,11 @@
 
 .tr-node[data-status='done'] .tr-node-main {
   fill: var(--tr-done);
+}
+
+/* A backlog circle on the chart is hollow, filled with the chart's own surface so that it covers what lies beneath. */
+.tr-node[data-status='backlog'] .tr-node-main {
+  fill: var(--tr-bg);
 }
 
 .tr-node-pie {

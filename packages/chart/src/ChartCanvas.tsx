@@ -108,6 +108,7 @@ export function ChartCanvas({
                 onPreview={scoredCells.onPreview}
                 onSelect={scoredCells.onSelect}
                 origin={MATRIX_ORIGIN}
+                overrides={scoredCells.overrides}
                 scores={scoredCells.scores}
                 selectedKey={scoredCells.selectedKey}
                 workTypeMapping={scoredCells.workTypeMapping}

@@ -1,4 +1,11 @@
-import { classifyWorkType, type ResolvedItemScores, type WorkItem, type WorkTypeMapping } from '@top-right/model';
+import {
+  classifyWorkType,
+  deriveStatus,
+  type ResolvedItemScores,
+  type StatusOverride,
+  type WorkItem,
+  type WorkTypeMapping,
+} from '@top-right/model';
 import type { ReactElement } from 'react';
 
 import { CircleIcon } from './CircleIcon.tsx';
@@ -10,6 +17,7 @@ export interface GutterCellProps {
   cell: CellLayout;
   cellSize: number;
   scores: Readonly<Record<string, ResolvedItemScores>>;
+  overrides: Readonly<Record<string, StatusOverride>>;
   fadeOf: (key: string) => Fade | undefined;
   itemsByKey: ReadonlyMap<string, WorkItem>;
   labelOf: (item: WorkItem) => string;
@@ -37,6 +45,7 @@ export function GutterCell({
   cell,
   cellSize,
   scores,
+  overrides,
   fadeOf,
   itemsByKey,
   labelOf,
@@ -84,7 +93,7 @@ export function GutterCell({
               >
                 <CircleIcon
                   isBlocked={isBlocked}
-                  isDone={item.state === 'closed'}
+                  status={deriveStatus(item, overrides[key])}
                   isUnsized={scores[key]?.effort === undefined}
                 />
                 {label}

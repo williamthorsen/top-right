@@ -6,6 +6,8 @@ import {
   type ResolvedItemScores,
   type ScoreField,
   type Scores,
+  type SettableStatus,
+  type StatusCategory,
   type StatusOverride,
   URGENCY_LEVELS,
   VALUE_LEVELS,
@@ -17,9 +19,6 @@ import { formatScoreCaption } from './provenance.ts';
 import { SegmentedControl, type SegmentOption } from './SegmentedControl.tsx';
 import { STATUS_NAMES } from './status-names.ts';
 
-/** A status that the pane can set; Done is read from the source. */
-export type SettableStatus = 'in-progress' | 'to-do';
-
 export interface PaneScoresProps {
   item: Pick<ItemRef, 'state'>;
   scores: ResolvedItemScores | undefined;
@@ -30,7 +29,8 @@ export interface PaneScoresProps {
   onStatusChange: (status: SettableStatus) => void;
 }
 
-const STATUS_OPTIONS: ReadonlyArray<SegmentOption<'done' | SettableStatus>> = [
+const STATUS_OPTIONS: ReadonlyArray<SegmentOption<StatusCategory>> = [
+  { value: 'backlog', label: STATUS_NAMES.backlog, isDisabled: true },
   { value: 'to-do', label: STATUS_NAMES['to-do'] },
   { value: 'in-progress', label: STATUS_NAMES['in-progress'] },
   { value: 'done', label: STATUS_NAMES.done, isDisabled: true },
@@ -86,7 +86,7 @@ export function PaneScores({
           isReadOnly={isClosed}
           label="Status"
           onChange={(value) => {
-            if (value !== 'done') onStatusChange(value);
+            if (value === 'in-progress' || value === 'to-do') onStatusChange(value);
           }}
           options={STATUS_OPTIONS}
           value={status}

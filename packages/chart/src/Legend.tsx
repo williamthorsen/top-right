@@ -35,6 +35,10 @@ export function Legend({ workTypeMapping, settingsHref }: LegendProps): ReactEle
     <div className="tr-legends">
       <ul aria-label="Status" className="tr-legend">
         <li>
+          <StatusSwatch status="backlog" />
+          {STATUS_NAMES.backlog}
+        </li>
+        <li>
           <StatusSwatch status="to-do" />
           {STATUS_NAMES['to-do']}
         </li>
@@ -90,7 +94,13 @@ export function StatusSwatch({
 }): ReactElement {
   const r = SWATCH_RADIUS;
   return (
-    <svg aria-hidden="true" height={SWATCH_SIZE} viewBox={`0 0 ${SWATCH_SIZE} ${SWATCH_SIZE}`} width={SWATCH_SIZE}>
+    <svg
+      aria-hidden="true"
+      className="tr-swatch"
+      height={SWATCH_SIZE}
+      viewBox={`0 0 ${SWATCH_SIZE} ${SWATCH_SIZE}`}
+      width={SWATCH_SIZE}
+    >
       <g
         className="tr-node"
         data-sized={!isUnsized}
