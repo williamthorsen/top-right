@@ -9,6 +9,7 @@ import { closeServers, EARLIER, ITEM, ITEM_KEY, NOW, post, startServer } from '.
 const REF = { repo: ITEM.repo, number: ITEM.number };
 const LEGACY: StatusOverride = { status: 'in-progress', sourceState: 'open', at: EARLIER };
 const WRITES: Array<{ status: OpenStatus; patch: ItemPatch }> = [
+  { status: 'backlog', patch: { sourceStatus: 'backlog' } },
   { status: 'in-progress', patch: { sourceStatus: 'in-progress' } },
   { status: 'to-do', patch: { sourceStatus: 'to-do' } },
 ];
@@ -37,16 +38,16 @@ describe('POST /api/status on a host whose repository has a status strategy', ()
   it('if the source refuses the write, answers 502 and leaves the override and the item as they were', async () => {
     const store = createMemoryStore({ overrides: { [ITEM_KEY]: LEGACY } });
     const strategy = createStrategy(() =>
-      Promise.reject(new Error('owner/repo: the repository has no issue status in the "planned" category')),
+      Promise.reject(new Error('owner/repo: the repository has no issue status in the "backlog" category')),
     );
     const baseUrl = await startServer({ store, statusStrategyFor: () => strategy });
     await fetch(`${baseUrl}/api/items`);
 
-    const response = await post(`${baseUrl}/api/status`, { itemKey: ITEM_KEY, status: 'to-do', sourceState: 'open' });
+    const response = await post(`${baseUrl}/api/status`, { itemKey: ITEM_KEY, status: 'backlog', sourceState: 'open' });
 
     expect(response.status).toBe(502);
     expect(await response.json()).toStrictEqual({
-      error: expect.stringContaining('no issue status in the "planned" category'),
+      error: expect.stringContaining('no issue status in the "backlog" category'),
     });
     expect(store.state.overrides).toStrictEqual({ [ITEM_KEY]: LEGACY });
     const items: unknown = await (await fetch(`${baseUrl}/api/items`)).json();
@@ -84,9 +85,10 @@ describe('POST /api/status on a host whose repository has a status strategy', ()
   });
 
   it.each([
-    { case: 'a repository without a strategy', itemKey: 'owner/untracked#3' },
-    { case: 'a key without a repository', itemKey: 'task:write-the-docs' },
-  ])('for $case, keeps the status as an override', async ({ itemKey }) => {
+    { case: 'a repository without a strategy', itemKey: 'owner/untracked#3', status: 'in-progress' },
+    { case: 'a key without a repository', itemKey: 'task:write-the-docs', status: 'in-progress' },
+    { case: 'a repository without a strategy', itemKey: 'owner/untracked#3', status: 'backlog' },
+  ])('for $case, keeps $status as an override', async ({ itemKey, status }) => {
     const store = createMemoryStore();
     const strategy = createStrategy(() => Promise.resolve({}));
     const baseUrl = await startServer({
@@ -94,11 +96,11 @@ describe('POST /api/status on a host whose repository has a status strategy', ()
       statusStrategyFor: (repo) => (repo === ITEM.repo ? strategy : undefined),
     });
 
-    await post(`${baseUrl}/api/status`, { itemKey, status: 'in-progress', sourceState: 'open' });
+    await post(`${baseUrl}/api/status`, { itemKey, status, sourceState: 'open' });
 
     expect(strategy.write).not.toHaveBeenCalled();
     expect(store.state.overrides).toStrictEqual({
-      [itemKey]: { status: 'in-progress', sourceState: 'open', at: NOW.toISOString() },
+      [itemKey]: { status, sourceState: 'open', at: NOW.toISOString() },
     });
   });
 });
