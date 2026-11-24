@@ -8,6 +8,7 @@ export {
   type GraphqlRequest,
 } from './fetch-issues.ts';
 export { fetchViewerLogin } from './fetch-viewer-login.ts';
+export { createIssueStatusStrategy } from './issue-status.ts';
 export {
   createProjectStatusStrategy,
   DEFAULT_PROJECT_STATUS_OPTIONS,
@@ -17,10 +18,5 @@ export {
   type ResolvedProject,
   resolveProject,
 } from './project-status.ts';
-export {
-  createLabelStatusStrategy,
-  IN_PROGRESS_LABEL,
-  type StatusReading,
-  type StatusStrategy,
-} from './status-strategy.ts';
+export type { StatusReading, StatusStrategy } from './status-strategy.ts';
 export { type LabelChange, updateIssueLabels } from './update-issue-labels.ts';

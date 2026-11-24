@@ -26,7 +26,7 @@ export class GitHubScopeError extends GitHubAdapterError {
 export interface FetchIssuesOptions {
   /** Also reads the issues closed at or after this moment; without it, no closed issue is read. */
   closedSince?: Date | undefined;
-  /** Reads each open issue's `sourceStatus`; without it, the status stays unset. */
+  /** Reads each open issue's `sourceStatus` and drops the open issues that it hides; without it, neither happens. */
   status?: StatusStrategy | undefined;
 }
 
@@ -64,6 +64,7 @@ export async function fetchIssues(
   const items = new Map<string, WorkItem>();
   for (const issue of [...open, ...closed]) {
     const mapped = mapIssue(issue, repo);
+    if (status && mapped.state === 'open' && status.hides?.(mapped, issue)) continue;
     const item = status && mapped.state === 'open' ? { ...mapped, ...status.read(mapped, issue) } : mapped;
     // An issue whose state changes between the two reads appears in both; the first record stands.
     const key = formatItemKey(item);

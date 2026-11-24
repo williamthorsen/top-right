@@ -64,7 +64,6 @@ export const scoresResponseSchema = z.object({
 export const statusPatchSchema = z.object({
   labels: z.array(z.string()).exactOptional(),
   sourceStatus: z.enum(['in-progress', 'to-do']).exactOptional(),
-  sourceStatusLabel: z.string().exactOptional(),
 });
 
 /** The body of a successful `POST /api/status`: the item's resulting override, or `null` when it has none. */

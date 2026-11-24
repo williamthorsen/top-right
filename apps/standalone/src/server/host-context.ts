@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import {
-  createLabelStatusStrategy,
+  createIssueStatusStrategy,
   fetchIssues,
   fetchIssuesOfRepos,
   fetchViewerLogin,
@@ -46,8 +46,8 @@ export interface HostContext {
   /** The configured repositories, as `owner/name`. */
   repos: string[];
   /**
-   * Returns how a repository tracks In progress: through the GitHub Project that its config entry names, else through
-   * the label; `undefined` for a repository that the host does not read.
+   * Returns how a repository tracks its status: through the GitHub Project that its config entry names, else through
+   * GitHub's native issue status; `undefined` for a repository that the host does not read.
    */
   statusStrategyFor: (repo: string) => StatusStrategy | undefined;
   store: SqliteStore;
@@ -71,17 +71,17 @@ export async function openHostContext(): Promise<HostContext> {
   const userId = await resolveUserId(request);
   const projectStrategies = await resolveProjectStrategies(request, config);
   const scopeWarnings = describeScopeWarnings(await fetchTokenScopes(token), {
-    hasLabelRepos: repos.some((repo) => config.projectOf[repo] === undefined),
+    hasIssueStatusRepos: repos.some((repo) => config.projectOf[repo] === undefined),
     hasProjectRepos: repos.some((repo) => config.projectOf[repo] !== undefined),
   });
   for (const warning of scopeWarnings) console.warn(`top-right: ${warning}`);
   const databasePath = resolveDatabasePath(process.env, os.homedir());
   const store = openStore(databasePath);
-  const labelStrategy = createLabelStatusStrategy(request);
+  const issueStatusStrategy = createIssueStatusStrategy(request);
   function statusStrategyFor(repo: string): StatusStrategy | undefined {
     if (!repos.includes(repo)) return undefined;
     const projectUrl = config.projectOf[repo];
-    return projectUrl === undefined ? labelStrategy : projectStrategies.get(projectUrl);
+    return projectUrl === undefined ? issueStatusStrategy : projectStrategies.get(projectUrl);
   }
   return {
     agent: config.agent,
