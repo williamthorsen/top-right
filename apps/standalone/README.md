@@ -38,12 +38,12 @@ The Settings page also defines collections, named groups of the configured repos
 
 An open issue's status comes from GitHub's native issue status, and setting Backlog, To do, or In progress in the pane sets that status. An open issue whose status is Backlog or unset loads as Backlog, which the chart shows while its Backlog filter is on. [`docs/design.md`](../../docs/design.md#status-is-a-derived-category-with-an-override-and-done-is-read-only) states which statuses read as which, and which one a write sets.
 
-A repository whose entry names a GitHub Project by its URL takes its status from the project's Status field instead, and setting a status in the pane sets the field, adding the issue to the project when it is not yet an item. [`DEFAULT_PROJECT_STATUS_OPTIONS`](../../packages/adapter-github/src/project-status.ts) names the options that read as To do and In progress; `projects` lists a project's own, and a write sets the first of each list:
+A repository whose entry names a GitHub Project by its URL takes its status from the project's Status field instead, and setting a status in the pane sets the field, adding the issue to the project when it is not yet an item. [`DEFAULT_PROJECT_STATUS_OPTIONS`](../../packages/adapter-github/src/project-status.ts) names the options that read as each status; `projects` lists a project's own under `backlog`, `toDo`, and `inProgress`, and a write sets the first of each list. `backlog` is optional: A project without it reads its Backlog column as To do and refuses a Backlog write.
 
 ```json
 {
   "projects": {
-    "https://github.com/users/LOGIN/projects/1": { "toDo": ["Backlog", "Todo"], "inProgress": ["In Progress"] }
+    "https://github.com/users/LOGIN/projects/1": { "backlog": ["Backlog"], "toDo": ["Todo"], "inProgress": ["In Progress"] }
   },
   "repos": [
     { "repo": "williamthorsen/top-right", "project": "https://github.com/users/LOGIN/projects/1" },
@@ -52,7 +52,7 @@ A repository whose entry names a GitHub Project by its URL takes its status from
 }
 ```
 
-A project needs the token's `project` scope, which `gh auth login` does not grant: Run `gh auth refresh --scopes project`. The host refuses to start when it cannot read a configured project or a listed option, and [`docs/design.md`](../../docs/design.md) states how a project's status and the pane's override combine.
+A project needs the token's `project` scope, which `gh auth login` does not grant: Run `gh auth refresh --scopes project`. The host refuses to start when it cannot read a configured project or a listed option, or when one option is listed for two statuses, and [`docs/design.md`](../../docs/design.md) states how a project's status and the pane's override combine.
 
 The GitHub token comes from `GITHUB_TOKEN` or, when it is unset, from `gh auth token`, so `gh auth login` is the only setup that the first run needs.
 

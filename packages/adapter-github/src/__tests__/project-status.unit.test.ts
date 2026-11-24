@@ -21,6 +21,9 @@ const ITEM: WorkItem = {
   relations: [],
 };
 
+/** The Status options of a project that tracks Backlog. */
+const BACKLOG_OPTIONS = ['Backlog', 'Icebox', 'Ready', 'In progress', 'Done'];
+
 describe(parseProjectUrl, () => {
   it.each([
     ['https://github.com/users/Owner/projects/3', 'https://github.com/users/owner/projects/3', 'user'],
@@ -95,10 +98,23 @@ describe(createProjectStatusStrategy, () => {
 
     expect(() =>
       createProjectStatusStrategy(createFakeGithubProject().request, project, {
-        toDo: ['Backlog'],
+        backlog: ['Backlog'],
+        toDo: ['Todo'],
         inProgress: ['in progress'],
       }),
     ).toThrow(/no option "Backlog"; its options are Todo, In Progress, Done/);
+  });
+
+  it('if one option is listed for two statuses, throws naming the project and the option', async () => {
+    const project = await resolveFakeProject();
+
+    expect(() =>
+      createProjectStatusStrategy(createFakeGithubProject().request, project, {
+        backlog: ['Todo'],
+        toDo: ['todo'],
+        inProgress: ['In Progress'],
+      }),
+    ).toThrow(`${FAKE_PROJECT_URL}: the option "todo" is listed for both backlog and to-do`);
   });
 
   describe('read', () => {
@@ -121,12 +137,23 @@ describe(createProjectStatusStrategy, () => {
         github.request,
         await resolveProject(github.request, FAKE_PROJECT_URL),
         {
+          backlog: [],
           toDo: ['Backlog'],
           inProgress: ['Doing', 'Review'],
         },
       );
 
       expect(strategy.read(ITEM, buildIssue('Review'))).toStrictEqual({ sourceStatus: 'in-progress' });
+    });
+
+    it.each([
+      { option: 'Icebox', status: 'backlog' },
+      { option: 'backlog', status: 'backlog' },
+      { option: 'Ready', status: 'to-do' },
+    ])('reads $option as $status when the project lists Backlog options', async ({ option, status }) => {
+      const strategy = await createBacklogStrategy(createFakeGithubProject({ options: BACKLOG_OPTIONS }));
+
+      expect(strategy.read(ITEM, buildIssue(option))).toStrictEqual({ sourceStatus: status });
     });
 
     it('asks the issues query for the Status of each project item', async () => {
@@ -170,6 +197,7 @@ describe(createProjectStatusStrategy, () => {
         github.request,
         await resolveProject(github.request, FAKE_PROJECT_URL),
         {
+          backlog: [],
           toDo: ['Backlog'],
           inProgress: ['doing', 'Review'],
         },
@@ -180,14 +208,24 @@ describe(createProjectStatusStrategy, () => {
       expect(github.items.get(7)).toBe('Doing');
     });
 
-    it('refuses Backlog naming the project, without sending a request', async () => {
+    it('writes Backlog as the first Backlog option', async () => {
+      const github = createFakeGithubProject({ options: BACKLOG_OPTIONS, items: { 7: 'Ready' } });
+      const strategy = await createBacklogStrategy(github);
+
+      const patch = await strategy.write(REF, 'backlog');
+
+      expect(patch).toStrictEqual({ sourceStatus: 'backlog' });
+      expect(github.items.get(7)).toBe('Backlog');
+    });
+
+    it('if the project lists no Backlog option, refuses Backlog naming the project, without sending a request', async () => {
       const github = createFakeGithubProject();
       const strategy = createProjectStatusStrategy(github.request, await resolveFakeProject());
 
       const result = strategy.write(REF, 'backlog');
 
       await expect(result).rejects.toThrow(GitHubAdapterError);
-      await expect(result).rejects.toThrow(`${FAKE_PROJECT_URL}: the Project strategy does not write Backlog`);
+      await expect(result).rejects.toThrow(`${FAKE_PROJECT_URL}: no option is listed for backlog`);
       expect(github.operations).toStrictEqual([]);
     });
 
@@ -211,6 +249,16 @@ function buildIssue(name: string | undefined, projectId = FAKE_PROJECT_ID): unkn
       nodes: [{ project: { id: projectId }, fieldValueByName: name === undefined ? null : { name } }],
     },
   };
+}
+
+/** Returns the strategy for the fake's project, listing Backlog and Icebox as Backlog. */
+async function createBacklogStrategy(github: ReturnType<typeof createFakeGithubProject>) {
+  const project = await resolveProject(github.request, FAKE_PROJECT_URL);
+  return createProjectStatusStrategy(github.request, project, {
+    backlog: ['Backlog', 'Icebox'],
+    toDo: ['Ready'],
+    inProgress: ['In progress'],
+  });
 }
 
 /** Returns the fake's project with the default options. */
