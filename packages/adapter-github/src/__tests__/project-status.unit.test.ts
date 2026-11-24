@@ -180,6 +180,17 @@ describe(createProjectStatusStrategy, () => {
       expect(github.items.get(7)).toBe('Doing');
     });
 
+    it('refuses Backlog naming the project, without sending a request', async () => {
+      const github = createFakeGithubProject();
+      const strategy = createProjectStatusStrategy(github.request, await resolveFakeProject());
+
+      const result = strategy.write(REF, 'backlog');
+
+      await expect(result).rejects.toThrow(GitHubAdapterError);
+      await expect(result).rejects.toThrow(`${FAKE_PROJECT_URL}: the Project strategy does not write Backlog`);
+      expect(github.operations).toStrictEqual([]);
+    });
+
     it("if GitHub refuses the write, rejects with GitHub's message", async () => {
       const github = createFakeGithubProject({ failure: 'mutation-refused' });
       const strategy = createProjectStatusStrategy(github.request, await resolveFakeProject());

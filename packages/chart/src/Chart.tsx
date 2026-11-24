@@ -7,11 +7,11 @@ import {
   type ItemFilter,
   type ItemScores,
   listBlockedKeys,
+  type OpenStatus,
   revealItem,
   type ScoreField,
   type ScoreLabelMapping,
   type Scores,
-  type SettableStatus,
   type StatusOverride,
   type WorkItem,
   type WorkTypeMapping,
@@ -67,7 +67,7 @@ export interface ChartProps {
   /** Reports scores that the author clears from an item; without it, the pane offers no clear buttons. */
   onScoresClear?: (itemKey: string, fields: readonly ScoreField[]) => void;
   /** Reports a status that the user chose for an item. */
-  onStatusChange?: (itemKey: string, status: SettableStatus) => void;
+  onStatusChange?: (itemKey: string, status: OpenStatus) => void;
   /** Reports that the author keeps an item's agent scores; without it, the chart offers neither Keep nor Enter-to-keep. */
   onKeep?: (itemKey: string) => void;
   /**

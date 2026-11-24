@@ -73,7 +73,6 @@ export {
   deriveStatus,
   isOverrideVoid,
   type OpenStatus,
-  type SettableStatus,
   STATUS_ORDER,
   type StatusCategory,
   type StatusOverride,

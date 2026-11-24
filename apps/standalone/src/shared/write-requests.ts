@@ -43,7 +43,7 @@ export const scoresRequestSchema = z.object({
 /** The body of `POST /api/status`: the status to show, with the item's state at its source. */
 export const statusRequestSchema = z.object({
   itemKey: z.string().min(1),
-  status: z.enum(['in-progress', 'to-do']),
+  status: z.enum(['backlog', 'in-progress', 'to-do']),
   sourceState: z.enum(['closed', 'open']),
 });
 
@@ -63,7 +63,7 @@ export const scoresResponseSchema = z.object({
  */
 export const statusPatchSchema = z.object({
   labels: z.array(z.string()).exactOptional(),
-  sourceStatus: z.enum(['in-progress', 'to-do']).exactOptional(),
+  sourceStatus: z.enum(['backlog', 'in-progress', 'to-do']).exactOptional(),
 });
 
 /** The body of a successful `POST /api/status`: the item's resulting override, or `null` when it has none. */

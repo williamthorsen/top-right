@@ -6,11 +6,11 @@ import {
   type ItemScores,
   keepItemScores,
   type LabelDimension,
+  type OpenStatus,
   parseItemKey,
   removeDimensionLabels,
   type ScoreField,
   type Scores,
-  type SettableStatus,
   type StatusOverride,
 } from '@top-right/model';
 import { type Dispatch, type SetStateAction, useCallback, useRef, useState } from 'react';
@@ -33,7 +33,7 @@ export interface ItemWrites {
   changeScores: (itemKey: string, changed: Scores) => void;
   clearScores: (itemKey: string, fields: readonly ScoreField[]) => void;
   keepScores: (itemKey: string) => void;
-  changeStatus: (itemKey: string, status: SettableStatus, sourceState: 'closed' | 'open') => void;
+  changeStatus: (itemKey: string, status: OpenStatus, sourceState: 'closed' | 'open') => void;
   /** Returns the count of writes at the source so far, which marks the start of a read. */
   countWrites: () => number;
   /** Returns the patches written after write `since`, and forgets the earlier ones for `repos`, which a read covers. */
@@ -145,7 +145,7 @@ export function useItemWrites(
     });
   }
 
-  function changeStatus(itemKey: string, status: SettableStatus, sourceState: 'closed' | 'open'): void {
+  function changeStatus(itemKey: string, status: OpenStatus, sourceState: 'closed' | 'open'): void {
     const previous = overrides[itemKey];
     // Set To do as an override too, so that an item whose source says In progress shows To do until the host answers.
     const optimistic: StatusOverride = { status, sourceState, at: new Date().toISOString() };

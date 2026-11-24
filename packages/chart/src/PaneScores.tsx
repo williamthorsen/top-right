@@ -2,11 +2,11 @@ import {
   deriveStatus,
   EFFORT_SCALE,
   type ItemRef,
+  type OpenStatus,
   PROGRESS_STEP,
   type ResolvedItemScores,
   type ScoreField,
   type Scores,
-  type SettableStatus,
   type StatusCategory,
   type StatusOverride,
   URGENCY_LEVELS,
@@ -26,7 +26,7 @@ export interface PaneScoresProps {
   onScoresChange: (scores: Scores) => void;
   /** Clears one of the item's scores; without it, the rows offer no clear button. */
   onScoresClear: ((field: ScoreField) => void) | undefined;
-  onStatusChange: (status: SettableStatus) => void;
+  onStatusChange: (status: OpenStatus) => void;
 }
 
 const STATUS_OPTIONS: ReadonlyArray<SegmentOption<StatusCategory>> = [
